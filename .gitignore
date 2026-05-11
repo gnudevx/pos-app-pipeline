@@ -1,0 +1,6 @@
+.env
+.mcp.json
+__pycache__
+.venv/
+docs/bugs/
+src/

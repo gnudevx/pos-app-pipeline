@@ -1,0 +1,145 @@
+@startuml
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+
+skinparam activity {
+  BackgroundColor #EEF2FF
+  BorderColor #534AB7
+  ArrowColor #555555
+  DiamondBackgroundColor #FFF8E1
+  DiamondBorderColor #BA7517
+  StartColor #3C3489
+  EndColor #3C3489
+}
+
+skinparam note {
+  BackgroundColor #F8F8F8
+  BorderColor #AAAAAA
+}
+
+skinparam partition {
+  BackgroundColor #F5F5FF
+  BorderColor #8888CC
+}
+
+title POS App - Agentic SDLC Pipeline (Web + Mobile)\n\nCLAUDE.md shared context loading automation by agent\n(Stack: React18+TS / FastAPI / PostgreSQL / ReactNative)\n Outputs should follow predefined schema (JSON / Markdown templates)
+
+start
+
+partition "Shared State & Artifact Storage" {
+  :Artifact Storage (Single Source of Truth)\n----\n/docs (requirements, tasks, test-results)\n/src (generated code)\n/tests\n\nState Tracking:\nTask Status = TODO | IN_PROGRESS | DONE | FAILED;
+  note right
+    Can be implemented as:
+    - File system (demo)
+    - S3 / DB (real system)
+  end note
+}
+
+partition "Phase 0 - Human Input" {
+  #FAECE7 : **Human Requirement**\n"Build me a POS app"\n(quan ly san pham, gio hang,\nthanh toan, in hoa don);
+  note right
+    Input: Human verbal requirement
+    File: .claude/agents/requirement-agent.md
+    Cau truc: markdown + checklist
+  end note
+}
+
+partition "Phase 1 - Requirement & Planning  [AI Agents]" {
+  :Requirement Agent  [PM Agent]\n----\nWrite PRD - Product Requirement Read\nRelease User Stories + Acceptance Criteria\n....\nOutput: /docs/requirements.md\nOutput: /docs/stories.json;
+  note right
+    Tool: claude-sonnet
+    File: .claude/agents/requirement-agent.md
+    Reads: CLAUDE.md
+  end note
+
+  :Planner Agent  [Tech Lead Agent]\n----\nDoc stories.json\nChia Epics -> Tasks -> Sprints\nGan Story Points & Priority P0/P1/P2\n....\nOutput: /docs/tasks.json\nSprint 1 = MVP  |  Sprint 2 = Advanced;
+  note right
+    Tool: claude-sonnet
+    File: .claude/agents/planner-agent.md
+  end note
+}
+
+partition "Phase 2 - Jira Sync via MCP  [Infrastructure]" {
+  #E8F5E9 : Jira Sync  [Atlassian MCP Server]\n----\nReceive tasks.json from Planner Agent\nCreate Jira Project + Sprint Board\nPush tickets: TASK-1, TASK-2...\nMap fields: summary, description, points\n....\nOutput: Jira board with issues fully populated;
+  note right
+    MCP: Atlassian MCP Server
+    Config: .mcp.json
+    (JIRA_HOST, JIRA_EMAIL, JIRA_TOKEN)
+    Perform the final step after local development and testing, before merging to main branch
+  end note
+}
+
+partition "Phase 3 - Sprint Execution Loop  [Orchestrator + Agents]" {
+  #FFFDE7 : Orchestrator  [orchestrator.py]\n----\nRead tasks.json, take each tickets\nCall Dev Agent -> Tester Agent sequence\nQuanly retry counter & circuit breaker\nEscalate neu fail > 3 times continuesly;
+  note left
+    Execution model:
+    - Sequential queue (FIFO)
+    - Can evolve to async queue (Redis/RabbitMQ)
+    - Setup environment (venv / node_modules)
+    - Run DB migrations (if schema changed)
+    File: orchestrator.py
+    Pattern: Orchestrator-Worker
+    Spawn Claude Code instances independently for Dev Agent and Tester Agent
+    Outside Claude context window
+  end note
+
+  :Dev Agent  [Senior Dev Agent]\n----\n Read task from tasks.json \n *(Optional: mapped to Jira issue)* \nTao branch: feature/TASK-{id}-desc\nImplement code:\n  React+TS (frontend)\n  FastAPI+Python (backend)\nChay test so bo locally\nCommit + Push -> tao Pull Request GitHub;
+  note right
+    Must work with existing code context
+    Not generating from scratch every time
+    File: .claude/agents/dev-agent.md
+    Tools: read, write, bash
+    Hook: auto-run lint truoc commit
+  end note
+
+  :Tester Agent  [QA Agent]\n----\nPull code from branch just push\nRun Jest (frontend unit tests)\nRun Pytest (backend unit tests)\nOutput: /docs/test-results.md\nOutput: /docs/bugs/BUG-{timestamp}.md;
+  note right 
+    Tool: Claude Haiku (tiet kiem cost)
+    File: .claude/agents/tester-agent.md
+    Max retries: 3 times
+  end note
+
+  if (Tests Pass?) then (PASS)
+    #E8F5E9 : Update Jira ticket -> Done\nMerge PR vao main branch;
+  else (FAIL)
+    #FAECE7 : Classified error\n----\nTransient (timeout/rate limit) -> retry\nPermanent (logic error) -> bug report\nFile: /docs/bugs/BUG-timestamp.md\nJira: push bug ticket automatically;
+
+    if (Retry > 3 times?) then (ESCALATE)
+      #FAECE7 : Human Escalation\n----\nDeveloper review handmade\nFix finished -> resume pipeline;
+    else (RETRY)
+      :Back to Dev Agent;
+      detach
+    endif
+  endif
+
+  :Orchestrator take task next to execute;
+  note right: Looping for in the end Sprint
+}
+
+partition "Phase 4 - CI/CD Pipeline  [Infrastructure]" {
+  #E8F5E9 : GitHub Actions  [CI/CD Automation]\n----\nTrigger: PR AI review or human review before merge -> main\n....\nStep 1: Lint (ESLint + Flake8)\nStep 2: Unit Tests (Jest + Pytest)\nStep 3: Build (React build + Docker)\nStep 4: Deploy -> Staging environment\nStep 5: E2E Tests (Playwright);
+
+  note right
+    File: .github/workflows/ci.yml
+    Auto-trigger, do not need manual
+  end note
+}
+
+partition "Phase 5 - Product Release  [Infrastructure]" {
+  #E8F5E9 : Staging Deploy  [Auto CD]\n----\nApp Run on staging URL\nQA Testing manual (if necessary)\nPerformance & security scan \nTag release (v1.0.0) \nRollback to previous version if needed ;
+
+  if (Production Approved?) then (YES)
+    #C8E6C9 : Production Deploy\n----\nWeb:    Vercel / Railway\nAPI:    Railway / Render\nMobile app: optional extension (not in MVP demo) \n....\nURL live  |  API live  |  App live;
+    note right
+      Human approve this case
+      before pushing to production
+    end note
+  else (NO - Issues Found)
+    #FAECE7 : Rollback & Bug Fix\nCreate bug new sprint\nBack to Phase 3;
+    detach
+  endif
+}
+
+stop
+@enduml

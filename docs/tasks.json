@@ -8,25 +8,191 @@
         {
           "id": "TASK-01",
           "story_ref": "US-01",
-          "summary": "Product catalog API + search UI",
-          "description": "FastAPI endpoints: GET /products, POST /products. React search bar with product cards. Add to cart button triggers POST /cart/add.",
-          "story_points": 3,
+          "summary": "Backend API: Products and Cart endpoints",
+          "description": "Implement FastAPI backend with in-memory storage. Endpoints: GET /health, CRUD for /products/, and /cart/ endpoints (add, clear, checkout, get cart). Use Pydantic v2 models. Configure CORS to allow all origins.",
+          "story_points": 5,
           "priority": "P0",
-          "status": "DONE",
-          "component": "fullstack",
-          "branch": "feature/TASK-01-product-catalog-api-+-sea"
+          "status": "TODO",
+          "component": "backend",
+          "dependencies": [],
+          "api_contract": {
+            "routes": [
+              {
+                "method": "get",
+                "path": "/health",
+                "status_code": 200,
+                "response_fields": {
+                  "status": "str"
+                }
+              },
+              {
+                "method": "post",
+                "path": "/products",
+                "status_code": 201,
+                "response_fields": {
+                  "id": "int",
+                  "name": "str",
+                  "price": "float",
+                  "stock": "int"
+                }
+              },
+              {
+                "method": "get",
+                "path": "/products",
+                "status_code": 200,
+                "response_fields": {
+                  "items": "list"
+                }
+              },
+              {
+                "method": "get",
+                "path": "/products/{id}",
+                "status_code": 200,
+                "response_fields": {
+                  "id": "int",
+                  "name": "str",
+                  "price": "float",
+                  "stock": "int"
+                }
+              },
+              {
+                "method": "put",
+                "path": "/products/{id}",
+                "status_code": 200,
+                "response_fields": {}
+              },
+              {
+                "method": "delete",
+                "path": "/products/{id}",
+                "status_code": 204,
+                "response_fields": {}
+              },
+              {
+                "method": "post",
+                "path": "/cart/add",
+                "status_code": 201,
+                "response_fields": {
+                  "product_id": "int",
+                  "quantity": "int"
+                }
+              },
+              {
+                "method": "get",
+                "path": "/cart",
+                "status_code": 200,
+                "response_fields": {
+                  "items": "list"
+                }
+              },
+              {
+                "method": "delete",
+                "path": "/cart/clear",
+                "status_code": 204,
+                "response_fields": {}
+              },
+              {
+                "method": "post",
+                "path": "/cart/checkout",
+                "status_code": 200,
+                "response_fields": {
+                  "id": "int",
+                  "total": "float"
+                }
+              }
+            ]
+          },
+          "artifacts": [
+            "src/backend/app/main.py",
+            "src/backend/app/routes/products.py",
+            "src/backend/app/routes/cart.py",
+            "src/backend/app/models/product.py",
+            "src/backend/app/models/cart.py",
+            "src/backend/requirements.txt"
+          ],
+          "acceptance_criteria": [
+            "GET /health returns status ok",
+            "Products CRUD endpoints work correctly with in-memory storage",
+            "Cart add, clear, and checkout flows work with in-memory storage",
+            "All API requests and responses use Pydantic v2 models",
+            "CORS is configured to allow frontend access",
+            "Application runs with uvicorn"
+          ]
         },
         {
           "id": "TASK-02",
           "story_ref": "US-02",
-          "summary": "Cart + checkout + receipt",
-          "description": "Cart state in React. Checkout form with total. POST /cart/checkout returns receipt JSON. Receipt display component.",
+          "summary": "Frontend UI: React POS interface",
+          "description": "Implement React 18 + TypeScript frontend. Build ProductCard, Cart, and AddProductForm components. Integrate App.tsx. Connect frontend to backend using fetch API for product management and cart operations.",
+          "story_points": 5,
+          "priority": "P0",
+          "status": "TODO",
+          "component": "frontend",
+          "dependencies": [
+            "TASK-01"
+          ],
+          "artifacts": [
+            "src/frontend/src/App.tsx",
+            "src/frontend/src/components/ProductCard.tsx",
+            "src/frontend/src/components/Cart.tsx",
+            "src/frontend/src/components/AddProductForm.tsx",
+            "src/frontend/src/api/client.ts",
+            "src/frontend/src/types/index.ts"
+          ],
+          "acceptance_criteria": [
+            "Product catalog is displayed and searchable",
+            "Cashier can add/remove products to/from a cart and adjust quantities",
+            "Real-time display of cart total and line item totals",
+            "Checkout flow processes a sale via backend API",
+            "Frontend communicates with the backend API for all operations",
+            "Frontend builds successfully with Vite"
+          ],
+          "api_contract": {
+            "routes": []
+          }
+        },
+        {
+          "id": "TASK-03",
+          "story_ref": "US-03",
+          "summary": "Docker, tests and integration",
+          "description": "Write Dockerfiles for backend and frontend, and a docker-compose.yml for local development. Implement synchronous pytest unit tests for the backend and Jest unit tests for the frontend. Ensure proper integration wiring between services.",
           "story_points": 3,
           "priority": "P0",
           "status": "TODO",
-          "component": "fullstack"
+          "component": "fullstack",
+          "dependencies": [
+            "TASK-01",
+            "TASK-02"
+          ],
+          "test_contract": {
+            "backend_framework": "pytest",
+            "frontend_framework": "jest",
+            "backend_test_path": "src/backend/tests/test_api.py",
+            "frontend_test_path": "src/frontend/src/tests/App.test.tsx"
+          },
+          "artifacts": [
+            "docker-compose.yml",
+            "src/backend/tests/test_api.py",
+            "src/backend/Dockerfile",
+            "src/frontend/Dockerfile",
+            "src/frontend/src/tests/App.test.tsx"
+          ],
+          "acceptance_criteria": [
+            "Docker Compose successfully builds and runs backend and frontend services",
+            "Backend unit tests (Pytest) pass",
+            "Frontend unit tests (Jest) pass",
+            "Integration wiring allows frontend to communicate with backend via Docker Compose",
+            "Local development environment is runnable with one command"
+          ],
+          "api_contract": {
+            "routes": []
+          }
         }
       ]
+    },
+    {
+      "number": 2,
+      "name": "Advanced",
+      "tasks": []
     }
   ]
 }

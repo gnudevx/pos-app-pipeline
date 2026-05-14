@@ -1,206 +1,41 @@
 [
   {
-    "epic": "User Management & Authentication",
-    "stories": [
-      {
-        "id": "US-AUTH-1",
-        "as_a": "Cashier",
-        "i_want_to": "log in securely with my credentials",
-        "so_that": "I can access the POS system and process sales."
-      },
-      {
-        "id": "US-AUTH-2",
-        "as_a": "Administrator",
-        "i_want_to": "log in securely with my credentials",
-        "so_that": "I can manage the shop and view reports."
-      },
-      {
-        "id": "US-AUTH-3",
-        "as_a": "User",
-        "i_want_to": "log out of the system",
-        "so_that": "my session is terminated and my account is secure."
-      },
-      {
-        "id": "US-AUTH-4",
-        "as_a": "Administrator",
-        "i_want_to": "create new cashier accounts",
-        "so_that": "I can onboard new staff members."
-      },
-      {
-        "id": "US-AUTH-5",
-        "as_a": "Administrator",
-        "i_want_to": "assign roles to users (Admin, Cashier)",
-        "so_that": "I can control their access to different features."
-      }
+    "id": "US-01",
+    "title": "Backend API for POS operations",
+    "description": "Build FastAPI backend APIs for product management, cart operations, and sales processing using PostgreSQL for data storage and Pydantic for validation.",
+    "priority": "P0",
+    "acceptance_criteria": [
+      "Product CRUD APIs (create, read, update, delete) work correctly.",
+      "Cart management APIs (add item, remove item, update quantity, clear cart) work.",
+      "Checkout API processes a sale and records the transaction.",
+      "All APIs handle validation and return appropriate error messages.",
+      "Data is persisted in PostgreSQL."
     ]
   },
   {
-    "epic": "Product Management",
-    "stories": [
-      {
-        "id": "US-PROD-1",
-        "as_a": "Administrator",
-        "i_want_to": "add a new product with details like name, price, SKU, and initial stock",
-        "so_that": "it can be sold through the POS system."
-      },
-      {
-        "id": "US-PROD-2",
-        "as_a": "Administrator",
-        "i_want_to": "edit an existing product's details (e.g., price, name, stock)",
-        "so_that": "I can keep product information up-to-date."
-      },
-      {
-        "id": "US-PROD-3",
-        "as_a": "Administrator",
-        "i_want_to": "delete a product",
-        "so_that": "I can remove discontinued or erroneous items from the system."
-      },
-      {
-        "id": "US-PROD-4",
-        "as_a": "Cashier",
-        "i_want_to": "view a list of all products",
-        "so_that": "I can quickly find items to add to a sale."
-      },
-      {
-        "id": "US-PROD-5",
-        "as_a": "Cashier",
-        "i_want_to": "search for products by name or SKU",
-        "so_that": "I can efficiently locate specific items."
-      },
-      {
-        "id": "US-PROD-6",
-        "as_a": "Administrator",
-        "i_want_to": "upload an image for a product",
-        "so_that": "it's easier to identify and manage products visually."
-      }
+    "id": "US-02",
+    "title": "Web Frontend for POS operations",
+    "description": "Develop a React TypeScript web application for cashiers to manage products, build customer carts, and process sales, integrating with the backend APIs.",
+    "priority": "P0",
+    "acceptance_criteria": [
+      "Product catalog is displayed and searchable.",
+      "Cashier can add/remove products to/from a cart and adjust quantities.",
+      "Real-time display of cart total and line item totals.",
+      "Checkout flow allows processing a sale.",
+      "Frontend communicates with the backend APIs for all operations."
     ]
   },
   {
-    "epic": "Sales Transaction Management",
-    "stories": [
-      {
-        "id": "US-SALES-1",
-        "as_a": "Cashier",
-        "i_want_to": "add products to a customer's cart by searching or scanning",
-        "so_that": "I can build a transaction quickly."
-      },
-      {
-        "id": "US-SALES-2",
-        "as_a": "Cashier",
-        "i_want_to": "adjust the quantity of an item in the cart",
-        "so_that": "I can correct mistakes or handle multiple purchases of the same item."
-      },
-      {
-        "id": "US-SALES-3",
-        "as_a": "Cashier",
-        "i_want_to": "remove an item from the cart",
-        "so_that": "I can correct mistakes before completing a sale."
-      },
-      {
-        "id": "US-SALES-4",
-        "as_a": "Cashier",
-        "i_want_to": "apply a discount (percentage or fixed amount) to an item or the entire cart",
-        "so_that": "I can offer promotions or special pricing."
-      },
-      {
-        "id": "US-SALES-5",
-        "as_a": "Cashier",
-        "i_want_to": "process a cash payment and calculate change due",
-        "so_that": "I can complete cash transactions efficiently."
-      },
-      {
-        "id": "US-SALES-6",
-        "as_a": "Cashier",
-        "i_want_to": "process a card payment",
-        "so_that": "I can accept non-cash transactions."
-      },
-      {
-        "id": "US-SALES-7",
-        "as_a": "Cashier",
-        "i_want_to": "hold a transaction and recall it later",
-        "so_that": "I can serve other customers while one customer is still deciding or fetching items."
-      },
-      {
-        "id": "US-SALES-8",
-        "as_a": "Cashier",
-        "i_want_to": "process a return for a previously sold item",
-        "so_that": "I can handle customer refunds or exchanges."
-      },
-      {
-        "id": "US-SALES-9",
-        "as_a": "Cashier",
-        "i_want_to": "view a list of past transactions",
-        "so_that": "I can reference previous sales or find items for returns."
-      }
-    ]
-  },
-  {
-    "epic": "Inventory Management",
-    "stories": [
-      {
-        "id": "US-INV-1",
-        "as_a": "System",
-        "i_want_to": "automatically decrement product stock when a sale is completed",
-        "so_that": "inventory levels are always accurate."
-      },
-      {
-        "id": "US-INV-2",
-        "as_a": "Administrator",
-        "i_want_to": "manually adjust the stock level of a product",
-        "so_that": "I can account for stock takes, damages, or new deliveries."
-      },
-      {
-        "id": "US-INV-3",
-        "as_a": "Administrator",
-        "i_want_to": "receive alerts when a product's stock falls below a predefined threshold",
-        "so_that": "I can reorder items before they run out."
-      }
-    ]
-  },
-  {
-    "epic": "Reporting & Analytics",
-    "stories": [
-      {
-        "id": "US-REP-1",
-        "as_a": "Administrator",
-        "i_want_to": "view a daily, weekly, and monthly sales summary report",
-        "so_that": "I can understand my shop's performance over time."
-      },
-      {
-        "id": "US-REP-2",
-        "as_a": "Administrator",
-        "i_want_to": "view a report of top-selling and least-selling products",
-        "so_that": "I can make informed decisions about product ordering and promotions."
-      },
-      {
-        "id": "US-REP-3",
-        "as_a": "Administrator",
-        "i_want_to": "view a detailed transaction history with filters (date, cashier)",
-        "so_that": "I can audit sales and investigate discrepancies."
-      }
-    ]
-  },
-  {
-    "epic": "Receipt Generation",
-    "stories": [
-      {
-        "id": "US-REC-1",
-        "as_a": "Cashier",
-        "i_want_to": "print a receipt for a completed transaction",
-        "so_that": "customers have proof of purchase."
-      },
-      {
-        "id": "US-REC-2",
-        "as_a": "Cashier",
-        "i_want_to": "email a digital receipt to a customer",
-        "so_that": "customers have a convenient digital record and I can reduce paper waste."
-      },
-      {
-        "id": "US-REC-3",
-        "as_a": "Administrator",
-        "i_want_to": "customize the information displayed on receipts (e.g., shop name, address, logo)",
-        "so_that": "receipts reflect my shop's branding and essential information."
-      }
+    "id": "US-03",
+    "title": "Automated Testing and Docker Deployment Setup",
+    "description": "Implement automated unit and integration tests for both backend (Pytest) and frontend (Jest), and set up Docker Compose for local development and deployment.",
+    "priority": "P0",
+    "acceptance_criteria": [
+      "Docker Compose successfully builds and runs all services (backend, frontend, database).",
+      "Backend unit tests (Pytest) achieve at least 80% coverage.",
+      "Frontend unit tests (Jest) achieve at least 80% coverage.",
+      "Integration tests verify communication between frontend and backend.",
+      "CI/CD pipeline (GitHub Actions) runs tests on push."
     ]
   }
 ]

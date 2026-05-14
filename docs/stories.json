@@ -1,41 +1,67 @@
 [
   {
     "id": "US-01",
-    "title": "Backend API for POS operations",
-    "description": "Build FastAPI backend APIs for product management, cart operations, and sales processing using PostgreSQL for data storage and Pydantic for validation.",
+    "title": "Backend API for POS core operations",
+    "description": "Develop FastAPI backend APIs for product management (CRUD), cart operations (add, remove, update quantity), and order processing (checkout). Use PostgreSQL for data storage and Pydantic for request/response validation.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Product CRUD APIs (create, read, update, delete) work correctly.",
-      "Cart management APIs (add item, remove item, update quantity, clear cart) work.",
-      "Checkout API processes a sale and records the transaction.",
-      "All APIs handle validation and return appropriate error messages.",
-      "Data is persisted in PostgreSQL."
+      "Health endpoint `/health` returns status 'ok'",
+      "Products can be created, retrieved, updated, and deleted via API",
+      "Items can be added to, removed from, and have quantities updated in a shopping cart via API",
+      "A checkout API successfully processes a cart into an order, storing order details and line items",
+      "All API endpoints validate input data and return structured responses"
     ]
   },
   {
     "id": "US-02",
-    "title": "Web Frontend for POS operations",
-    "description": "Develop a React TypeScript web application for cashiers to manage products, build customer carts, and process sales, integrating with the backend APIs.",
+    "title": "Frontend POS interface for product and cart management",
+    "description": "Build a React TypeScript frontend UI for displaying products, allowing users to add/remove items to a shopping cart, adjust quantities, and complete the checkout process. Integrate with the backend APIs.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Product catalog is displayed and searchable.",
-      "Cashier can add/remove products to/from a cart and adjust quantities.",
-      "Real-time display of cart total and line item totals.",
-      "Checkout flow allows processing a sale.",
-      "Frontend communicates with the backend APIs for all operations."
+      "Product list is displayed on the main screen, fetched from the backend",
+      "Users can add products to a cart, and the cart UI updates in real-time",
+      "Users can adjust quantities of items in the cart and remove items",
+      "A checkout button initiates the order processing flow via the backend API",
+      "Frontend handles API responses and displays appropriate success/error messages"
     ]
   },
   {
     "id": "US-03",
-    "title": "Automated Testing and Docker Deployment Setup",
-    "description": "Implement automated unit and integration tests for both backend (Pytest) and frontend (Jest), and set up Docker Compose for local development and deployment.",
+    "title": "Automated testing and Dockerized deployment setup",
+    "description": "Set up automated unit and integration tests for both frontend (Jest) and backend (Pytest). Create Dockerfiles and a Docker Compose configuration for local development and deployment. Configure GitHub Actions for CI/CD.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Docker Compose successfully builds and runs all services (backend, frontend, database).",
-      "Backend unit tests (Pytest) achieve at least 80% coverage.",
-      "Frontend unit tests (Jest) achieve at least 80% coverage.",
-      "Integration tests verify communication between frontend and backend.",
-      "CI/CD pipeline (GitHub Actions) runs tests on push."
+      "Docker Compose successfully builds and runs both frontend and backend services locally",
+      "Backend unit and integration tests pass with Pytest",
+      "Frontend unit and integration tests pass with Jest",
+      "A GitHub Actions workflow is configured to run tests and build Docker images upon code push",
+      "Services communicate correctly within the Dockerized environment"
+    ]
+  },
+  {
+    "id": "US-04",
+    "title": "Implement staff user authentication",
+    "description": "Develop backend APIs for staff user registration and login, implementing token-based authentication (e.g., JWT). Integrate a basic login form into the frontend to allow staff to authenticate.",
+    "priority": "P1",
+    "acceptance_criteria": [
+      "Backend provides an API for staff registration with username/password",
+      "Backend provides an API for staff login, returning an authentication token upon success",
+      "Protected backend endpoints require a valid authentication token",
+      "Frontend includes a login page where staff can enter credentials",
+      "Frontend stores and uses the authentication token for subsequent API requests"
+    ]
+  },
+  {
+    "id": "US-05",
+    "title": "Display staff order history",
+    "description": "Create a backend API to retrieve a list of past orders. Develop a frontend UI page where authenticated staff can view a list of all completed orders, showing basic details like order ID, date, and total amount.",
+    "priority": "P1",
+    "acceptance_criteria": [
+      "Backend API exists to fetch a list of all past orders",
+      "The order history API is protected and requires staff authentication",
+      "Frontend includes a dedicated page/route for 'Order History'",
+      "The 'Order History' page displays a list of orders, each showing ID, date, and total",
+      "Frontend correctly fetches and renders order data from the backend API"
     ]
   }
 ]

@@ -2,20 +2,22 @@
 # PRD
 
 ## Problem
-Small retail shops lack an efficient system for managing products, processing sales, and tracking transactions. Manual methods are prone to errors, slow down checkout times, and make inventory management difficult.
+Small retail shops lack an efficient and modern point-of-sale system to manage product transactions, process sales, and track basic order information, leading to manual errors and slow customer service.
 
 ## MVP Features
-- Product catalog management (add, view, update, delete products).
-- Customer cart management (add items, remove items, adjust quantities).
-- Secure checkout process to finalize sales.
-- Basic sales transaction history viewing.
+- Product listing and search functionality.
+- Add/remove products to/from a shopping cart.
+- Adjust product quantities in the cart.
+- Process checkout and record sales.
+- Basic staff login/logout.
+- View a list of past orders.
 
 ## Non-functional Requirements
-- Performance: API responses and UI updates must be fast, ensuring quick checkout times.
-- Maintainability: Codebase must be modular, well-documented, and follow established coding standards.
-- Testing: Comprehensive automated unit and integration tests for both backend and frontend components.
-- Deployment: Application must be containerized using Docker for consistent and easy deployment across environments.
-- Usability: The user interface must be intuitive and easy for cashiers to learn and operate with minimal training.
+- **Performance:** API responses for core operations (product lookup, cart updates, checkout) must be sub-200ms.
+- **Maintainability:** Codebase must be well-documented, follow established coding standards, and be easily extendable.
+- **Testing:** Comprehensive unit and integration tests for both frontend and backend, with minimum 80% code coverage.
+- **Deployment:** Automated CI/CD pipeline for seamless deployment to staging and production environments using Docker.
+- **Usability:** Intuitive and responsive user interface for quick and error-free transaction processing by staff.
 
 # Project context:
 # POS App — Shared Project Context
@@ -64,7 +66,5 @@ chore(scope): description    ← cấu hình, dependency
 3. Lint pass (0 error)
 4. PR tạo trên GitHub
 5. Jira ticket cập nhật → Done
-
----
 ```
 ```json

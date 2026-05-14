@@ -9,95 +9,63 @@
           "id": "TASK-01",
           "story_ref": "US-01",
           "summary": "Backend API: Products and Cart endpoints",
-          "description": "Implement FastAPI backend with in-memory storage. Endpoints: GET /health, CRUD for /products/, and /cart/ endpoints (add, clear, checkout, get cart). Use Pydantic v2 models. Configure CORS to allow all origins.",
+          "description": "Implement FastAPI backend with in-memory storage. Endpoints: GET /health, POST/GET/PUT/DELETE /products/ (for CRUD), POST /cart/add, GET /cart/, DELETE /cart/clear, POST /cart/checkout. Use Pydantic v2 models. Configure CORS to allow all origins.",
           "story_points": 5,
           "priority": "P0",
-          "status": "TODO",
+          "status": "DONE",
           "component": "backend",
           "dependencies": [],
           "api_contract": {
             "routes": [
               {
-                "method": "get",
+                "method": "GET",
                 "path": "/health",
-                "status_code": 200,
-                "response_fields": {
-                  "status": "str"
-                }
+                "status_code": 200
               },
               {
-                "method": "post",
-                "path": "/products",
-                "status_code": 201,
-                "response_fields": {
-                  "id": "int",
-                  "name": "str",
-                  "price": "float",
-                  "stock": "int"
-                }
+                "method": "POST",
+                "path": "/products/",
+                "status_code": 201
               },
               {
-                "method": "get",
-                "path": "/products",
-                "status_code": 200,
-                "response_fields": {
-                  "items": "list"
-                }
+                "method": "GET",
+                "path": "/products/",
+                "status_code": 200
               },
               {
-                "method": "get",
+                "method": "GET",
                 "path": "/products/{id}",
-                "status_code": 200,
-                "response_fields": {
-                  "id": "int",
-                  "name": "str",
-                  "price": "float",
-                  "stock": "int"
-                }
+                "status_code": 200
               },
               {
-                "method": "put",
+                "method": "PUT",
                 "path": "/products/{id}",
-                "status_code": 200,
-                "response_fields": {}
+                "status_code": 200
               },
               {
-                "method": "delete",
+                "method": "DELETE",
                 "path": "/products/{id}",
-                "status_code": 204,
-                "response_fields": {}
+                "status_code": 204
               },
               {
-                "method": "post",
+                "method": "POST",
                 "path": "/cart/add",
-                "status_code": 201,
-                "response_fields": {
-                  "product_id": "int",
-                  "quantity": "int"
-                }
+                "status_code": 201
               },
               {
-                "method": "get",
-                "path": "/cart",
-                "status_code": 200,
-                "response_fields": {
-                  "items": "list"
-                }
+                "method": "GET",
+                "path": "/cart/",
+                "status_code": 200
               },
               {
-                "method": "delete",
+                "method": "DELETE",
                 "path": "/cart/clear",
-                "status_code": 204,
-                "response_fields": {}
+                "status_code": 204
               },
               {
-                "method": "post",
+                "method": "POST",
                 "path": "/cart/checkout",
-                "status_code": 200,
-                "response_fields": {
-                  "id": "int",
-                  "total": "float"
-                }
+                "status_code": 200
               }
             ]
           },
@@ -106,26 +74,26 @@
             "src/backend/app/routes/products.py",
             "src/backend/app/routes/cart.py",
             "src/backend/app/models/product.py",
-            "src/backend/app/models/cart.py",
             "src/backend/requirements.txt"
           ],
           "acceptance_criteria": [
             "GET /health returns status ok",
-            "Products CRUD endpoints work correctly with in-memory storage",
-            "Cart add, clear, and checkout flows work with in-memory storage",
-            "All API requests and responses use Pydantic v2 models",
-            "CORS is configured to allow frontend access",
-            "Application runs with uvicorn"
-          ]
+            "Products CRUD endpoints work correctly (create, read, update, delete)",
+            "Cart add, clear, and checkout flows work",
+            "All responses use Pydantic v2 models",
+            "Application runs with uvicorn",
+            "CORS is configured to allow frontend access"
+          ],
+          "branch": "feature/task-01-backend-api-products-and-cart-endpoints"
         },
         {
           "id": "TASK-02",
           "story_ref": "US-02",
           "summary": "Frontend UI: React POS interface",
-          "description": "Implement React 18 + TypeScript frontend. Build ProductCard, Cart, and AddProductForm components. Integrate App.tsx. Connect frontend to backend using fetch API for product management and cart operations.",
+          "description": "Implement React 18 + TypeScript frontend. Build ProductCard, Cart, and AddProductForm components. Integrate App.tsx. Connect frontend to backend using fetch API for product display, cart management, and checkout.",
           "story_points": 5,
           "priority": "P0",
-          "status": "TODO",
+          "status": "DONE",
           "component": "frontend",
           "dependencies": [
             "TASK-01"
@@ -135,29 +103,26 @@
             "src/frontend/src/components/ProductCard.tsx",
             "src/frontend/src/components/Cart.tsx",
             "src/frontend/src/components/AddProductForm.tsx",
-            "src/frontend/src/api/client.ts",
-            "src/frontend/src/types/index.ts"
+            "src/frontend/src/api/client.ts"
           ],
           "acceptance_criteria": [
-            "Product catalog is displayed and searchable",
-            "Cashier can add/remove products to/from a cart and adjust quantities",
-            "Real-time display of cart total and line item totals",
-            "Checkout flow processes a sale via backend API",
-            "Frontend communicates with the backend API for all operations",
-            "Frontend builds successfully with Vite"
+            "Product list is displayed and fetched from backend",
+            "Add to Cart updates UI and backend state",
+            "Adjusting item quantities and removing items in cart works",
+            "Checkout flow works and processes order via backend",
+            "Frontend builds successfully with Vite",
+            "Frontend communicates with backend API"
           ],
-          "api_contract": {
-            "routes": []
-          }
+          "branch": "feature/task-02-frontend-ui-react-pos-interface"
         },
         {
           "id": "TASK-03",
           "story_ref": "US-03",
           "summary": "Docker, tests and integration",
-          "description": "Write Dockerfiles for backend and frontend, and a docker-compose.yml for local development. Implement synchronous pytest unit tests for the backend and Jest unit tests for the frontend. Ensure proper integration wiring between services.",
+          "description": "Write Dockerfiles for backend and frontend, and a docker-compose.yml for local development. Implement synchronous pytest backend tests and Jest frontend tests. Ensure full integration wiring.",
           "story_points": 3,
           "priority": "P0",
-          "status": "TODO",
+          "status": "DONE",
           "component": "fullstack",
           "dependencies": [
             "TASK-01",
@@ -167,25 +132,24 @@
             "backend_framework": "pytest",
             "frontend_framework": "jest",
             "backend_test_path": "src/backend/tests/test_api.py",
-            "frontend_test_path": "src/frontend/src/tests/App.test.tsx"
+            "frontend_test_path": "src/frontend/src/tests/Cart.test.tsx"
           },
           "artifacts": [
             "docker-compose.yml",
             "src/backend/tests/test_api.py",
             "src/backend/Dockerfile",
             "src/frontend/Dockerfile",
-            "src/frontend/src/tests/App.test.tsx"
+            "src/frontend/src/tests/Cart.test.tsx"
           ],
           "acceptance_criteria": [
-            "Docker Compose successfully builds and runs backend and frontend services",
-            "Backend unit tests (Pytest) pass",
-            "Frontend unit tests (Jest) pass",
-            "Integration wiring allows frontend to communicate with backend via Docker Compose",
-            "Local development environment is runnable with one command"
+            "Docker compose starts backend and frontend services",
+            "Backend tests pass with pytest",
+            "Frontend tests pass with Jest",
+            "Containers expose correct ports and communicate",
+            "Integration environment is runnable with one command",
+            "GitHub Actions workflow is configured for CI/CD (tests and builds)"
           ],
-          "api_contract": {
-            "routes": []
-          }
+          "branch": "feature/task-03-docker-tests-and-integration"
         }
       ]
     },

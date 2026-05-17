@@ -193,6 +193,12 @@ Responsibilities:
                   "method": "POST",
                   "path": "/cart/checkout",
                   "status_code": 200
+                },
+                {
+                  "method": "GET",
+                  "path": "/products/",
+                  "status_code": 200,
+                  "response_example": { "items": [{"id": 1, "name": "Coffee", "price": 10.0, "stock": 5}] }
                 }
               ]
           },

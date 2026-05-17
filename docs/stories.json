@@ -1,67 +1,46 @@
 [
   {
     "id": "US-01",
-    "title": "Backend API for POS core operations",
-    "description": "Develop FastAPI backend APIs for product management (CRUD), cart operations (add, remove, update quantity), and order processing (checkout). Use PostgreSQL for data storage and Pydantic for request/response validation.",
+    "title": "Backend API for POS operations",
+    "description": "Build FastAPI backend APIs for product listing, cart management (add, update, remove items), and order processing. Use in-memory storage for MVP product and cart data, with Pydantic v2 for data validation.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Health endpoint `/health` returns status 'ok'",
-      "Products can be created, retrieved, updated, and deleted via API",
-      "Items can be added to, removed from, and have quantities updated in a shopping cart via API",
-      "A checkout API successfully processes a cart into an order, storing order details and line items",
-      "All API endpoints validate input data and return structured responses"
+      "Health endpoint returns status 'ok'",
+      "API to list all available products works correctly",
+      "API to add a product to the cart works and validates input",
+      "API to update product quantity in the cart works and validates input",
+      "API to remove a product from the cart works",
+      "API to process a checkout (create an order) works",
+      "All API responses conform to defined structured schemas"
     ]
   },
   {
     "id": "US-02",
-    "title": "Frontend POS interface for product and cart management",
-    "description": "Build a React TypeScript frontend UI for displaying products, allowing users to add/remove items to a shopping cart, adjust quantities, and complete the checkout process. Integrate with the backend APIs.",
+    "title": "Frontend POS interface",
+    "description": "Develop a React TypeScript web interface for displaying products, managing a shopping cart, and completing the checkout process. The UI must integrate with the backend APIs for all data operations.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Product list is displayed on the main screen, fetched from the backend",
-      "Users can add products to a cart, and the cart UI updates in real-time",
-      "Users can adjust quantities of items in the cart and remove items",
-      "A checkout button initiates the order processing flow via the backend API",
-      "Frontend handles API responses and displays appropriate success/error messages"
+      "Products are fetched from the backend and displayed on the UI",
+      "Users can add products to the cart from the product list",
+      "Users can update quantities of items in the cart",
+      "Users can remove items from the cart",
+      "The cart total updates dynamically as items are added/removed/updated",
+      "A checkout button initiates the order process via the backend API",
+      "Basic visual feedback is provided for user actions (e.g., item added to cart)"
     ]
   },
   {
     "id": "US-03",
-    "title": "Automated testing and Dockerized deployment setup",
-    "description": "Set up automated unit and integration tests for both frontend (Jest) and backend (Pytest). Create Dockerfiles and a Docker Compose configuration for local development and deployment. Configure GitHub Actions for CI/CD.",
+    "title": "Automated testing and Docker deployment setup",
+    "description": "Set up automated unit tests for both backend and frontend components. Create Dockerfiles for the FastAPI backend and React frontend, along with a Docker Compose configuration to orchestrate and run the entire application stack.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Docker Compose successfully builds and runs both frontend and backend services locally",
-      "Backend unit and integration tests pass with Pytest",
-      "Frontend unit and integration tests pass with Jest",
-      "A GitHub Actions workflow is configured to run tests and build Docker images upon code push",
-      "Services communicate correctly within the Dockerized environment"
-    ]
-  },
-  {
-    "id": "US-04",
-    "title": "Implement staff user authentication",
-    "description": "Develop backend APIs for staff user registration and login, implementing token-based authentication (e.g., JWT). Integrate a basic login form into the frontend to allow staff to authenticate.",
-    "priority": "P1",
-    "acceptance_criteria": [
-      "Backend provides an API for staff registration with username/password",
-      "Backend provides an API for staff login, returning an authentication token upon success",
-      "Protected backend endpoints require a valid authentication token",
-      "Frontend includes a login page where staff can enter credentials",
-      "Frontend stores and uses the authentication token for subsequent API requests"
-    ]
-  },
-  {
-    "id": "US-05",
-    "title": "Display staff order history",
-    "description": "Create a backend API to retrieve a list of past orders. Develop a frontend UI page where authenticated staff can view a list of all completed orders, showing basic details like order ID, date, and total amount.",
-    "priority": "P1",
-    "acceptance_criteria": [
-      "Backend API exists to fetch a list of all past orders",
-      "The order history API is protected and requires staff authentication",
-      "Frontend includes a dedicated page/route for 'Order History'",
-      "The 'Order History' page displays a list of orders, each showing ID, date, and total",
-      "Frontend correctly fetches and renders order data from the backend API"
+      "Backend unit tests are implemented using Pytest and pass successfully",
+      "Frontend unit tests are implemented using Jest and pass successfully",
+      "Dockerfiles for both backend and frontend are created and build successfully",
+      "A Docker Compose file is configured to run both services",
+      "The entire application stack can be brought up and down using Docker Compose",
+      "Frontend service can successfully communicate with the backend service within the Docker environment"
     ]
   }
 ]

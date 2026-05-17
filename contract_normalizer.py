@@ -15,6 +15,7 @@
 #       TASK-02.contract.json
 #   src/backend/tests/    ← tester viết vào đây, đọc từ contracts/
 
+from importlib.resources import path
 import json
 import os
 import re
@@ -68,7 +69,7 @@ CONTRACT_ROUTE_SCHEMAS = {
         "rules": [],
         "response_example": {"id": 1, "name": "Keyboard", "price": 99.5, "stock": 12}
     },
-    r"^put:/products/\{": {
+    r"^put:/products/\{param\}$": {
         "request_body": {
             "name": "str",
             "price": "float",
@@ -143,7 +144,8 @@ CONTRACT_SCHEMA_VERSION = "2.0"
 
 def resolve_route_schema(method: str, path: str) -> dict:
     """Tra CONTRACT_ROUTE_SCHEMAS → full schema cho 1 route."""
-    key = f"{method.lower()}:{path.rstrip('/')}"
+    path = normalize_route(path)
+    key = f"{method.lower()}:{path}"
     for pattern, schema in CONTRACT_ROUTE_SCHEMAS.items():
         if re.match(pattern, key, re.IGNORECASE):
             return schema
@@ -179,7 +181,7 @@ def normalize_contract_route(r: dict) -> dict:
       - response_fields annotate từ schema cứng nếu chưa có
     """
     method = r.get("method", "get").lower().strip()
-    path   = r.get("path", "/").strip()
+    path = normalize_route(r.get("path", "/"))
 
     if not path.startswith("/"):
         path = "/" + path
@@ -297,7 +299,9 @@ def export_contracts_to_files(tasks_json: dict, contracts_dir: str = "docs/contr
                 continue
 
             routes = task.get("api_contract", {}).get("routes", [])
-
+            for route in routes:
+                if not route.get("response_fields"):
+                    print(f"[WARNING] Route missing schema: {route}")
             contract = {
                 "schema_version": CONTRACT_SCHEMA_VERSION,
                 "task_id":        task_id,

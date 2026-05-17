@@ -199,6 +199,11 @@ Responsibilities:
                   "path": "/products/",
                   "status_code": 200,
                   "response_example": { "items": [{"id": 1, "name": "Coffee", "price": 10.0, "stock": 5}] }
+                },
+                {
+                  "method": "PUT",
+                  "path": "/products/{id}",
+                  "status_code": 200
                 }
               ]
           },

@@ -4,42 +4,82 @@ Khong phu thuoc vao Gemini hay Git — co the unit test doc lap.
 """
 import os
 import json
+import os
+import re
 
+AGENTS_DIR = ".claude/agents"
 
 # ── Agent instruction ─────────────────────────────────────
-
-def load_agent_instruction(agent_name, backend=None):
-    """
-    Doc .claude/agents/{agent_name}.md lam system prompt.
-    If backend provided, try {agent_name}-{backend}.md first.
-    Tu dong strip YAML frontmatter (phan --- ... ---).
-    """
-    # Try backend-specific file first if backend specified
-    if backend:
-        path = os.path.join(".claude", "agents", f"{agent_name}-{backend}.md")
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                content = f.read()
-            if content.startswith("---"):
-                end = content.find("---", 3)
-                if end != -1:
-                    content = content[end + 3:].strip()
-            return content
-    
-    # Fallback to generic file
-    path = os.path.join(".claude", "agents", f"{agent_name}.md")
-    if not os.path.exists(path):
-        return f"You are {agent_name}. Complete the task precisely."
-
+ 
+# Map task_id → file chứa spec của task đó
+TASK_FILE_MAP = {
+    "TASK-01": "dev-agent-task01.md",
+    "TASK-02": "dev-agent-task02.md",
+    "TASK-03": "dev-agent-task03.md",
+}
+ 
+# File luôn được load bất kể task nào
+CORE_FILE = "dev-agent-core.md"
+ 
+ 
+def _read_agent_file(path: str) -> str:
+    """Đọc file và strip frontmatter YAML (--- ... ---)."""
     with open(path, encoding="utf-8") as f:
         content = f.read()
+    content = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
+    return content.strip()
+ 
 
-    if content.startswith("---"):
-        end = content.find("---", 3)
-        if end != -1:
-            content = content[end + 3:].strip()
-
-    return content
+def load_agent_instruction(agent_name: str, backend: str = "gemini", task_id: str = "") -> str:
+    """
+    Load system prompt cho agent.
+ 
+    Chế độ hoạt động:
+      - agent khác dev-agent  → đọc file đơn như cũ (backward compat)
+      - dev-agent + task_id   → core + task file tương ứng (SMART MODE)
+      - dev-agent + no task_id → core + ALL task files (fallback)
+ 
+    Token so sánh (ước tính):
+      Cũ  : core + task01 + task02 + task03 ~ 4,000 tokens mỗi lần gọi
+      Mới : core + task01 only              ~ 1,500 tokens  (-62%)
+    """
+    base_dir = AGENTS_DIR
+ 
+    # ── Non-dev agents: đọc file đơn như cũ ──────────────────────────────
+    if agent_name != "dev-agent":
+        filename = f"{agent_name}-{backend}.md" if backend else f"{agent_name}.md"
+        filepath = os.path.join(base_dir, filename)
+        if not os.path.exists(filepath):
+            filepath = os.path.join(base_dir, f"{agent_name}.md")
+        if not os.path.exists(filepath):
+            return ""
+        return _read_agent_file(filepath)
+ 
+    # ── Dev agent: SMART MODE ─────────────────────────────────────────────
+    core_path = os.path.join(base_dir, CORE_FILE)
+    if not os.path.exists(core_path):
+        raise RuntimeError(f"Core file not found: {core_path}")
+ 
+    parts = [_read_agent_file(core_path)]
+ 
+    if task_id and task_id in TASK_FILE_MAP:
+        # Chỉ load đúng 1 file task
+        task_filename = TASK_FILE_MAP[task_id]
+        task_path = os.path.join(base_dir, task_filename)
+        if not os.path.exists(task_path):
+            raise RuntimeError(f"Task file not found: {task_path} (for {task_id})")
+        parts.append(_read_agent_file(task_path))
+        print(f"      [parser] dev-agent: core + {task_filename}")
+    else:
+        # Fallback: load tất cả (không biết task_id)
+        for fname in TASK_FILE_MAP.values():
+            task_path = os.path.join(base_dir, fname)
+            if os.path.exists(task_path):
+                parts.append(_read_agent_file(task_path))
+        print(f"      [parser] dev-agent: core + ALL tasks (fallback — no task_id)")
+ 
+    return "\n\n---\n\n".join(parts)
+ 
 
 
 def load_claude_md():

@@ -2,22 +2,20 @@
 # PRD
 
 ## Problem
-Small retail shops lack an efficient and user-friendly system to manage sales transactions, leading to manual errors, slow checkout processes, and difficulty tracking inventory and sales.
+Small retail shops lack an efficient system to manage product sales, track inventory, and process customer transactions, leading to manual errors and slow service.
 
 ## MVP Features
-- Display a list of available products.
-- Add products to a shopping cart.
-- Update product quantities in the cart.
-- Remove products from the cart.
-- Calculate the total amount for the cart.
-- Process a basic checkout (simulated payment).
+- Product listing and search functionality.
+- Ability to add, remove, and update quantities of items in a sales cart.
+- Secure checkout process for completing transactions.
+- Basic recording of sales transactions.
 
 ## Non-functional Requirements
-- **Performance**: The system should respond quickly to user interactions, especially during product lookup and cart updates.
-- **Maintainability**: The codebase should be modular, well-documented, and easy to understand for future enhancements.
-- **Testing**: Comprehensive automated tests (unit, integration) should be in place to ensure functionality and prevent regressions.
-- **Deployment**: The application should be containerized using Docker for consistent and easy deployment across environments.
-- **Usability**: The user interface should be intuitive and easy for retail staff to learn and operate with minimal training.
+- **Performance**: Fast response times for product lookup and transaction processing, aiming for sub-second responses.
+- **Maintainability**: Modular codebase with clear separation of concerns, well-documented APIs, and adherence to coding standards.
+- **Testing**: Comprehensive automated unit, integration, and end-to-end tests for both backend and frontend components.
+- **Deployment**: Containerized application services (Docker) for consistent and easy deployment across environments.
+- **Usability**: Intuitive and user-friendly interface for quick and error-free sales operations by staff.
 
 # Project context:
 # POS App — Shared Project Context

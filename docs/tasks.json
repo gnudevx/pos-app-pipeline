@@ -9,7 +9,7 @@
           "id": "TASK-01",
           "story_ref": "US-01",
           "summary": "Backend API: Products and Cart endpoints",
-          "description": "Implement FastAPI backend with in-memory storage for product listing, cart management, and order processing. Endpoints include: GET /health, CRUD for /products, add/clear/checkout for /cart. Use Pydantic v2 models for data validation and ensure CORS is configured.",
+          "description": "Implement FastAPI backend with in-memory storage. Endpoints: GET /health, GET/POST/PUT/DELETE /products/, POST /cart/add, GET /cart/, DELETE /cart/clear, POST /cart/checkout. Use Pydantic v2 models. Configure CORS to allow all origins.",
           "story_points": 5,
           "priority": "P0",
           "status": "DONE",
@@ -21,6 +21,11 @@
                 "method": "GET",
                 "path": "/health",
                 "status_code": 200
+              },
+              {
+                "method": "POST",
+                "path": "/products/",
+                "status_code": 201
               },
               {
                 "method": "GET",
@@ -38,9 +43,14 @@
                 }
               },
               {
-                "method": "POST",
-                "path": "/products/",
-                "status_code": 201
+                "method": "GET",
+                "path": "/products/{id}",
+                "status_code": 200
+              },
+              {
+                "method": "PUT",
+                "path": "/products/{id}",
+                "status_code": 200
               },
               {
                 "method": "DELETE",
@@ -74,18 +84,15 @@
             "src/backend/app/routes/products.py",
             "src/backend/app/routes/cart.py",
             "src/backend/app/models/product.py",
-            "src/backend/app/models/cart.py",
             "src/backend/requirements.txt"
           ],
           "acceptance_criteria": [
-            "GET /health endpoint returns status 'ok'",
-            "API to list all available products works correctly",
-            "API to add a product to the cart works and validates input",
-            "API to update product quantity in the cart works and validates input",
-            "API to remove a product from the cart works",
-            "API to process a checkout (create an order) works",
-            "All API responses conform to defined Pydantic v2 schemas",
-            "Application runs with uvicorn and handles CORS"
+            "GET /health returns status ok",
+            "Products CRUD endpoints work correctly (create, read, update, delete)",
+            "Cart add, clear, and checkout flows work as expected",
+            "All API responses use Pydantic v2 models for validation",
+            "Application runs with uvicorn and uses in-memory storage",
+            "CORS is configured to allow frontend access"
           ],
           "branch": "feature/task-01-backend-api-products-and-cart-endpoints"
         },
@@ -93,10 +100,10 @@
           "id": "TASK-02",
           "story_ref": "US-02",
           "summary": "Frontend UI: React POS interface",
-          "description": "Implement React 18 + TypeScript frontend for displaying products, managing a shopping cart, and completing the checkout process. Build ProductCard, Cart, and AddProductForm components. Integrate with the backend APIs using fetch API for all data operations.",
+          "description": "Implement React 18 + TypeScript frontend. Build ProductCard, Cart, and AddProductForm components. Integrate App.tsx and connect frontend to backend using fetch API to display products, manage cart, and handle checkout.",
           "story_points": 5,
           "priority": "P0",
-          "status": "TODO",
+          "status": "DONE",
           "component": "frontend",
           "dependencies": [
             "TASK-01"
@@ -106,28 +113,25 @@
             "src/frontend/src/components/ProductCard.tsx",
             "src/frontend/src/components/Cart.tsx",
             "src/frontend/src/components/AddProductForm.tsx",
-            "src/frontend/src/api/client.ts",
-            "src/frontend/package.json"
+            "src/frontend/src/api/client.ts"
           ],
           "acceptance_criteria": [
-            "Products are fetched from the backend and displayed on the UI",
-            "Users can add products to the cart from the product list",
-            "Users can update quantities of items in the cart",
-            "Users can remove items from the cart",
-            "The cart total updates dynamically as items are added/removed/updated",
-            "A checkout button initiates the order process via the backend API",
-            "Basic visual feedback is provided for user actions (e.g., item added to cart)",
-            "Frontend builds successfully with Vite and communicates with backend API"
-          ]
+            "Products are displayed clearly on the UI with relevant information",
+            "Users can add products to a cart, view cart contents, and adjust quantities",
+            "The checkout flow is intuitive and allows for completing a sale",
+            "Frontend successfully integrates and communicates with the backend APIs",
+            "UI is responsive and user-friendly"
+          ],
+          "branch": "feature/task-02-frontend-ui-react-pos-interface"
         },
         {
           "id": "TASK-03",
           "story_ref": "US-03",
           "summary": "Docker, tests and integration",
-          "description": "Set up automated unit tests for both backend (pytest) and frontend (Jest) components. Create Dockerfiles for the FastAPI backend and React frontend, along with a docker-compose.yml configuration to orchestrate and run the entire application stack.",
+          "description": "Write Dockerfiles for backend and frontend services. Create a docker-compose.yml for multi-service deployment. Implement synchronous pytest for backend unit tests and Jest for frontend unit tests. Ensure proper integration wiring between services.",
           "story_points": 3,
           "priority": "P0",
-          "status": "TODO",
+          "status": "DONE",
           "component": "fullstack",
           "dependencies": [
             "TASK-01",
@@ -144,18 +148,16 @@
             "src/backend/tests/test_api.py",
             "src/backend/Dockerfile",
             "src/frontend/Dockerfile",
-            "src/frontend/src/tests/Cart.test.tsx",
-            "src/frontend/jest.config.js"
+            "src/frontend/src/tests/Cart.test.tsx"
           ],
           "acceptance_criteria": [
-            "Backend unit tests are implemented using Pytest and pass successfully",
-            "Frontend unit tests are implemented using Jest and pass successfully",
-            "Dockerfiles for both backend and frontend are created and build successfully",
-            "A Docker Compose file is configured to run both services",
-            "The entire application stack can be brought up and down using Docker Compose",
-            "Frontend service can successfully communicate with the backend service within the Docker environment",
-            "Containers expose correct ports and are runnable with one command"
-          ]
+            "Docker compose successfully builds and runs both backend and frontend services",
+            "Backend unit tests are implemented and pass with pytest",
+            "Frontend unit tests are implemented and pass with Jest",
+            "Containers expose correct ports and are accessible from each other",
+            "Basic integration tests verify communication between frontend and backend"
+          ],
+          "branch": "feature/task-03-docker-tests-and-integration"
         }
       ]
     },

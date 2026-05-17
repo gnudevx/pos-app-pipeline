@@ -1,46 +1,53 @@
 [
   {
     "id": "US-01",
-    "title": "Backend API for POS operations",
-    "description": "Build FastAPI backend APIs for product listing, cart management (add, update, remove items), and order processing. Use in-memory storage for MVP product and cart data, with Pydantic v2 for data validation.",
+    "title": "Implement core POS Backend APIs for products and sales",
+    "description": "Develop FastAPI backend APIs for managing products (CRUD), handling cart operations (add, remove, update quantity), and processing sales transactions. Use PostgreSQL for data storage and Pydantic for validation.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Health endpoint returns status 'ok'",
-      "API to list all available products works correctly",
-      "API to add a product to the cart works and validates input",
-      "API to update product quantity in the cart works and validates input",
-      "API to remove a product from the cart works",
-      "API to process a checkout (create an order) works",
-      "All API responses conform to defined structured schemas"
+      "API endpoints for product CRUD operations are functional.",
+      "API endpoints for adding items to cart, updating quantities, and removing items are functional.",
+      "API endpoint for processing a sale (checkout) is functional and records the transaction.",
+      "Data is persisted correctly in PostgreSQL.",
+      "Input data is validated using Pydantic models."
     ]
   },
   {
     "id": "US-02",
-    "title": "Frontend POS interface",
-    "description": "Develop a React TypeScript web interface for displaying products, managing a shopping cart, and completing the checkout process. The UI must integrate with the backend APIs for all data operations.",
+    "title": "Develop Web UI for product display, cart, and checkout",
+    "description": "Build a React TypeScript web application that displays products, allows users to add/remove items to a cart, update quantities, and complete the checkout process by interacting with the backend APIs.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Products are fetched from the backend and displayed on the UI",
-      "Users can add products to the cart from the product list",
-      "Users can update quantities of items in the cart",
-      "Users can remove items from the cart",
-      "The cart total updates dynamically as items are added/removed/updated",
-      "A checkout button initiates the order process via the backend API",
-      "Basic visual feedback is provided for user actions (e.g., item added to cart)"
+      "Products are displayed clearly with relevant information.",
+      "Users can add products to a cart, view cart contents, and adjust quantities.",
+      "The checkout flow is intuitive and allows for completing a sale.",
+      "Frontend successfully integrates and communicates with the backend APIs.",
+      "UI is responsive and user-friendly."
     ]
   },
   {
     "id": "US-03",
-    "title": "Automated testing and Docker deployment setup",
-    "description": "Set up automated unit tests for both backend and frontend components. Create Dockerfiles for the FastAPI backend and React frontend, along with a Docker Compose configuration to orchestrate and run the entire application stack.",
+    "title": "Set up automated testing and Dockerized deployment",
+    "description": "Configure automated unit and integration tests for both backend (Pytest) and frontend (Jest). Create Dockerfiles and a Docker Compose setup to containerize the application services for local development and deployment.",
     "priority": "P0",
     "acceptance_criteria": [
-      "Backend unit tests are implemented using Pytest and pass successfully",
-      "Frontend unit tests are implemented using Jest and pass successfully",
-      "Dockerfiles for both backend and frontend are created and build successfully",
-      "A Docker Compose file is configured to run both services",
-      "The entire application stack can be brought up and down using Docker Compose",
-      "Frontend service can successfully communicate with the backend service within the Docker environment"
+      "Backend unit tests are implemented and pass with good coverage.",
+      "Frontend unit tests are implemented and pass.",
+      "Dockerfiles exist for both backend and frontend services.",
+      "docker-compose up successfully builds and runs all services.",
+      "Basic integration tests verify communication between frontend and backend."
+    ]
+  },
+  {
+    "id": "US-04",
+    "title": "Develop Mobile UI for product display and cart",
+    "description": "Build a React Native mobile application (using Expo) that displays products and allows users to add/remove items to a cart, update quantities, and view cart contents, integrating with the backend APIs.",
+    "priority": "P1",
+    "acceptance_criteria": [
+      "Products are displayed correctly on mobile devices.",
+      "Users can interact with the cart on mobile.",
+      "Mobile app successfully integrates with the backend APIs.",
+      "Basic navigation between product list and cart is functional."
     ]
   }
 ]

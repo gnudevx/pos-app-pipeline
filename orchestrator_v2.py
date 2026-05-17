@@ -407,10 +407,16 @@ def phase3_sprint_execution(tasks, ticket_map):
 
                 if sig["passed"]:
                     jira_update_status(jira_key, "Done")
-                    results["passed"].append(task_id)
+
+                    results["passed"].append({
+                        "task_id": task_id,
+                        "branch": branch,
+                        "summary": task["summary"],
+                        "depends_on": task.get("depends_on", [])
+                    })
+
                     print("    [TEST] PASSED")
                     task_passed = True
-                    _merge_to_develop(branch, task_id)
                     break
                 bug_context = _read_latest_bug_report(task_id)
                 print(f"    [TEST] FAIL (permanent={sig['permanent']}, transient={sig['transient']})")

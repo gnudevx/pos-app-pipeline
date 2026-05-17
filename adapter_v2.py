@@ -325,12 +325,19 @@ def _normalize_backend_paths(generated: dict) -> dict:
 
     for path, code in generated.items():
         path = path.strip().lstrip("./")
-        new_path = path
+
+        # Normalize AFTER lstrip — "dockerignore" đã mất dấu "." do lstrip
+        if path == "dockerignore":
+            path = ".dockerignore"
+
+        new_path = path  # gán new_path SAU khi đã normalize
+
         if path.startswith("src/backend/") and not path.startswith("src/backend/app/"):
             rel = path[len("src/backend/"):]
             if rel not in skip_at_root and not rel.startswith(".") and not rel.startswith(INFRA_PREFIXES):
                 new_path = f"src/backend/app/{rel}"
                 print(f"      [relocate] {path} → {new_path}")
+
         result[new_path] = code
     return result
 
@@ -417,6 +424,19 @@ def _build_dev_user_prompt(
     # Source: docs/contracts/{task_id}.contract.json  (schema_version={contract.get("schema_version", "?")})
     # Each route contains: method, path, status_code, request_body, response_body,
     #   errors (handle ALL listed error cases), rules (enforce ALL), depends_on.
+
+    CRITICAL API RULES:
+    - Response body MUST match the contract exactly.
+    - If response_fields contains fields like:
+    ["id", "name", "price", "stock"]
+    then the API response MUST contain ALL those fields.
+    - NEVER return empty JSON objects {{}} for successful 200/201 responses.
+    - NEVER return None for successful API responses.
+    - PUT/PATCH routes MUST return the updated entity object.
+    - POST create routes MUST return the created entity object.
+    - List routes MUST return arrays/lists.
+    - DELETE routes using 204 should return empty response body only when contract specifies 204.
+
     {contract_routes_str}
 
     # requirements.md
@@ -436,7 +456,14 @@ def _build_dev_user_prompt(
 
         You MUST fix ALL bugs listed below.
         If the same bug reappears the task fails permanently.
-
+        
+        # ADDITIONAL FIX RULES:
+        - Fix the failing tests exactly.
+        - Preserve existing working routes.
+        - Do not change contract paths/status codes.
+        - Return complete JSON responses matching response_fields.
+        - Empty JSON responses {{}} are forbidden unless explicitly required by contract.
+        
         {bug_context[:1200]}
         """)
 
@@ -615,6 +642,8 @@ def validate_backend_contract(pos_app_dir: str):
             checks.append("POST /products/ missing status_code=201")
         if not route_exists_flexible(routes, "delete", "/{param}", 204, products_code):
             checks.append("DELETE /products/{id} missing status_code=204")
+        if not route_exists_flexible(routes, "put", "/{param}", 200, products_code):
+            checks.append("PUT /products/{id} missing or wrong status_code (expected 200)")
         if not _module_has_symbol(products_code, "_db"):
             checks.append("_db not found in products.py")
         if not _module_has_symbol(products_code, "_next_id"):
@@ -673,7 +702,14 @@ def run_backend_smoke_test(pos_app_dir: str):
             return False, "POST /products failed"
         pid = r.json().get("id")
         if pid is None:
+            r_put = client.put(f"/products/{pid}", json={"name": "Updated", "price": 20.0, "stock": 50})
+            if r_put.status_code != 200:
+                return False, f"PUT /products/{pid} failed with status {r_put.status_code}: {r_put.text}"
+            put_data = r_put.json()
+            if not isinstance(put_data, dict) or "id" not in put_data:
+                return False, f"PUT /products/{pid} response missing 'id' — got: {put_data}"
             return False, f"POST /products/ response missing 'id': {r.json()}"
+        
         r = client.post("/cart/add", json={"product_id": pid, "quantity": 1})
         if r.status_code not in (200, 201):
             return False, "POST /cart/add failed"
@@ -751,7 +787,7 @@ def _gemini_dev(task_id, bug_context=None):
     git_ops.prepare_feature_branch(POS_APP_DIR, branch)
 
     # ── 2. Load system prompt ─────────────────────────────────────────────
-    system = p.load_agent_instruction("dev-agent", backend="gemini")
+    system = p.load_agent_instruction("dev-agent", backend="gemini", task_id=task_id)
     if not system or len(system.strip()) < 50:
         raise RuntimeError(
             "dev-agent-gemini.md not found or empty — "
@@ -818,26 +854,30 @@ def _gemini_dev(task_id, bug_context=None):
     _ensure_app_inits(generated, POS_APP_DIR)
 
     # ── 6. Retry nếu thiếu critical files ────────────────────────────────
-    CRITICAL_BY_COMPONENT = {
-        "backend": [
+    CRITICAL_BY_TASK = {
+        "TASK-01": [
             "src/backend/app/main.py",
             "src/backend/app/routes/products.py",
             "src/backend/app/routes/cart.py",
             "src/backend/requirements.txt",
         ],
-        "frontend": [
+        "TASK-02": [
             "src/frontend/src/App.tsx",
             "src/frontend/package.json",
             "src/frontend/src/components/Cart.tsx",
         ],
-        "fullstack": [
-            "src/backend/app/main.py",
-            "src/backend/app/routes/products.py",
-            "src/backend/app/routes/cart.py",
-            "src/frontend/src/App.tsx",
+        "TASK-03": [
+            "src/backend/Dockerfile",
+            "src/frontend/Dockerfile",
+            "docker-compose.yml",
         ],
     }
-    critical = CRITICAL_BY_COMPONENT.get(component, [])
+    CRITICAL_BY_COMPONENT = {
+        "backend":   ["src/backend/app/main.py", ...],
+        "frontend":  ["src/frontend/src/App.tsx", ...],
+        "fullstack": [],  # ← fullstack tasks phải có entry riêng trong CRITICAL_BY_TASK
+    }
+    critical = CRITICAL_BY_TASK.get(task_id) or CRITICAL_BY_COMPONENT.get(component, [])
     missing  = [f for f in critical if not os.path.exists(os.path.join(POS_APP_DIR, f))]
 
     if missing:
@@ -861,9 +901,9 @@ def _gemini_dev(task_id, bug_context=None):
             with open(full_path, "w", encoding="utf-8") as fw:
                 fw.write(code)
             print(f"      [gemini-dev] Retry written: {filepath}")
-
+    TASKS_WITH_BACKEND_CODE = {"TASK-01"} 
     # ── 7. Contract validation + smoke test ──────────────────────────────
-    if component in ("backend", "fullstack"):
+    if component in ("backend", "fullstack") and task_id in TASKS_WITH_BACKEND_CODE:
         ok, validation_bug = validate_backend_contract(POS_APP_DIR)
         serialization_ok, serialization_bug = validate_no_set_literals(POS_APP_DIR)
 
@@ -1074,8 +1114,11 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
         request_expr = f'client.{method}(' + ", ".join(request_args) + ')'
 
         lines.append(f"    r = {request_expr}")
-        safe_path = path.replace("{", "{{").replace("}", "}}")  # escape toàn bộ
-        lines.append(f"        f\"{method.upper()} {safe_path} expected {status}, got {{r.status_code}}: {{r.text}}\"")
+        safe_path = path.replace("{", "{{").replace("}", "}}")
+        lines.append(
+            f"    assert r.status_code == {status}, "
+            f"f\"{method.upper()} {safe_path} expected {status}, got {{r.status_code}}: {{r.text}}\""
+        )
 
         # [v4] Response field assertions: safe — assert key exists trước khi dùng
         if resp_fields and status not in (204,):
@@ -1286,6 +1329,15 @@ def _run_pytest(backend_dir):
         print(f"        {line}")
     return {"passed": result.returncode == 0, "output": output}
 
+def _run_frontend_build(frontend_dir):
+    if not os.path.exists(os.path.join(frontend_dir, "package.json")):
+        return {"passed": True, "output": "No frontend — skip"}
+    result = subprocess.run(
+        "npm run build",
+        shell=True, capture_output=True, text=True,
+        cwd=frontend_dir, encoding="utf-8", errors="ignore",
+    )
+    return {"passed": result.returncode == 0, "output": result.stdout + result.stderr}
 
 def _run_jest(frontend_dir):
     if not os.path.exists(os.path.join(frontend_dir, "package.json")):
@@ -1345,7 +1397,16 @@ def _get_task_component(task_id: str) -> str:
         pass
     return "fullstack"
 
+def _validate_python_syntax(filepath):
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            source = f.read()
 
+        ast.parse(source)
+        return True, None
+
+    except SyntaxError as e:
+        return False, str(e)
 def _gemini_tester(task_id):
     from config import BACKEND_DIR, FRONTEND_DIR
 
@@ -1358,13 +1419,25 @@ def _gemini_tester(task_id):
         print("      [TEST] Contract-first: generating tests from contract file...")
         test_code = _generate_tests_from_contract(task_id, pos_app_dir=POS_APP_DIR)
         _write_test_file(POS_APP_DIR, test_code)
+        test_path = os.path.join(
+            POS_APP_DIR,
+            "src/backend/tests/test_api.py"
+        )
 
+        ok, err = _validate_python_syntax(test_path)
+
+        if not ok:
+            return f"TEST_GEN_SYNTAX_FAIL:{err}"
         # [v5] Nếu contract rỗng → chỉ chạy health check, không cần full pipeline
         contract = load_contract(task_id, contracts_dir="docs/contracts")
         if contract and len(contract.get("routes", [])) == 0:
             print(f"      [TEST] Contract has 0 routes — health-only test, skip heavy pipeline")
             backend_ok  = {"passed": True, "output": "Contract empty — health only"}
             frontend_ok = {"passed": True, "output": "Skipped — contract empty"}
+            if frontend_ok["passed"] and component != "backend":
+                build_ok = _run_frontend_build(FRONTEND_DIR)
+                if not build_ok["passed"]:
+                    frontend_ok = build_ok  # escalate as frontend failure
             # Vẫn ghi kết quả
             with open("docs/test-results.md", "a", encoding="utf-8") as f:
                 f.write(

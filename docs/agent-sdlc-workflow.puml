@@ -53,7 +53,7 @@ partition "Phase 1 - Requirement & Planning  [AI Agents]" {
     Reads: CLAUDE.md
   end note
 
-  :Planner Agent  [Tech Lead Agent]\n----\nDoc stories.json\nChia Epics -> Tasks -> Sprints\nGan Story Points & Priority P0/P1/P2\n....\nOutput: /docs/tasks.json\nSprint 1 = MVP  |  Sprint 2 = Advanced;
+  :Planner Agent  [Tech Lead Agent]\n----\nDoc stories.json\nChia Epics -> Tasks -> Sprints\nGan Story Points & Priority P0/P1/P2\n....\nOutput: /docs/tasks.json\nOutput: /docs/contracts/TASK-XX.contract.json\nSprint 1 = MVP  |  Sprint 2 = Advanced;
   note right
     Tool: claude-sonnet
     File: .claude/agents/planner-agent.md
@@ -69,7 +69,7 @@ partition "Phase 2 - Jira Sync via MCP  [Infrastructure]" {
     Perform the final step after local development and testing, before merging to main branch
   end note
 }
-
+:Contract Compiler\n----\nNormalize tasks.json\nExport /docs/contracts/TASK-XX.contract.json per task\nDefine: inputs, outputs, acceptance criteria, test cases;
 partition "Phase 3 - Sprint Execution Loop  [Orchestrator + Agents]" {
   #FFFDE7 : Orchestrator  [orchestrator.py]\n----\nRead tasks.json, take each tickets\nCall Dev Agent -> Tester Agent sequence\nQuanly retry counter & circuit breaker\nEscalate neu fail > 3 times continuesly;
   note left
@@ -91,12 +91,18 @@ partition "Phase 3 - Sprint Execution Loop  [Orchestrator + Agents]" {
     File: .claude/agents/dev-agent.md
     Tools: read, write, bash
     Hook: auto-run lint truoc commit
+    - Reads: contract file, CLAUDE.md
+    Không tự đoán scope — contract là source of truth
+    Reads: CLAUDE.md, /docs/requirements.md, /docs/contracts/TASK-XX.contract.json
   end note
 
   :Tester Agent  [QA Agent]\n----\nPull code from branch just push\nRun Jest (frontend unit tests)\nRun Pytest (backend unit tests)\nOutput: /docs/test-results.md\nOutput: /docs/bugs/BUG-{timestamp}.md;
   note right 
     Tool: Claude Haiku (tiet kiem cost)
     File: .claude/agents/tester-agent.md
+    Reads: contract file (same file as Dev Agent)
+    Validate output against acceptance criteria in contract
+    Không generate test cases từ đầu
     Max retries: 3 times
   end note
 
@@ -118,11 +124,13 @@ partition "Phase 3 - Sprint Execution Loop  [Orchestrator + Agents]" {
 }
 
 partition "Phase 4 - CI/CD Pipeline  [Infrastructure]" {
-  #E8F5E9 : GitHub Actions  [CI/CD Automation]\n----\nTrigger: PR AI review or human review before merge -> main\n....\nStep 1: Lint (ESLint + Flake8)\nStep 2: Unit Tests (Jest + Pytest)\nStep 3: Build (React build + Docker)\nStep 4: Deploy -> Staging environment\nStep 5: E2E Tests (Playwright);
+  #E8F5E9 : CI Light Check [GitHub Actions]\n----\nTrigger: PR feature -> develop\nStep 1: Lint quick (ESLint + Flake8, non-blocking)\nStep 2: Build check (compile only, no full test suite)\nStep 3: Deploy -> Staging\nGoal: verify code chạy được, không block deploy;
 
   note right
     File: .github/workflows/ci.yml
-    Auto-trigger, do not need manual
+    Demo-optimized: skip heavy E2E
+    Full test đã chạy ở Phase 3 (Tester Agent)
+    Fail lint -> warning only, không block merge
   end note
 }
 

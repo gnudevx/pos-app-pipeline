@@ -17,7 +17,7 @@ Instead of manually executing each SDLC phase, the system leverages **LLM-powere
 * Integrate with CI/CD pipelines
 * Assist in deployment and release
 
-**regulation color in architecture:**  
+# 1.1 **regulation color in architecture:**  
 
 Blue 
 Means:

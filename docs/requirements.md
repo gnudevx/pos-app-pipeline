@@ -2,22 +2,22 @@
 # PRD
 
 ## Problem
-Small retail shops lack an efficient and modern point-of-sale system to manage product transactions, process sales, and track basic order information, leading to manual errors and slow customer service.
+Small retail shops lack an efficient and user-friendly system to manage sales transactions, leading to manual errors, slow checkout processes, and difficulty tracking inventory and sales.
 
 ## MVP Features
-- Product listing and search functionality.
-- Add/remove products to/from a shopping cart.
-- Adjust product quantities in the cart.
-- Process checkout and record sales.
-- Basic staff login/logout.
-- View a list of past orders.
+- Display a list of available products.
+- Add products to a shopping cart.
+- Update product quantities in the cart.
+- Remove products from the cart.
+- Calculate the total amount for the cart.
+- Process a basic checkout (simulated payment).
 
 ## Non-functional Requirements
-- **Performance:** API responses for core operations (product lookup, cart updates, checkout) must be sub-200ms.
-- **Maintainability:** Codebase must be well-documented, follow established coding standards, and be easily extendable.
-- **Testing:** Comprehensive unit and integration tests for both frontend and backend, with minimum 80% code coverage.
-- **Deployment:** Automated CI/CD pipeline for seamless deployment to staging and production environments using Docker.
-- **Usability:** Intuitive and responsive user interface for quick and error-free transaction processing by staff.
+- **Performance**: The system should respond quickly to user interactions, especially during product lookup and cart updates.
+- **Maintainability**: The codebase should be modular, well-documented, and easy to understand for future enhancements.
+- **Testing**: Comprehensive automated tests (unit, integration) should be in place to ensure functionality and prevent regressions.
+- **Deployment**: The application should be containerized using Docker for consistent and easy deployment across environments.
+- **Usability**: The user interface should be intuitive and easy for retail staff to learn and operate with minimal training.
 
 # Project context:
 # POS App — Shared Project Context

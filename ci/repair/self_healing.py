@@ -211,7 +211,6 @@ def extract_related_files(error_log: str) -> list[str]:
 
 def load_file_context(repo_dir: str, files: list[str]) -> str:
     chunks = []
-    # Các prefix có thể có trong repo
     search_roots = [
         Path(repo_dir),
         Path(repo_dir) / "src" / "frontend",
@@ -227,12 +226,13 @@ def load_file_context(repo_dir: str, files: list[str]) -> str:
                 try:
                     content = path.read_text(encoding="utf-8")
                     chunks.append(f"\n=== FILE: {file} ===\n{content[:4000]}")
+                    print(f"  [self_healing] Loaded context: {path}")  # thêm dòng này
                     break
                 except Exception:
                     pass
         if content is None:
-            # thử tìm bằng glob nếu không match path tĩnh
             found = list(Path(repo_dir).rglob(Path(file).name))
+            print(f"  [self_healing] rglob '{Path(file).name}' → {found}")  # thêm dòng này
             if found:
                 try:
                     content = found[0].read_text(encoding="utf-8")
@@ -255,6 +255,7 @@ def generate_patch(
     import core.ai_client as ai_client
     related_files = extract_related_files(error_log)
     context = load_file_context(repo_dir, related_files)
+    print(f"  [self_healing] Context loaded: {len(context)} chars for files {related_files}")
     user_prompt = (
         f"Task ID: {task_id}\n"
         f"Phase: {phase}\n\n"
@@ -443,14 +444,26 @@ def run_self_healing_loop(
 
             try:
                 component_name = Path(rel).name
+                app_tsx_path = None
+                for root in [Path(repo_dir) / "src" / "frontend" / "src", Path(repo_dir)]:
+                    candidate = root / "App.tsx"
+                    if candidate.exists():
+                        app_tsx_path = candidate
+                        break
+
+                app_context = ""
+                if app_tsx_path:
+                    app_context = f"\n\nApp.tsx content (to understand required props):\n{app_tsx_path.read_text(encoding='utf-8')[:3000]}"
+
                 gen_prompt = (
                     f"Write the complete content of a React TypeScript file named {component_name}.tsx.\n"
                     f"Context: POS (Point of Sale) application.\n"
                     f"Rules:\n"
                     f"- First line must be: import React from 'react';\n"
                     f"- Last line must be: export default {component_name};\n"
-                    f"- Accept props as needed for a POS {component_name} component.\n"
+                    f"- Props interface must match EXACTLY how the component is used in App.tsx below.\n"
                     f"- Output raw .tsx code only. No markdown. No backticks. No explanation."
+                    f"{app_context}"
                 )
                 # Dùng lại generate_patch infrastructure — gọi ai_client trực tiếp
                 import core.ai_client as ai_client

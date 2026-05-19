@@ -194,6 +194,10 @@ that fixes the root cause. The patch must:
 - Not break other functionality
 - Target Python backend or TypeScript/React frontend code
 
+IMPORTANT constraints:
+- TypeScript/React imports must NOT include file extensions (.tsx, .ts)
+- Only fix the exact error, do not refactor unrelated code
+
 Respond with ONLY the unified diff patch, starting with "---" and nothing else.
 Do not include explanations, markdown fences, or commentary.
 If the error cannot be fixed by a code patch (e.g. infrastructure/config issue),
@@ -416,7 +420,7 @@ def run_self_healing_loop(
             if not module_path.startswith('.'):
                 continue
 
-            full_path = Path(repo_dir) / "/src/frontend/src" / (rel + ".tsx")
+            full_path = Path(repo_dir) / "src" / "frontend" / "src" / (rel + ".tsx")
             print(f"  [self_healing] Generating missing file: {full_path}")
 
             try:

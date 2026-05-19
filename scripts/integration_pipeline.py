@@ -123,6 +123,7 @@ class IntegrationManifest:
                 for p in self.phases
             ],
         }
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 

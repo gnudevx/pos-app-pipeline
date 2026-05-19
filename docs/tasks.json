@@ -12,7 +12,7 @@
           "description": "Implement FastAPI backend with in-memory storage. Endpoints: GET /health, GET/POST/PUT/DELETE /products/, POST /cart/add, GET /cart/, DELETE /cart/clear, POST /cart/checkout. Use Pydantic v2 models. Configure CORS to allow all origins.",
           "story_points": 5,
           "priority": "P0",
-          "status": "DONE",
+          "status": "PASSED",
           "component": "backend",
           "dependencies": [],
           "api_contract": {
@@ -103,7 +103,7 @@
           "description": "Implement React 18 + TypeScript frontend. Build ProductCard, Cart, and AddProductForm components. Integrate App.tsx and connect frontend to backend using fetch API to display products, manage cart, and handle checkout.",
           "story_points": 5,
           "priority": "P0",
-          "status": "DONE",
+          "status": "PASSED",
           "component": "frontend",
           "dependencies": [
             "TASK-01"
@@ -131,7 +131,7 @@
           "description": "Write Dockerfiles for backend and frontend services. Create a docker-compose.yml for multi-service deployment. Implement synchronous pytest for backend unit tests and Jest for frontend unit tests. Ensure proper integration wiring between services.",
           "story_points": 3,
           "priority": "P0",
-          "status": "DONE",
+          "status": "PASSED",
           "component": "fullstack",
           "dependencies": [
             "TASK-01",

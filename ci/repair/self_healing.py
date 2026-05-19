@@ -409,7 +409,7 @@ def run_self_healing_loop(
         )
         report.print_summary()
         return report
-    missing_modules = re.findall(r"Cannot find module '([^']+)'", error_log)
+    missing_modules = list(dict.fromkeys(re.findall(r"Cannot find module '([^']+)'", error_log)))
     if missing_modules:
         print(f"  [self_healing] Detected missing files: {missing_modules}")
         all_generated = True
@@ -447,13 +447,9 @@ def run_self_healing_loop(
                 all_generated = False
 
         if all_generated:
-            # Commit files mới tạo rồi push
             try:
                 _git("add -A", cwd=repo_dir)
-                _git(
-                    f'commit -m "fix(self-healing): generate missing files for {task_id}"',
-                    cwd=repo_dir,
-                )
+                _git(f'commit -m "fix(self-healing): generate missing files for {task_id}"', cwd=repo_dir)
                 branch = _git("rev-parse --abbrev-ref HEAD", cwd=repo_dir).stdout.strip()
                 _git(f"push origin {branch}", cwd=repo_dir)
                 report.ok = True
@@ -462,6 +458,12 @@ def run_self_healing_loop(
                 return report
             except RuntimeError as e:
                 print(f"  [self_healing] ✗ Git push failed: {e}")
+                # fall through to Gemini patch với error log chỉ còn TS errors
+                # Lọc bỏ missing module errors khỏi error_log
+                error_log = "\n".join(
+                    line for line in error_log.splitlines()
+                    if "Cannot find module" not in line
+                )
     for attempt_num in range(1, MAX_HEAL_RETRIES + 1):
         print(f"  [self_healing] Gemini patch attempt {attempt_num}/{MAX_HEAL_RETRIES}...")
         # 2a. Generate patch (ai_client xử lý retry/backoff nội bộ)

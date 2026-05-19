@@ -11,7 +11,7 @@ import sys
 DOCS_DIR = "docs"
 BUGS_DIR = os.path.join(DOCS_DIR, "bugs")
 
-from config import BACKEND_DIR, FRONTEND_DIR
+from core.config import BACKEND_DIR, FRONTEND_DIR
 
 
 # ── Tìm Python đúng — CHỈ ĐỊNH NGHĨA 1 LẦN ──────────────

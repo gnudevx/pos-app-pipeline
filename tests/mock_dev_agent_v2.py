@@ -7,7 +7,7 @@ import subprocess
 import datetime
 
 DOCS_DIR = "docs"
-from config import POS_APP_DIR
+from core.config import POS_APP_DIR
 
 ALWAYS_OVERWRITE = {
     "src/backend/requirements.txt",

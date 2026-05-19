@@ -15,7 +15,7 @@ Platforms: Web (React) + Mobile (React Native).
 ## Repository
 - Pipeline repo: https://github.com/gnudevx/pos-app
 - POS App repo:  https://github.com/gnudevx/pos-app-test_v2  ← dev-agent làm việc ở đây
-- Local POS path: D:\Intern\pos-app-test
+- Local POS path: D:\Intern\pos-app-pipeline
 - Main branch: main
 - Branch convention: feature/TASK-{id}-short-description
 

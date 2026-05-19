@@ -211,18 +211,34 @@ def extract_related_files(error_log: str) -> list[str]:
 
 def load_file_context(repo_dir: str, files: list[str]) -> str:
     chunks = []
+    # Các prefix có thể có trong repo
+    search_roots = [
+        Path(repo_dir),
+        Path(repo_dir) / "src" / "frontend",
+        Path(repo_dir) / "src" / "frontend" / "src",
+        Path(repo_dir) / "frontend",
+    ]
 
     for file in files:
-        path = Path(repo_dir) / file
-
-        if path.exists():
-            try:
-                content = path.read_text(encoding="utf-8")
-                chunks.append(
-                    f"\n=== FILE: {file} ===\n{content[:4000]}"
-                )
-            except Exception:
-                pass
+        content = None
+        for root in search_roots:
+            path = root / file
+            if path.exists():
+                try:
+                    content = path.read_text(encoding="utf-8")
+                    chunks.append(f"\n=== FILE: {file} ===\n{content[:4000]}")
+                    break
+                except Exception:
+                    pass
+        if content is None:
+            # thử tìm bằng glob nếu không match path tĩnh
+            found = list(Path(repo_dir).rglob(Path(file).name))
+            if found:
+                try:
+                    content = found[0].read_text(encoding="utf-8")
+                    chunks.append(f"\n=== FILE: {file} (found at {found[0]}) ===\n{content[:4000]}")
+                except Exception:
+                    pass
 
     return "\n".join(chunks)
 def generate_patch(
@@ -242,12 +258,13 @@ def generate_patch(
     user_prompt = (
         f"Task ID: {task_id}\n"
         f"Phase: {phase}\n\n"
+        f"Repo structure note: frontend source files are under 'src/frontend/src/'. "
+        f"Patch paths must be relative to repo root (e.g. 'src/frontend/src/App.tsx').\n\n"
         f"Error log:\n{error_log[:4000]}\n\n"
         f"Relevant files:\n{related_files}\n\n"
         f"Relevant file contents:\n{context}\n\n"
         f"Generate a valid unified diff patch.\n"
-        f"Patch paths must be relative to repo root.\n"
-        f"Respond ONLY with raw diff."
+        f"Respond ONLY with raw diff, no markdown, no explanation."
     )
 
     # ai_client.call() tự xử lý: 429 → rotate key, 5xx → exponential backoff

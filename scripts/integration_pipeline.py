@@ -65,11 +65,16 @@ from ci.merge.merge_coordinator       import (
 # ─────────────────────────────────────────────────────────────────────────────
 # Config
 # ─────────────────────────────────────────────────────────────────────────────
+BASE_DIR = Path(__file__).resolve()
 
+# đi lên tới repo root bằng cách tìm marker
+while not (BASE_DIR / "docs").exists():
+    BASE_DIR = BASE_DIR.parent
+    
 TASKS_JSON             = os.environ.get(
-                                "TASKS_JSON",
-                                os.path.join(os.path.dirname(__file__), "../../docs/tasks.json")
-                            )
+                            "TASKS_JSON",
+                            str(BASE_DIR / "docs/tasks.json")
+                        )
 REPO_DIR               = os.environ.get("REPO_DIR", "../app")
 COMPOSE_FILE           = "docker-compose.yml"
 HEALTH_CHECK_URL       = "http://localhost:8000/health"

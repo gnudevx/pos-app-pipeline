@@ -416,7 +416,7 @@ def run_self_healing_loop(
             if not module_path.startswith('.'):
                 continue
 
-            full_path = Path(repo_dir) / "pos-app-test_v2/src/frontend/src" / (rel + ".tsx")
+            full_path = Path(repo_dir) / "/src/frontend/src" / (rel + ".tsx")
             print(f"  [self_healing] Generating missing file: {full_path}")
 
             try:

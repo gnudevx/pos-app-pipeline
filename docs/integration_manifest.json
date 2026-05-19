@@ -1,0 +1,77 @@
+{
+  "integration_run_id": "integration-run-local",
+  "passed_task_ids": [
+    "TASK-01",
+    "TASK-02",
+    "TASK-03"
+  ],
+  "merge_order": [
+    "TASK-01",
+    "TASK-02",
+    "TASK-03"
+  ],
+  "phases": [
+    {
+      "phase": "merge_coordinator",
+      "ok": true,
+      "details": {
+        "merged_tasks": [
+          "TASK-01",
+          "TASK-02",
+          "TASK-03"
+        ],
+        "integration_branch": "integration/run-1779127411"
+      }
+    },
+    {
+      "phase": "contract_validation",
+      "ok": true,
+      "details": {
+        "errors": [],
+        "warnings": [
+          "Schema mismatch for '/products': TASK-01 declares ['id', 'name', 'price', 'stock'], TASK-01 declares ['items']",
+          "Schema mismatch for '/products/{id}': TASK-01 declares ['id', 'name', 'price', 'stock'], TASK-01 declares []",
+          "Schema mismatch for '/products/{id}': TASK-01 declares ['id', 'name', 'price', 'stock'], TASK-01 declares []"
+        ],
+        "merge_order": [
+          "TASK-01",
+          "TASK-02",
+          "TASK-03"
+        ]
+      }
+    },
+    {
+      "phase": "build_verification",
+      "ok": false,
+      "details": {
+        "targets": [
+          {
+            "name": "backend:pip-install",
+            "ok": false,
+            "duration_s": 0.02
+          },
+          {
+            "name": "frontend:tsc",
+            "ok": false,
+            "duration_s": 2.35
+          },
+          {
+            "name": "frontend:build",
+            "ok": false,
+            "duration_s": 1.44
+          }
+        ]
+      }
+    },
+    {
+      "phase": "self_healing_build_verification_TASK-01",
+      "ok": true,
+      "details": {
+        "failure_type": "STRUCTURAL",
+        "final_status": "HEALED",
+        "attempts": 0,
+        "escalate_reason": null
+      }
+    }
+  ]
+}

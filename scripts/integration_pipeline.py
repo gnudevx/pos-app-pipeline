@@ -66,7 +66,10 @@ from ci.merge.merge_coordinator       import (
 # Config
 # ─────────────────────────────────────────────────────────────────────────────
 
-TASKS_JSON             = "docs/tasks.json"
+TASKS_JSON             = os.environ.get(
+                                "TASKS_JSON",
+                                os.path.join(os.path.dirname(__file__), "../../docs/tasks.json")
+                            )
 REPO_DIR               = os.environ.get("REPO_DIR", "../app")
 COMPOSE_FILE           = "docker-compose.yml"
 HEALTH_CHECK_URL       = "http://localhost:8000/health"

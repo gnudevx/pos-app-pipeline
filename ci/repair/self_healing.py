@@ -205,8 +205,9 @@ respond with exactly: CANNOT_PATCH
 """
 
 def extract_related_files(error_log: str) -> list[str]:
-    matches = re.findall(r"src/[^\s(:]+", error_log)
+    matches = re.findall(r"src/[\w/.]+\.(?:tsx?|py)", error_log)
     return sorted(set(matches))
+
 
 def load_file_context(repo_dir: str, files: list[str]) -> str:
     chunks = []
@@ -426,9 +427,13 @@ def run_self_healing_loop(
             try:
                 component_name = Path(rel).name
                 gen_prompt = (
-                    f"Generate a minimal functional React TypeScript component: {component_name}\n"
+                    f"Write the complete content of a React TypeScript file named {component_name}.tsx.\n"
                     f"Context: POS (Point of Sale) application.\n"
-                    f"Return ONLY valid .tsx code, no markdown, no explanation."
+                    f"Rules:\n"
+                    f"- First line must be: import React from 'react';\n"
+                    f"- Last line must be: export default {component_name};\n"
+                    f"- Accept props as needed for a POS {component_name} component.\n"
+                    f"- Output raw .tsx code only. No markdown. No backticks. No explanation."
                 )
                 # Dùng lại generate_patch infrastructure — gọi ai_client trực tiếp
                 import core.ai_client as ai_client
@@ -438,6 +443,13 @@ def run_self_healing_loop(
                     user_prompt=gen_prompt,
                     agent_name="dev-agent",
                 )
+                file_content = re.sub(r"^```(?:tsx?|typescript)?\n?", "", file_content.strip())
+                file_content = re.sub(r"\n?```$", "", file_content.strip())
+
+                if "export default" not in file_content:
+                    raise ValueError(f"Generated {component_name} missing 'export default'")
+                if not any(kw in file_content for kw in ["import React", "import {", "const ", "function "]):
+                    raise ValueError(f"Generated {component_name} looks invalid")
                 full_path.parent.mkdir(parents=True, exist_ok=True)
                 full_path.write_text(file_content.strip(), encoding="utf-8")
                 print(f"  [self_healing] ✓ Created: {full_path}")

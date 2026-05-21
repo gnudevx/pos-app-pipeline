@@ -59,7 +59,7 @@ partition "Phase 1 - Requirement & Planning  [AI Agents]" {
     File: .claude/agents/planner-agent.md
   end note
 }
-
+  
 partition "Phase 2 - Jira Sync via MCP  [Infrastructure]" {
   #E8F5E9 : Jira Sync  [Atlassian MCP Server]\n----\nReceive tasks.json from Planner Agent\nCreate Jira Project + Sprint Board\nPush tickets: TASK-1, TASK-2...\nMap fields: summary, description, points\n....\nOutput: Jira board with issues fully populated;
   note right

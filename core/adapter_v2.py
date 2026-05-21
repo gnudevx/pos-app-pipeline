@@ -55,7 +55,7 @@ import datetime
 import re
 import core.ai_client as ai_client
 import core.git_ops as git_ops
-import parser as p
+import core.parser as p
 from core.config import GEMINI_API_KEYS
 from core.git_ops import make_branch_name
 import textwrap

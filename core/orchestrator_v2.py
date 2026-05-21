@@ -17,7 +17,7 @@ import base64
 
 from core.adapter_v2 import run_agent
 from core.config import POS_APP_DIR
-import parser as p
+import core.parser as p
 DOCS_DIR = "docs"
 BUGS_DIR = os.path.join(DOCS_DIR, "bugs")
 MAX_RETRY = 3

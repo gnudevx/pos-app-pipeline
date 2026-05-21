@@ -119,9 +119,7 @@ def _run_gemini(agent_name, prompt, bug_context=None):
         return _gemini_tester(prompt)
     raise ValueError(f"Unknown agent: {agent_name}")
 
-
 # ── Requirement agent ──────────────────────────────────────────────────────────
-
 def _gemini_requirement(prompt):
     system   = p.load_agent_instruction("requirement-agent", backend="gemini")
     claude_md = p.load_claude_md()

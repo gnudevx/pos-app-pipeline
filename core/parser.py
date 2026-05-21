@@ -20,8 +20,6 @@ TASK_FILE_MAP = {
  
 # File luôn được load bất kể task nào
 CORE_FILE = "dev-agent-core.md"
- 
- 
 def _read_agent_file(path: str) -> str:
     """Đọc file và strip frontmatter YAML (--- ... ---)."""
     with open(path, encoding="utf-8") as f:

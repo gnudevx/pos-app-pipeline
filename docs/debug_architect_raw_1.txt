@@ -1,0 +1,458 @@
+```json
+{
+  "schema_version": "1",
+  "tech_stack": {
+    "backend": "FastAPI + Pydantic v2",
+    "frontend": "React 18 + TypeScript + Vite",
+    "testing": "pytest (backend), Jest (frontend)",
+    "containerization": "Docker + docker-compose"
+  },
+  "services": [
+    {
+      "name": "Auth Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-01"],
+      "description": "JWT authentication: signup, login, token refresh. Handles user creation and session management.",
+      "file_structure": [
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/auth_backend/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/auth/signup",
+          "status_code": 201,
+          "request_body": {
+            "email": "str",
+            "password": "str"
+          },
+          "response_body": {
+            "id": "int",
+            "email": "str",
+            "token": "str"
+          },
+          "errors": [
+            { "status_code": 409, "when": "email already exists" }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status_code": 200,
+          "request_body": {
+            "email": "str",
+            "password": "str"
+          },
+          "response_body": {
+            "token": "str",
+            "user_id": "int"
+          },
+          "errors": [
+            { "status_code": 401, "when": "wrong credentials" }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/auth/refresh",
+          "status_code": 200,
+          "request_body": {
+            "refresh_token": "str"
+          },
+          "response_body": {
+            "token": "str"
+          },
+          "errors": [
+            { "status_code": 401, "when": "invalid refresh token" }
+          ]
+        }
+      ],
+      "shared_types": ["User"],
+      "depends_on": []
+    },
+    {
+      "name": "Catalog & Sales Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-02", "ENT-03", "ENT-04"],
+      "description": "Manages product catalog, inventory levels, shopping cart state, and sales transactions. Requires authentication for most operations.",
+      "file_structure": [
+        "src/services/catalog_sales_backend/app/main.py",
+        "src/services/catalog_sales_backend/app/routes/products.py",
+        "src/services/catalog_sales_backend/app/routes/carts.py",
+        "src/services/catalog_sales_backend/app/routes/transactions.py",
+        "src/services/catalog_sales_backend/app/models/product.py",
+        "src/services/catalog_sales_backend/app/models/cart.py",
+        "src/services/catalog_sales_backend/app/models/transaction.py",
+        "src/services/catalog_sales_backend/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/products",
+          "status_code": 201,
+          "request_body": {
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not admin)" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/products",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "items": [
+              {
+                "id": "int",
+                "name": "str",
+                "description": "str",
+                "price": "float",
+                "stock": "int"
+              }
+            ]
+          },
+          "errors": []
+        },
+        {
+          "method": "PUT",
+          "path": "/products/{product_id}",
+          "status_code": 200,
+          "request_body": {
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not admin)" },
+            { "status_code": 404, "when": "product not found" }
+          ]
+        },
+        {
+          "method": "DELETE",
+          "path": "/products/{product_id}",
+          "status_code": 204,
+          "request_body": {},
+          "response_body": {},
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not admin)" },
+            { "status_code": 404, "when": "product not found" }
+          ]
+        },
+        {
+          "method": "PATCH",
+          "path": "/products/{product_id}/stock",
+          "status_code": 200,
+          "request_body": {
+            "quantity_change": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not admin)" },
+            { "status_code": 404, "when": "product not found" },
+            { "status_code": 400, "when": "insufficient stock or invalid quantity change" }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/carts",
+          "status_code": 201,
+          "request_body": {},
+          "response_body": {
+            "id": "int",
+            "user_id": "int",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int"
+              }
+            ],
+            "total_price": "float",
+            "status": "str"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/carts/{cart_id}",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "id": "int",
+            "user_id": "int",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int"
+              }
+            ],
+            "total_price": "float",
+            "status": "str"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not user's cart)" },
+            { "status_code": 404, "when": "cart not found" }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/carts/{cart_id}/items",
+          "status_code": 200,
+          "request_body": {
+            "product_id": "int",
+            "quantity": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "user_id": "int",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int"
+              }
+            ],
+            "total_price": "float",
+            "status": "str"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not user's cart)" },
+            { "status_code": 404, "when": "cart or product not found" },
+            { "status_code": 400, "when": "insufficient stock or invalid quantity" }
+          ]
+        },
+        {
+          "method": "PUT",
+          "path": "/carts/{cart_id}/items/{item_id}",
+          "status_code": 200,
+          "request_body": {
+            "quantity": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "user_id": "int",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int"
+              }
+            ],
+            "total_price": "float",
+            "status": "str"
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not user's cart)" },
+            { "status_code": 404, "when": "cart or item not found" },
+            { "status_code": 400, "when": "invalid quantity or insufficient stock" }
+          ]
+        },
+        {
+          "method": "DELETE",
+          "path": "/carts/{cart_id}/items/{item_id}",
+          "status_code": 204,
+          "request_body": {},
+          "response_body": {},
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not user's cart)" },
+            { "status_code": 404, "when": "cart or item not found" }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/carts/{cart_id}/checkout",
+          "status_code": 201,
+          "request_body": {},
+          "response_body": {
+            "id": "int",
+            "user_id": "int",
+            "cart_id": "int",
+            "total_amount": "float",
+            "timestamp": "str",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int"
+              }
+            ]
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not user's cart)" },
+            { "status_code": 404, "when": "cart not found" },
+            { "status_code": 400, "when": "empty cart or stock issues" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/transactions",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "items": [
+              {
+                "id": "int",
+                "user_id": "int",
+                "cart_id": "int",
+                "total_amount": "float",
+                "timestamp": "str",
+                "items": [
+                  {
+                    "product_id": "int",
+                    "quantity": "int"
+                  }
+                ]
+              }
+            ]
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/transactions/{transaction_id}",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "id": "int",
+            "user_id": "int",
+            "cart_id": "int",
+            "total_amount": "float",
+            "timestamp": "str",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int"
+              }
+            ]
+          },
+          "errors": [
+            { "status_code": 401, "when": "unauthorized" },
+            { "status_code": 403, "when": "forbidden (not user's transaction)" },
+            { "status_code": 404, "when": "transaction not found" }
+          ]
+        }
+      ],
+      "shared_types": ["Product", "CartItem", "Cart", "Transaction"],
+      "depends_on": []
+    },
+    {
+      "name": "POS Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-05", "ENT-06"],
+      "description": "Frontend UI for sales staff to browse products, add items to a shopping cart, adjust quantities, finalize sales, and generate receipts.",
+      "file_structure": [
+        "src/frontend/src/pages/pos/LoginPage.tsx",
+        "src/frontend/src/pages/pos/ProductBrowser.tsx",
+        "src/frontend/src/pages/pos/ShoppingCart.tsx",
+        "src/frontend/src/pages/pos/CheckoutPage.tsx",
+        "src/frontend/src/pages/pos/ReceiptPage.tsx",
+        "src/frontend/src/api/pos.ts",
+        "src/frontend/src/store/posStore.ts",
+        "src/frontend/src/components/pos/ProductCard.tsx",
+        "src/frontend/src/components/pos/CartItemDisplay.tsx"
+      ],
+      "api_routes": [],
+      "shared_types": ["User", "Product", "CartItem", "Cart", "Transaction"],
+      "depends_on": ["Auth Backend", "Catalog & Sales Backend"]
+    },
+    {
+      "name": "Admin Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-07"],
+      "description": "Frontend UI for administrators to manage product catalog (add, edit, delete) and update inventory levels.",
+      "file_structure": [
+        "src/frontend/src/pages/admin/LoginPage.tsx",
+        "src/frontend/src/pages/admin/ProductManagement.tsx",
+        "src/frontend/src/pages/admin/InventoryManagement.tsx",
+        "src/frontend/src/api/admin.ts",
+        "src/frontend/src/store/adminStore.ts",
+        "src/frontend/src/components/admin/ProductForm.tsx",
+        "src/frontend/src/components/admin/InventoryUpdater.tsx"
+      ],
+      "api_routes": [],
+      "shared_types": ["User", "Product"],
+      "depends_on": ["Auth Backend", "Catalog & Sales Backend"]
+    }
+  ],
+  "shared_types": [
+    {
+      "name": "User",
+      "fields": {
+        "id": "int",
+        "email": "str"
+      },
+      "defined_in": "Auth Backend",
+      "used_by": ["Auth Backend", "POS Frontend", "Admin Frontend"]
+    },
+    {
+      "name": "Product",
+      "fields": {
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
+      },
+      "defined_in": "Catalog & Sales Backend",
+      "used_by": ["Catalog & Sales Backend", "POS Frontend", "Admin Frontend"]
+    },
+    {
+      "name": "CartItem",
+      "fields": {
+        "product_id": "int",
+        "quantity": "int"
+      },
+      "defined_in": "Catalog & Sales Backend",
+      "used_by": ["Catalog & Sales Backend", "POS Frontend"]

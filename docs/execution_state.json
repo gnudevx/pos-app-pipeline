@@ -1,0 +1,30 @@
+{
+  "updated_at": "2026-05-23 18:17:36",
+  "tasks": {
+    "TASK-01": {
+      "status": "in_progress",
+      "message": "",
+      "updated_at": "2026-05-23 18:17:36"
+    },
+    "TASK-02": {
+      "status": "blocked",
+      "message": "dependency failed",
+      "updated_at": "2026-05-23 17:35:11"
+    },
+    "TASK-03": {
+      "status": "blocked",
+      "message": "dependency failed",
+      "updated_at": "2026-05-23 17:35:11"
+    },
+    "TASK-04": {
+      "status": "blocked",
+      "message": "dependency failed",
+      "updated_at": "2026-05-23 17:35:11"
+    },
+    "TASK-05": {
+      "status": "blocked",
+      "message": "dependency failed",
+      "updated_at": "2026-05-23 17:35:11"
+    }
+  }
+}

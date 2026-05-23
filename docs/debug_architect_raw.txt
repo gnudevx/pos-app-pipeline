@@ -1,0 +1,34 @@
+```json
+{
+  "schema_version": "1",
+  "tech_stack": {
+    "backend": "FastAPI + Pydantic v2",
+    "frontend": "React 18 + TypeScript + Vite",
+    "testing": "pytest (backend), Jest (frontend)",
+    "containerization": "Docker + docker-compose"
+  },
+  "services": [
+    {
+      "task_id": "TASK-01",
+      "name": "Auth Backend",
+      "component": "service",
+      "entity_refs": ["ENT-01"],
+      "description": "JWT authentication: signup, login, token refresh, and user info retrieval.",
+      "file_structure": [
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/auth_backend/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/auth/signup",
+          "status_code": 201,
+          "request_body": {
+            "email": "str",
+            "password": "str"
+          },
+          "response_body": {
+            "id": "int",
+            "email":

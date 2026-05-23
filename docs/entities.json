@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ENT-01",
+    "name": "User Authentication Service",
+    "description": "Backend service for user signup, login, and session management using JWT.",
+    "component": "backend",
+    "complexity": "medium",
+    "depends_on": []
+  },
+  {
+    "id": "ENT-02",
+    "name": "Product Management API",
+    "description": "Backend API for creating, reading, updating, and deleting product information (name, price, stock).",
+    "component": "backend",
+    "complexity": "medium",
+    "depends_on": []
+  },
+  {
+    "id": "ENT-03",
+    "name": "Inventory Management API",
+    "description": "Backend API for updating and querying product stock levels.",
+    "component": "backend",
+    "complexity": "medium",
+    "depends_on": [
+      "ENT-02"
+    ]
+  },
+  {
+    "id": "ENT-04",
+    "name": "Sales Transaction API",
+    "description": "Backend API for managing shopping cart state, processing sales, and recording transactions.",
+    "component": "backend",
+    "complexity": "high",
+    "depends_on": [
+      "ENT-02",
+      "ENT-03"
+    ]
+  },
+  {
+    "id": "ENT-05",
+    "name": "POS Sales Interface",
+    "description": "Frontend UI for sales staff to browse products, add items to a shopping cart, and adjust quantities.",
+    "component": "frontend",
+    "complexity": "high",
+    "depends_on": [
+      "ENT-01",
+      "ENT-02",
+      "ENT-04"
+    ]
+  },
+  {
+    "id": "ENT-06",
+    "name": "Checkout & Receipt UI",
+    "description": "Frontend UI for finalizing a sale, displaying the total, and generating a printable receipt.",
+    "component": "frontend",
+    "complexity": "medium",
+    "depends_on": [
+      "ENT-04",
+      "ENT-05"
+    ]
+  },
+  {
+    "id": "ENT-07",
+    "name": "Admin Product & Inventory UI",
+    "description": "Frontend UI for administrators to manage product catalog (add, edit, delete) and update inventory levels.",
+    "component": "frontend",
+    "complexity": "medium",
+    "depends_on": [
+      "ENT-01",
+      "ENT-02",
+      "ENT-03"
+    ]
+  }
+]

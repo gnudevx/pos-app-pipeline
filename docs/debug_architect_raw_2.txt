@@ -1,0 +1,233 @@
+```json
+{
+  "schema_version": "1",
+  "tech_stack": {
+    "backend": "FastAPI + Pydantic v2",
+    "frontend": "React 18 + TypeScript + Vite",
+    "testing": "pytest (backend), Jest (frontend)",
+    "containerization": "Docker + docker-compose"
+  },
+  "services": [
+    {
+      "name": "Auth Service",
+      "component": "backend",
+      "entity_refs": ["ENT-01"],
+      "description": "Backend service for user signup, login, and session management using JWT.",
+      "file_structure": [
+        "src/services/auth_service/app/main.py",
+        "src/services/auth_service/app/routes/auth.py",
+        "src/services/auth_service/app/models/user.py",
+        "src/services/auth_service/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/auth/signup",
+          "status_code": 201,
+          "request_body": {
+            "email": "str",
+            "password": "str"
+          },
+          "response_body": {
+            "id": "int",
+            "email": "str",
+            "token": "str"
+          },
+          "errors": [
+            { "status_code": 409, "when": "email already exists" }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "status_code": 200,
+          "request_body": {
+            "email": "str",
+            "password": "str"
+          },
+          "response_body": {
+            "token": "str",
+            "user_id": "int"
+          },
+          "errors": [
+            { "status_code": 401, "when": "wrong credentials" }
+          ]
+        }
+      ],
+      "shared_types": ["User"],
+      "depends_on": []
+    },
+    {
+      "name": "Product & Inventory Service",
+      "component": "backend",
+      "entity_refs": ["ENT-02", "ENT-03"],
+      "description": "Backend API for managing product information (name, price) and stock levels.",
+      "file_structure": [
+        "src/services/product_inventory_service/app/main.py",
+        "src/services/product_inventory_service/app/routes/products.py",
+        "src/services/product_inventory_service/app/models/product.py",
+        "src/services/product_inventory_service/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/products",
+          "status_code": 201,
+          "request_body": {
+            "name": "str",
+            "price": "float",
+            "initial_stock": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 400, "when": "invalid input data" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/products",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "items": [
+              {
+                "id": "int",
+                "name": "str",
+                "price": "float",
+                "stock": "int"
+              }
+            ]
+          },
+          "errors": []
+        },
+        {
+          "method": "PUT",
+          "path": "/products/{product_id}",
+          "status_code": 200,
+          "request_body": {
+            "name": "Optional[str]",
+            "price": "Optional[float]"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" },
+            { "status_code": 400, "when": "invalid input data" }
+          ]
+        },
+        {
+          "method": "DELETE",
+          "path": "/products/{product_id}",
+          "status_code": 204,
+          "request_body": {},
+          "response_body": {},
+          "errors": [
+            { "status_code": 404, "when": "product not found" }
+          ]
+        },
+        {
+          "method": "PUT",
+          "path": "/products/{product_id}/stock",
+          "status_code": 200,
+          "request_body": {
+            "quantity": "int"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "price": "float",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" },
+            { "status_code": 400, "when": "invalid stock quantity (e.g., negative)" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/products/{product_id}/stock",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "product_id": "int",
+            "stock": "int"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" }
+          ]
+        }
+      ],
+      "shared_types": ["Product", "ProductUpdate", "StockUpdate"],
+      "depends_on": []
+    }
+  ],
+  "shared_types": [
+    {
+      "name": "User",
+      "fields": {
+        "id": "int",
+        "email": "str"
+      },
+      "defined_in": "Auth Service",
+      "used_by": []
+    },
+    {
+      "name": "Product",
+      "fields": {
+        "id": "int",
+        "name": "str",
+        "price": "float",
+        "stock": "int"
+      },
+      "defined_in": "Product & Inventory Service",
+      "used_by": []
+    },
+    {
+      "name": "ProductUpdate",
+      "fields": {
+        "name": "Optional[str]",
+        "price": "Optional[float]"
+      },
+      "defined_in": "Product & Inventory Service",
+      "used_by": []
+    },
+    {
+      "name": "StockUpdate",
+      "fields": {
+        "quantity": "int"
+      },
+      "defined_in": "Product & Inventory Service",
+      "used_by": []
+    }
+  ],
+  "deployment": {
+    "name": "Deployment & Testing",
+    "includes": ["docker-compose.yml", "Dockerfiles", "pytest tests"],
+    "depends_on": ["Auth Service", "Product & Inventory Service"]
+  }
+}
+```

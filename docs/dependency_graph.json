@@ -1,0 +1,19 @@
+{
+  "has_cycle": false,
+  "cycle_detail": null,
+  "execution_order": [
+    "TASK-01",
+    "TASK-02"
+  ],
+  "parallel_groups": [
+    [
+      "TASK-01",
+      "TASK-02"
+    ]
+  ],
+  "nodes": [
+    "TASK-01",
+    "TASK-02"
+  ],
+  "edges": []
+}

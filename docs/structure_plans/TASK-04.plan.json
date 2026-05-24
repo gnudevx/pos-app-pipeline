@@ -1,0 +1,198 @@
+{
+  "schema_version": "1",
+  "task_id": "TASK-04",
+  "component": "frontend",
+  "source_dir": "src/frontend",
+  "files": [
+    {
+      "path": "src/frontend/src/pages/ProductList.tsx",
+      "role": "page",
+      "slot": "PAGE_SLOT",
+      "owned_by": "TASK-04",
+      "imports_from": [
+        "src/frontend/src/api/products.ts",
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/frontend/src/pages/ProductForm.tsx",
+      "role": "page",
+      "slot": "PAGE_SLOT",
+      "owned_by": "TASK-04",
+      "imports_from": [
+        "src/frontend/src/api/products.ts",
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/frontend/src/api/products.ts",
+      "role": "api_client",
+      "slot": "API_CLIENT_SLOT",
+      "owned_by": "TASK-04",
+      "imports_from": [
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    }
+  ],
+  "routes": [],
+  "graph_context": {
+    "neighbors": [
+      {
+        "id": "ENT-07",
+        "name": "Shopping Cart Backend",
+        "component": "backend",
+        "domain_tags": [
+          "auth",
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-12",
+        "name": "Order History UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment",
+          "analytics"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-08",
+        "name": "Shopping Cart UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-05",
+        "name": "Inventory Management Backend",
+        "component": "backend",
+        "domain_tags": [
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
+      },
+      {
+        "id": "ENT-09",
+        "name": "Checkout Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-03",
+        "name": "Product Catalog Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "product",
+          "analytics"
+        ],
+        "ownership": "global"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-10",
+        "name": "Checkout UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment"
+        ],
+        "ownership": "user-scoped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ENT-04",
+        "to": "ENT-03",
+        "type": "depends_on",
+        "confidence": 1.0,
+        "reason": "Declared in entities.json"
+      },
+      {
+        "from": "ENT-04",
+        "to": "ENT-05",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['products'])"
+      },
+      {
+        "from": "ENT-09",
+        "to": "ENT-04",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Checkout Backend likely owns Product Catalog UI"
+      },
+      {
+        "from": "ENT-10",
+        "to": "ENT-04",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Checkout UI likely owns Product Catalog UI"
+      },
+      {
+        "from": "ENT-11",
+        "to": "ENT-04",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Order History Backend likely owns Product Catalog UI"
+      },
+      {
+        "from": "ENT-12",
+        "to": "ENT-04",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Order History UI likely owns Product Catalog UI"
+      },
+      {
+        "from": "ENT-07",
+        "to": "ENT-04",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Shopping Cart Backend likely owns Product Catalog UI"
+      },
+      {
+        "from": "ENT-08",
+        "to": "ENT-04",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Shopping Cart UI likely owns Product Catalog UI"
+      }
+    ],
+    "neighbor_files": []
+  },
+  "entity_refs": [
+    "ENT-04"
+  ]
+}

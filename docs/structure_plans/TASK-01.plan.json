@@ -1,0 +1,264 @@
+{
+  "schema_version": "1",
+  "task_id": "TASK-01",
+  "component": "backend",
+  "source_dir": "src/services/auth",
+  "files": [
+    {
+      "path": "src/services/auth/main.py",
+      "role": "service",
+      "slot": "SERVICE_SLOT",
+      "owned_by": "TASK-01",
+      "imports_from": [],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/auth/routes.py",
+      "role": "service",
+      "slot": "SERVICE_SLOT",
+      "owned_by": "TASK-01",
+      "imports_from": [],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/auth/models.py",
+      "role": "model",
+      "slot": "MODEL_SLOT",
+      "owned_by": "TASK-01",
+      "imports_from": [],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/auth/requirements.txt",
+      "role": "config",
+      "slot": null,
+      "owned_by": "TASK-01",
+      "imports_from": [],
+      "must_exist_before_slot_fill": true
+    }
+  ],
+  "routes": [
+    {
+      "method": "post",
+      "path": "/auth/signup",
+      "status_code": 201,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "email": "str",
+        "password": "str"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 409,
+          "when": "email already exists"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/auth/login",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "email": "str",
+        "password": "str"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 401,
+          "when": "wrong credentials"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "access_token": "str",
+        "token_type": "str"
+      }
+    }
+  ],
+  "graph_context": {
+    "neighbors": [
+      {
+        "id": "ENT-07",
+        "name": "Shopping Cart Backend",
+        "component": "backend",
+        "domain_tags": [
+          "auth",
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-12",
+        "name": "Order History UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment",
+          "analytics"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-08",
+        "name": "Shopping Cart UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-02",
+        "name": "Auth UI",
+        "component": "frontend",
+        "domain_tags": [
+          "auth",
+          "user",
+          "file",
+          "admin",
+          "analytics"
+        ],
+        "ownership": "system"
+      },
+      {
+        "id": "ENT-06",
+        "name": "Inventory Management UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
+      },
+      {
+        "id": "ENT-09",
+        "name": "Checkout Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-10",
+        "name": "Checkout UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment"
+        ],
+        "ownership": "user-scoped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ENT-02",
+        "to": "ENT-01",
+        "type": "depends_on",
+        "confidence": 1.0,
+        "reason": "Declared in entities.json"
+      },
+      {
+        "from": "ENT-06",
+        "to": "ENT-01",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['management', 'user'])"
+      },
+      {
+        "from": "ENT-08",
+        "to": "ENT-01",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
+      },
+      {
+        "from": "ENT-10",
+        "to": "ENT-01",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
+      },
+      {
+        "from": "ENT-12",
+        "to": "ENT-01",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
+      },
+      {
+        "from": "ENT-01",
+        "to": "ENT-07",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: User Authentication Backend likely owns Shopping Cart Backend"
+      },
+      {
+        "from": "ENT-01",
+        "to": "ENT-08",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: User Authentication Backend likely owns Shopping Cart UI"
+      },
+      {
+        "from": "ENT-01",
+        "to": "ENT-09",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: User Authentication Backend likely owns Checkout Backend"
+      },
+      {
+        "from": "ENT-01",
+        "to": "ENT-10",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: User Authentication Backend likely owns Checkout UI"
+      },
+      {
+        "from": "ENT-01",
+        "to": "ENT-11",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: User Authentication Backend likely owns Order History Backend"
+      },
+      {
+        "from": "ENT-01",
+        "to": "ENT-12",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: User Authentication Backend likely owns Order History UI"
+      }
+    ],
+    "neighbor_files": []
+  },
+  "entity_refs": [
+    "ENT-01"
+  ]
+}

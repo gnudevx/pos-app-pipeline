@@ -1,0 +1,301 @@
+{
+  "schema_version": "1",
+  "task_id": "TASK-05",
+  "component": "backend",
+  "source_dir": "src/services/inventory",
+  "files": [
+    {
+      "path": "src/services/inventory/main.py",
+      "role": "service",
+      "slot": "SERVICE_SLOT",
+      "owned_by": "TASK-05",
+      "imports_from": [
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/inventory/routes.py",
+      "role": "service",
+      "slot": "SERVICE_SLOT",
+      "owned_by": "TASK-05",
+      "imports_from": [
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/inventory/models.py",
+      "role": "model",
+      "slot": "MODEL_SLOT",
+      "owned_by": "TASK-05",
+      "imports_from": [
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/inventory/requirements.txt",
+      "role": "config",
+      "slot": null,
+      "owned_by": "TASK-05",
+      "imports_from": [
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py"
+      ],
+      "must_exist_before_slot_fill": true
+    }
+  ],
+  "routes": [
+    {
+      "method": "get",
+      "path": "/inventory/{product_id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/inventory/{product_id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "stock_level": "int"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        },
+        {
+          "status_code": 400,
+          "when": "invalid stock level"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    }
+  ],
+  "graph_context": {
+    "neighbors": [
+      {
+        "id": "ENT-04",
+        "name": "Product Catalog UI",
+        "component": "frontend",
+        "domain_tags": [
+          "product",
+          "ai_ml",
+          "analytics"
+        ],
+        "ownership": "global"
+      },
+      {
+        "id": "ENT-07",
+        "name": "Shopping Cart Backend",
+        "component": "backend",
+        "domain_tags": [
+          "auth",
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-12",
+        "name": "Order History UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment",
+          "analytics"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-08",
+        "name": "Shopping Cart UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-02",
+        "name": "Auth UI",
+        "component": "frontend",
+        "domain_tags": [
+          "auth",
+          "user",
+          "file",
+          "admin",
+          "analytics"
+        ],
+        "ownership": "system"
+      },
+      {
+        "id": "ENT-06",
+        "name": "Inventory Management UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
+      },
+      {
+        "id": "ENT-09",
+        "name": "Checkout Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-03",
+        "name": "Product Catalog Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "product",
+          "analytics"
+        ],
+        "ownership": "global"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-10",
+        "name": "Checkout UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "payment"
+        ],
+        "ownership": "user-scoped"
+      }
+    ],
+    "edges": [
+      {
+        "from": "ENT-05",
+        "to": "ENT-03",
+        "type": "depends_on",
+        "confidence": 1.0,
+        "reason": "Declared in entities.json"
+      },
+      {
+        "from": "ENT-06",
+        "to": "ENT-05",
+        "type": "depends_on",
+        "confidence": 1.0,
+        "reason": "Declared in entities.json"
+      },
+      {
+        "from": "ENT-09",
+        "to": "ENT-05",
+        "type": "depends_on",
+        "confidence": 1.0,
+        "reason": "Declared in entities.json"
+      },
+      {
+        "from": "ENT-02",
+        "to": "ENT-05",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['management'])"
+      },
+      {
+        "from": "ENT-04",
+        "to": "ENT-05",
+        "type": "depends_on",
+        "confidence": 0.8,
+        "reason": "Frontend likely consumes backend API (shared concepts: ['products'])"
+      },
+      {
+        "from": "ENT-09",
+        "to": "ENT-05",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Checkout Backend likely owns Inventory Management Backend"
+      },
+      {
+        "from": "ENT-10",
+        "to": "ENT-05",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Checkout UI likely owns Inventory Management Backend"
+      },
+      {
+        "from": "ENT-11",
+        "to": "ENT-05",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Order History Backend likely owns Inventory Management Backend"
+      },
+      {
+        "from": "ENT-12",
+        "to": "ENT-05",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Order History UI likely owns Inventory Management Backend"
+      },
+      {
+        "from": "ENT-07",
+        "to": "ENT-05",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Shopping Cart Backend likely owns Inventory Management Backend"
+      },
+      {
+        "from": "ENT-08",
+        "to": "ENT-05",
+        "type": "owns",
+        "confidence": 0.7,
+        "reason": "Heuristic: Shopping Cart UI likely owns Inventory Management Backend"
+      }
+    ],
+    "neighbor_files": []
+  },
+  "entity_refs": [
+    "ENT-05"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "task_id": "TASK-13",
+  "component": "backend",
+  "source_dir": "src/backend",
+  "files": [],
+  "routes": [],
+  "graph_context": {
+    "neighbors": [],
+    "edges": [],
+    "neighbor_files": []
+  },
+  "entity_refs": []
+}

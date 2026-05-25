@@ -89,29 +89,6 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-04",
-        "name": "Product Catalog UI",
-        "component": "frontend",
-        "domain_tags": [
-          "product",
-          "ai_ml",
-          "analytics"
-        ],
-        "ownership": "global"
-      },
-      {
-        "id": "ENT-01",
-        "name": "User Authentication Backend",
-        "component": "backend",
-        "domain_tags": [
-          "auth",
-          "user",
-          "admin",
-          "analytics"
-        ],
-        "ownership": "system"
-      },
-      {
         "id": "ENT-07",
         "name": "Shopping Cart Backend",
         "component": "backend",
@@ -121,6 +98,16 @@
           "product"
         ],
         "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-05",
+        "name": "Inventory Management Backend",
+        "component": "backend",
+        "domain_tags": [
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
       },
       {
         "id": "ENT-12",
@@ -145,27 +132,14 @@
         "ownership": "user-scoped"
       },
       {
-        "id": "ENT-02",
-        "name": "Auth UI",
-        "component": "frontend",
-        "domain_tags": [
-          "auth",
-          "user",
-          "file",
-          "admin",
-          "analytics"
-        ],
-        "ownership": "system"
-      },
-      {
-        "id": "ENT-05",
-        "name": "Inventory Management Backend",
+        "id": "ENT-09",
+        "name": "Checkout Backend",
         "component": "backend",
         "domain_tags": [
-          "product",
-          "admin"
+          "payment",
+          "product"
         ],
-        "ownership": "system"
+        "ownership": "user-scoped"
       },
       {
         "id": "ENT-06",
@@ -179,14 +153,17 @@
         "ownership": "system"
       },
       {
-        "id": "ENT-09",
-        "name": "Checkout Backend",
-        "component": "backend",
+        "id": "ENT-02",
+        "name": "Auth UI",
+        "component": "frontend",
         "domain_tags": [
-          "payment",
-          "product"
+          "auth",
+          "user",
+          "file",
+          "admin",
+          "analytics"
         ],
-        "ownership": "user-scoped"
+        "ownership": "system"
       },
       {
         "id": "ENT-03",
@@ -200,6 +177,18 @@
         "ownership": "global"
       },
       {
+        "id": "ENT-01",
+        "name": "User Authentication Backend",
+        "component": "backend",
+        "domain_tags": [
+          "auth",
+          "user",
+          "admin",
+          "analytics"
+        ],
+        "ownership": "system"
+      },
+      {
         "id": "ENT-10",
         "name": "Checkout UI",
         "component": "frontend",
@@ -208,6 +197,17 @@
           "payment"
         ],
         "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-04",
+        "name": "Product Catalog UI",
+        "component": "frontend",
+        "domain_tags": [
+          "product",
+          "ai_ml",
+          "analytics"
+        ],
+        "ownership": "global"
       }
     ],
     "edges": [

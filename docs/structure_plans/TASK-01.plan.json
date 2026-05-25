@@ -100,6 +100,17 @@
         "ownership": "user-scoped"
       },
       {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
         "id": "ENT-12",
         "name": "Order History UI",
         "component": "frontend",
@@ -122,17 +133,14 @@
         "ownership": "user-scoped"
       },
       {
-        "id": "ENT-02",
-        "name": "Auth UI",
-        "component": "frontend",
+        "id": "ENT-09",
+        "name": "Checkout Backend",
+        "component": "backend",
         "domain_tags": [
-          "auth",
-          "user",
-          "file",
-          "admin",
-          "analytics"
+          "payment",
+          "product"
         ],
-        "ownership": "system"
+        "ownership": "user-scoped"
       },
       {
         "id": "ENT-06",
@@ -146,25 +154,17 @@
         "ownership": "system"
       },
       {
-        "id": "ENT-09",
-        "name": "Checkout Backend",
-        "component": "backend",
+        "id": "ENT-02",
+        "name": "Auth UI",
+        "component": "frontend",
         "domain_tags": [
-          "payment",
-          "product"
+          "auth",
+          "user",
+          "file",
+          "admin",
+          "analytics"
         ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-11",
-        "name": "Order History Backend",
-        "component": "backend",
-        "domain_tags": [
-          "payment",
-          "analytics",
-          "deployment"
-        ],
-        "ownership": "user-scoped"
+        "ownership": "system"
       },
       {
         "id": "ENT-10",

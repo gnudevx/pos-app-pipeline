@@ -1,8 +1,17 @@
 {
   "schema_version": "2.0",
   "task_id": "TASK-03",
-  "summary": "Docker, tests and integration",
-  "component": "fullstack",
-  "compiled_at": "2026-05-14T15:53:54.924435Z",
-  "routes": []
+  "domain": "",
+  "component": "frontend",
+  "layer": "",
+  "summary": "Auth Frontend",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
+  "file_structure": [
+    "src/frontend/src/pages/Login.tsx",
+    "src/frontend/src/pages/Signup.tsx",
+    "src/frontend/src/api/auth.ts"
+  ],
+  "routes": [],
+  "artifacts": []
 }

@@ -10,9 +10,7 @@
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-05",
       "imports_from": [
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -22,9 +20,7 @@
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-05",
       "imports_from": [
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -34,9 +30,7 @@
       "slot": "MODEL_SLOT",
       "owned_by": "TASK-05",
       "imports_from": [
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -46,9 +40,7 @@
       "slot": null,
       "owned_by": "TASK-05",
       "imports_from": [
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     }
@@ -104,17 +96,6 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-04",
-        "name": "Product Catalog UI",
-        "component": "frontend",
-        "domain_tags": [
-          "product",
-          "ai_ml",
-          "analytics"
-        ],
-        "ownership": "global"
-      },
-      {
         "id": "ENT-07",
         "name": "Shopping Cart Backend",
         "component": "backend",
@@ -122,6 +103,17 @@
           "auth",
           "payment",
           "product"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
         ],
         "ownership": "user-scoped"
       },
@@ -148,17 +140,14 @@
         "ownership": "user-scoped"
       },
       {
-        "id": "ENT-02",
-        "name": "Auth UI",
-        "component": "frontend",
+        "id": "ENT-09",
+        "name": "Checkout Backend",
+        "component": "backend",
         "domain_tags": [
-          "auth",
-          "user",
-          "file",
-          "admin",
-          "analytics"
+          "payment",
+          "product"
         ],
-        "ownership": "system"
+        "ownership": "user-scoped"
       },
       {
         "id": "ENT-06",
@@ -172,14 +161,17 @@
         "ownership": "system"
       },
       {
-        "id": "ENT-09",
-        "name": "Checkout Backend",
-        "component": "backend",
+        "id": "ENT-02",
+        "name": "Auth UI",
+        "component": "frontend",
         "domain_tags": [
-          "payment",
-          "product"
+          "auth",
+          "user",
+          "file",
+          "admin",
+          "analytics"
         ],
-        "ownership": "user-scoped"
+        "ownership": "system"
       },
       {
         "id": "ENT-03",
@@ -193,17 +185,6 @@
         "ownership": "global"
       },
       {
-        "id": "ENT-11",
-        "name": "Order History Backend",
-        "component": "backend",
-        "domain_tags": [
-          "payment",
-          "analytics",
-          "deployment"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
         "id": "ENT-10",
         "name": "Checkout UI",
         "component": "frontend",
@@ -212,6 +193,17 @@
           "payment"
         ],
         "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-04",
+        "name": "Product Catalog UI",
+        "component": "frontend",
+        "domain_tags": [
+          "product",
+          "ai_ml",
+          "analytics"
+        ],
+        "ownership": "global"
       }
     ],
     "edges": [

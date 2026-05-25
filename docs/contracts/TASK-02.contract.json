@@ -1,8 +1,102 @@
 {
   "schema_version": "2.0",
   "task_id": "TASK-02",
-  "summary": "Frontend UI: React POS interface",
-  "component": "frontend",
-  "compiled_at": "2026-05-14T15:53:54.924435Z",
-  "routes": []
+  "domain": "",
+  "component": "backend",
+  "layer": "",
+  "summary": "Product Catalog Backend",
+  "source_dir": "src/services/product_catalog",
+  "routes_dir": "src/services/product_catalog/app/routes",
+  "file_structure": [
+    "src/services/product_catalog/main.py",
+    "src/services/product_catalog/routes.py",
+    "src/services/product_catalog/models.py",
+    "src/services/product_catalog/requirements.txt"
+  ],
+  "routes": [
+    {
+      "method": "get",
+      "path": "/products",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    },
+    {
+      "method": "post",
+      "path": "/products",
+      "status_code": 201,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "name": "str",
+        "price": "float",
+        "description": "str"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 400,
+          "when": "invalid product data"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/products/{id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "name": "str",
+        "price": "float",
+        "description": "str"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        },
+        {
+          "status_code": 400,
+          "when": "invalid product data"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/products/{id}",
+      "status_code": 204,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    }
+  ],
+  "artifacts": []
 }

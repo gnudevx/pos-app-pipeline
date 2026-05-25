@@ -11,9 +11,7 @@
       "owned_by": "TASK-04",
       "imports_from": [
         "src/frontend/src/api/products.ts",
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -24,9 +22,7 @@
       "owned_by": "TASK-04",
       "imports_from": [
         "src/frontend/src/api/products.ts",
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -36,9 +32,7 @@
       "slot": "API_CLIENT_SLOT",
       "owned_by": "TASK-04",
       "imports_from": [
-        "src/services/product_catalog/main.py",
-        "src/services/product_catalog/routes.py",
-        "src/services/product_catalog/models.py"
+        "src/frontend/src/api/auth.ts"
       ],
       "must_exist_before_slot_fill": true
     }
@@ -56,6 +50,27 @@
           "product"
         ],
         "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-05",
+        "name": "Inventory Management Backend",
+        "component": "backend",
+        "domain_tags": [
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
       },
       {
         "id": "ENT-12",
@@ -80,16 +95,6 @@
         "ownership": "user-scoped"
       },
       {
-        "id": "ENT-05",
-        "name": "Inventory Management Backend",
-        "component": "backend",
-        "domain_tags": [
-          "product",
-          "admin"
-        ],
-        "ownership": "system"
-      },
-      {
         "id": "ENT-09",
         "name": "Checkout Backend",
         "component": "backend",
@@ -109,17 +114,6 @@
           "analytics"
         ],
         "ownership": "global"
-      },
-      {
-        "id": "ENT-11",
-        "name": "Order History Backend",
-        "component": "backend",
-        "domain_tags": [
-          "payment",
-          "analytics",
-          "deployment"
-        ],
-        "ownership": "user-scoped"
       },
       {
         "id": "ENT-10",

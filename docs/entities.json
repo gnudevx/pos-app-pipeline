@@ -1,74 +1,119 @@
 [
   {
     "id": "ENT-01",
-    "name": "User Authentication Service",
-    "description": "Backend service for user signup, login, and session management using JWT.",
+    "name": "User Authentication Backend",
+    "description": "POST /auth/signup, POST /auth/login — JWT-based signup, login, token refresh, and user session management.",
     "component": "backend",
     "complexity": "medium",
     "depends_on": []
   },
   {
     "id": "ENT-02",
-    "name": "Product Management API",
-    "description": "Backend API for creating, reading, updating, and deleting product information (name, price, stock).",
+    "name": "Auth UI",
+    "description": "Login and signup forms, user session management in frontend (e.g., localStorage for tokens).",
+    "component": "frontend",
+    "complexity": "low",
+    "depends_on": [
+      "ENT-01"
+    ]
+  },
+  {
+    "id": "ENT-03",
+    "name": "Product Catalog Backend",
+    "description": "GET /products, POST /products, PUT /products/{id}, DELETE /products/{id} — CRUD operations for product data (name, price, description).",
     "component": "backend",
     "complexity": "medium",
     "depends_on": []
   },
   {
-    "id": "ENT-03",
-    "name": "Inventory Management API",
-    "description": "Backend API for updating and querying product stock levels.",
-    "component": "backend",
+    "id": "ENT-04",
+    "name": "Product Catalog UI",
+    "description": "Display product list, forms for adding new products, and editing existing product details.",
+    "component": "frontend",
     "complexity": "medium",
     "depends_on": [
-      "ENT-02"
-    ]
-  },
-  {
-    "id": "ENT-04",
-    "name": "Sales Transaction API",
-    "description": "Backend API for managing shopping cart state, processing sales, and recording transactions.",
-    "component": "backend",
-    "complexity": "high",
-    "depends_on": [
-      "ENT-02",
       "ENT-03"
     ]
   },
   {
     "id": "ENT-05",
-    "name": "POS Sales Interface",
-    "description": "Frontend UI for sales staff to browse products, add items to a shopping cart, and adjust quantities.",
-    "component": "frontend",
-    "complexity": "high",
+    "name": "Inventory Management Backend",
+    "description": "PUT /inventory/{product_id}, GET /inventory/{product_id} — API for updating and retrieving current stock levels for products.",
+    "component": "backend",
+    "complexity": "medium",
     "depends_on": [
-      "ENT-01",
-      "ENT-02",
-      "ENT-04"
+      "ENT-03"
     ]
   },
   {
     "id": "ENT-06",
-    "name": "Checkout & Receipt UI",
-    "description": "Frontend UI for finalizing a sale, displaying the total, and generating a printable receipt.",
+    "name": "Inventory Management UI",
+    "description": "User interface to view current stock levels and adjust them for individual products.",
     "component": "frontend",
     "complexity": "medium",
     "depends_on": [
-      "ENT-04",
       "ENT-05"
     ]
   },
   {
     "id": "ENT-07",
-    "name": "Admin Product & Inventory UI",
-    "description": "Frontend UI for administrators to manage product catalog (add, edit, delete) and update inventory levels.",
+    "name": "Shopping Cart Backend",
+    "description": "POST /cart/add, DELETE /cart/remove/{item_id}, GET /cart — Manages items in the current sales transaction (in-session cart).",
+    "component": "backend",
+    "complexity": "medium",
+    "depends_on": [
+      "ENT-03"
+    ]
+  },
+  {
+    "id": "ENT-08",
+    "name": "Shopping Cart UI",
+    "description": "User interface to add/remove items to the cart, display cart contents, and show total price.",
     "component": "frontend",
     "complexity": "medium",
     "depends_on": [
-      "ENT-01",
-      "ENT-02",
-      "ENT-03"
+      "ENT-07"
+    ]
+  },
+  {
+    "id": "ENT-09",
+    "name": "Checkout Backend",
+    "description": "POST /checkout — Processes the sale, deducts inventory, creates an order record, and generates a receipt.",
+    "component": "backend",
+    "complexity": "high",
+    "depends_on": [
+      "ENT-07",
+      "ENT-05"
+    ]
+  },
+  {
+    "id": "ENT-10",
+    "name": "Checkout UI",
+    "description": "User interface for the checkout flow, including payment confirmation and order summary display.",
+    "component": "frontend",
+    "complexity": "medium",
+    "depends_on": [
+      "ENT-09"
+    ]
+  },
+  {
+    "id": "ENT-11",
+    "name": "Order History Backend",
+    "description": "GET /orders, GET /orders/{id}/receipt — Stores and retrieves past sales transactions and their associated receipts.",
+    "component": "backend",
+    "complexity": "low",
+    "depends_on": [
+      "ENT-09"
+    ]
+  },
+  {
+    "id": "ENT-12",
+    "name": "Order History UI",
+    "description": "User interface to view a list of past orders and retrieve/display individual receipts.",
+    "component": "frontend",
+    "complexity": "low",
+    "depends_on": [
+      "ENT-11"
     ]
   }
 ]

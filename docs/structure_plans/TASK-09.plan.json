@@ -10,9 +10,7 @@
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/shopping_cart/main.py",
-        "src/services/shopping_cart/routes.py",
-        "src/services/shopping_cart/models.py",
+        "src/frontend/src/api/inventory.ts",
         "src/services/inventory/main.py",
         "src/services/inventory/routes.py",
         "src/services/inventory/models.py"
@@ -25,9 +23,7 @@
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/shopping_cart/main.py",
-        "src/services/shopping_cart/routes.py",
-        "src/services/shopping_cart/models.py",
+        "src/frontend/src/api/inventory.ts",
         "src/services/inventory/main.py",
         "src/services/inventory/routes.py",
         "src/services/inventory/models.py"
@@ -40,9 +36,7 @@
       "slot": "MODEL_SLOT",
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/shopping_cart/main.py",
-        "src/services/shopping_cart/routes.py",
-        "src/services/shopping_cart/models.py",
+        "src/frontend/src/api/inventory.ts",
         "src/services/inventory/main.py",
         "src/services/inventory/routes.py",
         "src/services/inventory/models.py"
@@ -55,9 +49,7 @@
       "slot": null,
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/shopping_cart/main.py",
-        "src/services/shopping_cart/routes.py",
-        "src/services/shopping_cart/models.py",
+        "src/frontend/src/api/inventory.ts",
         "src/services/inventory/main.py",
         "src/services/inventory/routes.py",
         "src/services/inventory/models.py"
@@ -98,29 +90,6 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-04",
-        "name": "Product Catalog UI",
-        "component": "frontend",
-        "domain_tags": [
-          "product",
-          "ai_ml",
-          "analytics"
-        ],
-        "ownership": "global"
-      },
-      {
-        "id": "ENT-01",
-        "name": "User Authentication Backend",
-        "component": "backend",
-        "domain_tags": [
-          "auth",
-          "user",
-          "admin",
-          "analytics"
-        ],
-        "ownership": "system"
-      },
-      {
         "id": "ENT-07",
         "name": "Shopping Cart Backend",
         "component": "backend",
@@ -130,6 +99,27 @@
           "product"
         ],
         "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Order History Backend",
+        "component": "backend",
+        "domain_tags": [
+          "payment",
+          "analytics",
+          "deployment"
+        ],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-05",
+        "name": "Inventory Management Backend",
+        "component": "backend",
+        "domain_tags": [
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
       },
       {
         "id": "ENT-12",
@@ -154,6 +144,17 @@
         "ownership": "user-scoped"
       },
       {
+        "id": "ENT-06",
+        "name": "Inventory Management UI",
+        "component": "frontend",
+        "domain_tags": [
+          "user",
+          "product",
+          "admin"
+        ],
+        "ownership": "system"
+      },
+      {
         "id": "ENT-02",
         "name": "Auth UI",
         "component": "frontend",
@@ -163,27 +164,6 @@
           "file",
           "admin",
           "analytics"
-        ],
-        "ownership": "system"
-      },
-      {
-        "id": "ENT-05",
-        "name": "Inventory Management Backend",
-        "component": "backend",
-        "domain_tags": [
-          "product",
-          "admin"
-        ],
-        "ownership": "system"
-      },
-      {
-        "id": "ENT-06",
-        "name": "Inventory Management UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "product",
-          "admin"
         ],
         "ownership": "system"
       },
@@ -199,15 +179,16 @@
         "ownership": "global"
       },
       {
-        "id": "ENT-11",
-        "name": "Order History Backend",
+        "id": "ENT-01",
+        "name": "User Authentication Backend",
         "component": "backend",
         "domain_tags": [
-          "payment",
-          "analytics",
-          "deployment"
+          "auth",
+          "user",
+          "admin",
+          "analytics"
         ],
-        "ownership": "user-scoped"
+        "ownership": "system"
       },
       {
         "id": "ENT-10",
@@ -218,6 +199,17 @@
           "payment"
         ],
         "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-04",
+        "name": "Product Catalog UI",
+        "component": "frontend",
+        "domain_tags": [
+          "product",
+          "ai_ml",
+          "analytics"
+        ],
+        "ownership": "global"
       }
     ],
     "edges": [

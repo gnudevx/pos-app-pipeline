@@ -4,12 +4,12 @@
     "entities.json",
     "requirements.md"
   ],
-  "node_count": 7,
-  "edge_count": 20,
+  "node_count": 12,
+  "edge_count": 93,
   "nodes": {
     "ENT-01": {
       "id": "ENT-01",
-      "name": "User Authentication Service",
+      "name": "User Authentication Backend",
       "component": "backend",
       "complexity": "medium",
       "domain_tags": [
@@ -25,51 +25,114 @@
     },
     "ENT-02": {
       "id": "ENT-02",
-      "name": "Product Management API",
-      "component": "backend",
-      "complexity": "medium",
+      "name": "Auth UI",
+      "component": "frontend",
+      "complexity": "low",
       "domain_tags": [
-        "payment",
-        "product",
-        "admin"
+        "auth",
+        "user",
+        "file",
+        "admin",
+        "analytics"
       ],
-      "lifecycle": "persistent",
+      "lifecycle": "transient",
       "ownership": "system",
       "security_level": "high",
       "data_shape": "single"
     },
     "ENT-03": {
       "id": "ENT-03",
-      "name": "Inventory Management API",
+      "name": "Product Catalog Backend",
+      "component": "backend",
+      "complexity": "medium",
+      "domain_tags": [
+        "payment",
+        "product",
+        "analytics"
+      ],
+      "lifecycle": "persistent",
+      "ownership": "global",
+      "security_level": "high",
+      "data_shape": "collection"
+    },
+    "ENT-04": {
+      "id": "ENT-04",
+      "name": "Product Catalog UI",
+      "component": "frontend",
+      "complexity": "medium",
+      "domain_tags": [
+        "product",
+        "ai_ml",
+        "analytics"
+      ],
+      "lifecycle": "persistent",
+      "ownership": "global",
+      "security_level": "low",
+      "data_shape": "collection"
+    },
+    "ENT-05": {
+      "id": "ENT-05",
+      "name": "Inventory Management Backend",
       "component": "backend",
       "complexity": "medium",
       "domain_tags": [
         "product",
-        "admin",
-        "search"
+        "admin"
       ],
       "lifecycle": "persistent",
       "ownership": "system",
       "security_level": "low",
       "data_shape": "single"
     },
-    "ENT-04": {
-      "id": "ENT-04",
-      "name": "Sales Transaction API",
-      "component": "backend",
-      "complexity": "high",
+    "ENT-06": {
+      "id": "ENT-06",
+      "name": "Inventory Management UI",
+      "component": "frontend",
+      "complexity": "medium",
       "domain_tags": [
-        "payment"
+        "user",
+        "product",
+        "admin"
+      ],
+      "lifecycle": "persistent",
+      "ownership": "system",
+      "security_level": "medium",
+      "data_shape": "single"
+    },
+    "ENT-07": {
+      "id": "ENT-07",
+      "name": "Shopping Cart Backend",
+      "component": "backend",
+      "complexity": "medium",
+      "domain_tags": [
+        "auth",
+        "payment",
+        "product"
+      ],
+      "lifecycle": "transient",
+      "ownership": "user-scoped",
+      "security_level": "high",
+      "data_shape": "single"
+    },
+    "ENT-08": {
+      "id": "ENT-08",
+      "name": "Shopping Cart UI",
+      "component": "frontend",
+      "complexity": "medium",
+      "domain_tags": [
+        "user",
+        "payment",
+        "product"
       ],
       "lifecycle": "persistent",
       "ownership": "user-scoped",
       "security_level": "high",
       "data_shape": "single"
     },
-    "ENT-05": {
-      "id": "ENT-05",
-      "name": "POS Sales Interface",
-      "component": "frontend",
+    "ENT-09": {
+      "id": "ENT-09",
+      "name": "Checkout Backend",
+      "component": "backend",
       "complexity": "high",
       "domain_tags": [
         "payment",
@@ -80,46 +143,55 @@
       "security_level": "high",
       "data_shape": "single"
     },
-    "ENT-06": {
-      "id": "ENT-06",
-      "name": "Checkout & Receipt UI",
+    "ENT-10": {
+      "id": "ENT-10",
+      "name": "Checkout UI",
       "component": "frontend",
       "complexity": "medium",
       "domain_tags": [
+        "user",
         "payment"
       ],
       "lifecycle": "persistent",
-      "ownership": "global",
+      "ownership": "user-scoped",
       "security_level": "high",
       "data_shape": "single"
     },
-    "ENT-07": {
-      "id": "ENT-07",
-      "name": "Admin Product & Inventory UI",
-      "component": "frontend",
-      "complexity": "medium",
+    "ENT-11": {
+      "id": "ENT-11",
+      "name": "Order History Backend",
+      "component": "backend",
+      "complexity": "low",
       "domain_tags": [
-        "product",
-        "admin",
+        "payment",
+        "analytics",
+        "deployment"
+      ],
+      "lifecycle": "persistent",
+      "ownership": "user-scoped",
+      "security_level": "high",
+      "data_shape": "collection"
+    },
+    "ENT-12": {
+      "id": "ENT-12",
+      "name": "Order History UI",
+      "component": "frontend",
+      "complexity": "low",
+      "domain_tags": [
+        "user",
+        "payment",
         "analytics"
       ],
       "lifecycle": "persistent",
-      "ownership": "system",
-      "security_level": "low",
+      "ownership": "user-scoped",
+      "security_level": "high",
       "data_shape": "collection"
     }
   },
   "edges": [
     {
-      "from": "ENT-03",
-      "to": "ENT-02",
-      "type": "depends_on",
-      "confidence": 1.0,
-      "reason": "Declared in entities.json"
-    },
-    {
-      "from": "ENT-04",
-      "to": "ENT-02",
+      "from": "ENT-02",
+      "to": "ENT-01",
       "type": "depends_on",
       "confidence": 1.0,
       "reason": "Declared in entities.json"
@@ -133,28 +205,7 @@
     },
     {
       "from": "ENT-05",
-      "to": "ENT-01",
-      "type": "depends_on",
-      "confidence": 1.0,
-      "reason": "Declared in entities.json"
-    },
-    {
-      "from": "ENT-05",
-      "to": "ENT-02",
-      "type": "depends_on",
-      "confidence": 1.0,
-      "reason": "Declared in entities.json"
-    },
-    {
-      "from": "ENT-05",
-      "to": "ENT-04",
-      "type": "depends_on",
-      "confidence": 1.0,
-      "reason": "Declared in entities.json"
-    },
-    {
-      "from": "ENT-06",
-      "to": "ENT-04",
+      "to": "ENT-03",
       "type": "depends_on",
       "confidence": 1.0,
       "reason": "Declared in entities.json"
@@ -168,87 +219,626 @@
     },
     {
       "from": "ENT-07",
-      "to": "ENT-01",
-      "type": "depends_on",
-      "confidence": 1.0,
-      "reason": "Declared in entities.json"
-    },
-    {
-      "from": "ENT-07",
-      "to": "ENT-02",
-      "type": "depends_on",
-      "confidence": 1.0,
-      "reason": "Declared in entities.json"
-    },
-    {
-      "from": "ENT-07",
       "to": "ENT-03",
       "type": "depends_on",
       "confidence": 1.0,
       "reason": "Declared in entities.json"
     },
     {
+      "from": "ENT-08",
+      "to": "ENT-07",
+      "type": "depends_on",
+      "confidence": 1.0,
+      "reason": "Declared in entities.json"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-07",
+      "type": "depends_on",
+      "confidence": 1.0,
+      "reason": "Declared in entities.json"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-05",
+      "type": "depends_on",
+      "confidence": 1.0,
+      "reason": "Declared in entities.json"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-09",
+      "type": "depends_on",
+      "confidence": 1.0,
+      "reason": "Declared in entities.json"
+    },
+    {
+      "from": "ENT-11",
+      "to": "ENT-09",
+      "type": "depends_on",
+      "confidence": 1.0,
+      "reason": "Declared in entities.json"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-11",
+      "type": "depends_on",
+      "confidence": 1.0,
+      "reason": "Declared in entities.json"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-05",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['management'])"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-07",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['session'])"
+    },
+    {
+      "from": "ENT-04",
+      "to": "ENT-05",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['products'])"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-01",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['management', 'user'])"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-03",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['products'])"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-07",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['current'])"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-09",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['inventory'])"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-01",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-03",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['price'])"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-01",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-11",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['order'])"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-01",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-09",
+      "type": "depends_on",
+      "confidence": 0.8,
+      "reason": "Frontend likely consumes backend API (shared concepts: ['order'])"
+    },
+    {
       "from": "ENT-01",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: User Authentication Backend likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-01",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: User Authentication Backend likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Auth UI likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Auth UI likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Inventory Management UI likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Inventory Management UI likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-01",
+      "to": "ENT-09",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: User Authentication Backend likely owns Checkout Backend"
+    },
+    {
+      "from": "ENT-01",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: User Authentication Backend likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-01",
+      "to": "ENT-11",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: User Authentication Backend likely owns Order History Backend"
+    },
+    {
+      "from": "ENT-01",
+      "to": "ENT-12",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: User Authentication Backend likely owns Order History UI"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-09",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Auth UI likely owns Checkout Backend"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Auth UI likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-11",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Auth UI likely owns Order History Backend"
+    },
+    {
+      "from": "ENT-02",
+      "to": "ENT-12",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Auth UI likely owns Order History UI"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-09",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Inventory Management UI likely owns Checkout Backend"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Inventory Management UI likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-11",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Inventory Management UI likely owns Order History Backend"
+    },
+    {
+      "from": "ENT-06",
+      "to": "ENT-12",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Inventory Management UI likely owns Order History UI"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-09",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Checkout Backend"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-11",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Order History Backend"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-12",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Order History UI"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-09",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Checkout Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-11",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Order History Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-12",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Order History UI"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-09",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Checkout Backend"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-11",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Order History Backend"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-03",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout Backend likely owns Product Catalog Backend"
+    },
+    {
+      "from": "ENT-09",
       "to": "ENT-04",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: User Authentication Service likely owns Sales Transaction API"
+      "reason": "Heuristic: Checkout Backend likely owns Product Catalog UI"
     },
     {
-      "from": "ENT-01",
+      "from": "ENT-09",
       "to": "ENT-05",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: User Authentication Service likely owns POS Sales Interface"
+      "reason": "Heuristic: Checkout Backend likely owns Inventory Management Backend"
     },
     {
-      "from": "ENT-04",
+      "from": "ENT-09",
+      "to": "ENT-06",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout Backend likely owns Inventory Management UI"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-03",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Product Catalog Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-04",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout UI likely owns Product Catalog UI"
+    },
+    {
+      "from": "ENT-10",
       "to": "ENT-05",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: Sales Transaction API likely owns POS Sales Interface"
+      "reason": "Heuristic: Checkout UI likely owns Inventory Management Backend"
     },
     {
-      "from": "ENT-04",
-      "to": "ENT-02",
+      "from": "ENT-10",
+      "to": "ENT-06",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: Sales Transaction API likely owns Product Management API"
+      "reason": "Heuristic: Checkout UI likely owns Inventory Management UI"
     },
     {
-      "from": "ENT-04",
+      "from": "ENT-11",
       "to": "ENT-03",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: Sales Transaction API likely owns Inventory Management API"
+      "reason": "Heuristic: Order History Backend likely owns Product Catalog Backend"
     },
     {
-      "from": "ENT-04",
-      "to": "ENT-07",
+      "from": "ENT-11",
+      "to": "ENT-04",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: Sales Transaction API likely owns Admin Product & Inventory UI"
+      "reason": "Heuristic: Order History Backend likely owns Product Catalog UI"
     },
     {
-      "from": "ENT-05",
-      "to": "ENT-02",
+      "from": "ENT-11",
+      "to": "ENT-05",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: POS Sales Interface likely owns Product Management API"
+      "reason": "Heuristic: Order History Backend likely owns Inventory Management Backend"
     },
     {
-      "from": "ENT-05",
+      "from": "ENT-11",
+      "to": "ENT-06",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History Backend likely owns Inventory Management UI"
+    },
+    {
+      "from": "ENT-12",
       "to": "ENT-03",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: POS Sales Interface likely owns Inventory Management API"
+      "reason": "Heuristic: Order History UI likely owns Product Catalog Backend"
     },
     {
-      "from": "ENT-05",
+      "from": "ENT-12",
+      "to": "ENT-04",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Product Catalog UI"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-05",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Inventory Management Backend"
+    },
+    {
+      "from": "ENT-12",
+      "to": "ENT-06",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History UI likely owns Inventory Management UI"
+    },
+    {
+      "from": "ENT-09",
       "to": "ENT-07",
       "type": "owns",
       "confidence": 0.7,
-      "reason": "Heuristic: POS Sales Interface likely owns Admin Product & Inventory UI"
+      "reason": "Heuristic: Checkout Backend likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout Backend likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-11",
+      "to": "ENT-07",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History Backend likely owns Shopping Cart Backend"
+    },
+    {
+      "from": "ENT-11",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History Backend likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Checkout Backend likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-11",
+      "to": "ENT-10",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Order History Backend likely owns Checkout UI"
+    },
+    {
+      "from": "ENT-07",
+      "to": "ENT-08",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart Backend likely owns Shopping Cart UI"
+    },
+    {
+      "from": "ENT-07",
+      "to": "ENT-03",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart Backend likely owns Product Catalog Backend"
+    },
+    {
+      "from": "ENT-07",
+      "to": "ENT-04",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart Backend likely owns Product Catalog UI"
+    },
+    {
+      "from": "ENT-07",
+      "to": "ENT-05",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart Backend likely owns Inventory Management Backend"
+    },
+    {
+      "from": "ENT-07",
+      "to": "ENT-06",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart Backend likely owns Inventory Management UI"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-03",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Product Catalog Backend"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-04",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Product Catalog UI"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-05",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Inventory Management Backend"
+    },
+    {
+      "from": "ENT-08",
+      "to": "ENT-06",
+      "type": "owns",
+      "confidence": 0.7,
+      "reason": "Heuristic: Shopping Cart UI likely owns Inventory Management UI"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-11",
+      "type": "triggers",
+      "confidence": 0.65,
+      "reason": "Heuristic: Checkout Backend likely triggers Order History Backend"
+    },
+    {
+      "from": "ENT-09",
+      "to": "ENT-12",
+      "type": "triggers",
+      "confidence": 0.65,
+      "reason": "Heuristic: Checkout Backend likely triggers Order History UI"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-09",
+      "type": "triggers",
+      "confidence": 0.65,
+      "reason": "Heuristic: Checkout UI likely triggers Checkout Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-11",
+      "type": "triggers",
+      "confidence": 0.65,
+      "reason": "Heuristic: Checkout UI likely triggers Order History Backend"
+    },
+    {
+      "from": "ENT-10",
+      "to": "ENT-12",
+      "type": "triggers",
+      "confidence": 0.65,
+      "reason": "Heuristic: Checkout UI likely triggers Order History UI"
     }
   ],
   "clusters": [
@@ -256,7 +846,8 @@
       "id": "CLU-01",
       "name": "Auth backend",
       "entities": [
-        "ENT-01"
+        "ENT-01",
+        "ENT-07"
       ],
       "primary_domain": "auth",
       "component": "backend",
@@ -264,88 +855,164 @@
     },
     {
       "id": "CLU-02",
+      "name": "Auth frontend",
+      "entities": [
+        "ENT-02"
+      ],
+      "primary_domain": "auth",
+      "component": "frontend",
+      "suggested_service": "auth-frontend"
+    },
+    {
+      "id": "CLU-03",
       "name": "Payment backend",
       "entities": [
-        "ENT-02",
-        "ENT-04"
+        "ENT-03",
+        "ENT-09",
+        "ENT-11"
       ],
       "primary_domain": "payment",
       "component": "backend",
       "suggested_service": "payment-backend"
     },
     {
-      "id": "CLU-03",
+      "id": "CLU-04",
+      "name": "Ai Ml frontend",
+      "entities": [
+        "ENT-04"
+      ],
+      "primary_domain": "ai_ml",
+      "component": "frontend",
+      "suggested_service": "ai_ml-frontend"
+    },
+    {
+      "id": "CLU-05",
       "name": "Admin backend",
       "entities": [
-        "ENT-03"
+        "ENT-05"
       ],
       "primary_domain": "admin",
       "component": "backend",
       "suggested_service": "admin-backend"
     },
     {
-      "id": "CLU-04",
-      "name": "Payment frontend",
-      "entities": [
-        "ENT-05",
-        "ENT-06"
-      ],
-      "primary_domain": "payment",
-      "component": "frontend",
-      "suggested_service": "payment-frontend"
-    },
-    {
-      "id": "CLU-05",
+      "id": "CLU-06",
       "name": "Admin frontend",
       "entities": [
-        "ENT-07"
+        "ENT-06"
       ],
       "primary_domain": "admin",
       "component": "frontend",
       "suggested_service": "admin-frontend"
+    },
+    {
+      "id": "CLU-07",
+      "name": "Payment frontend",
+      "entities": [
+        "ENT-08",
+        "ENT-10",
+        "ENT-12"
+      ],
+      "primary_domain": "payment",
+      "component": "frontend",
+      "suggested_service": "payment-frontend"
     }
   ],
   "constraints": [
     {
       "entity": "ENT-01",
       "type": "audit_logged",
-      "reason": "User Authentication Service is security-sensitive → should have audit log"
+      "reason": "User Authentication Backend is security-sensitive → should have audit log"
+    },
+    {
+      "entity": "ENT-02",
+      "type": "rate_limited",
+      "reason": "Auth UI is expensive (AI/file) → rate limiting recommended"
     },
     {
       "entity": "ENT-02",
       "type": "audit_logged",
-      "reason": "Product Management API is security-sensitive → should have audit log"
+      "reason": "Auth UI is security-sensitive → should have audit log"
+    },
+    {
+      "entity": "ENT-03",
+      "type": "audit_logged",
+      "reason": "Product Catalog Backend is security-sensitive → should have audit log"
     },
     {
       "entity": "ENT-04",
+      "type": "rate_limited",
+      "reason": "Product Catalog UI is expensive (AI/file) → rate limiting recommended"
+    },
+    {
+      "entity": "ENT-07",
+      "type": "audit_logged",
+      "reason": "Shopping Cart Backend is security-sensitive → should have audit log"
+    },
+    {
+      "entity": "ENT-08",
       "type": "requires_auth",
-      "reason": "Sales Transaction API is user-scoped → endpoints must verify JWT"
+      "reason": "Shopping Cart UI is user-scoped → endpoints must verify JWT"
     },
     {
-      "entity": "ENT-04",
+      "entity": "ENT-08",
       "type": "audit_logged",
-      "reason": "Sales Transaction API is security-sensitive → should have audit log"
+      "reason": "Shopping Cart UI is security-sensitive → should have audit log"
     },
     {
-      "entity": "ENT-05",
+      "entity": "ENT-09",
       "type": "requires_auth",
-      "reason": "POS Sales Interface is user-scoped → endpoints must verify JWT"
+      "reason": "Checkout Backend is user-scoped → endpoints must verify JWT"
     },
     {
-      "entity": "ENT-05",
+      "entity": "ENT-09",
       "type": "audit_logged",
-      "reason": "POS Sales Interface is security-sensitive → should have audit log"
+      "reason": "Checkout Backend is security-sensitive → should have audit log"
     },
     {
-      "entity": "ENT-06",
+      "entity": "ENT-10",
+      "type": "requires_auth",
+      "reason": "Checkout UI is user-scoped → endpoints must verify JWT"
+    },
+    {
+      "entity": "ENT-10",
       "type": "audit_logged",
-      "reason": "Checkout & Receipt UI is security-sensitive → should have audit log"
+      "reason": "Checkout UI is security-sensitive → should have audit log"
+    },
+    {
+      "entity": "ENT-11",
+      "type": "requires_auth",
+      "reason": "Order History Backend is user-scoped → endpoints must verify JWT"
+    },
+    {
+      "entity": "ENT-11",
+      "type": "audit_logged",
+      "reason": "Order History Backend is security-sensitive → should have audit log"
+    },
+    {
+      "entity": "ENT-12",
+      "type": "requires_auth",
+      "reason": "Order History UI is user-scoped → endpoints must verify JWT"
+    },
+    {
+      "entity": "ENT-12",
+      "type": "audit_logged",
+      "reason": "Order History UI is security-sensitive → should have audit log"
     }
   ],
   "architect_hints": [
-    "[service-grouping] Product Management API, Inventory Management API, Sales Transaction API share lifecycle='persistent' (backend) → consider placing in same service",
-    "[service-grouping] POS Sales Interface, Checkout & Receipt UI, Admin Product & Inventory UI share lifecycle='persistent' (frontend) → consider placing in same service",
+    "[service-grouping] User Authentication Backend, Shopping Cart Backend share lifecycle='transient' (backend) → consider placing in same service",
+    "[service-grouping] Product Catalog Backend, Inventory Management Backend, Checkout Backend, Order History Backend share lifecycle='persistent' (backend) → consider placing in same service",
+    "[service-grouping] Product Catalog UI, Inventory Management UI, Shopping Cart UI, Checkout UI, Order History UI share lifecycle='persistent' (frontend) → consider placing in same service",
+    "[async-trigger] Checkout Backend triggers Order History Backend → consider event/callback or background task instead of sync call",
+    "[async-trigger] Checkout Backend triggers Order History UI → consider event/callback or background task instead of sync call",
+    "[async-trigger] Checkout UI triggers Checkout Backend → consider event/callback or background task instead of sync call",
+    "[async-trigger] Checkout UI triggers Order History Backend → consider event/callback or background task instead of sync call",
+    "[async-trigger] Checkout UI triggers Order History UI → consider event/callback or background task instead of sync call",
+    "[ai-isolation] Product Catalog UI involve AI/ML → recommend dedicated service (different runtime, token cost, latency)",
     "[deployment-complexity] 3 backend service clusters detected → docker-compose will have multiple services; ensure health checks and startup order",
-    "[auth-dependency] Sales Transaction API, POS Sales Interface (and others) require auth → User Authentication Service must be TASK-01 (first in execution order)"
+    "[auth-dependency] Shopping Cart UI, Checkout Backend, Checkout UI (and others) are user-scoped → their services must declare depends_on the service containing User Authentication Backend, Auth UI, Shopping Cart Backend. Auth service must start first.",
+    "[storage] Requirements mention persistent storage → confirm in-memory dict is acceptable or add DB entity",
+    "[scalability] Requirements mention scale/performance → consider stateless design to allow horizontal scaling"
   ]
 }

@@ -3,17 +3,112 @@
   "cycle_detail": null,
   "execution_order": [
     "TASK-01",
-    "TASK-02"
+    "TASK-03",
+    "TASK-02",
+    "TASK-04",
+    "TASK-05",
+    "TASK-07",
+    "TASK-06",
+    "TASK-08",
+    "TASK-09",
+    "TASK-10",
+    "TASK-11",
+    "TASK-12"
   ],
   "parallel_groups": [
     [
       "TASK-01",
-      "TASK-02"
+      "TASK-03"
+    ],
+    [
+      "TASK-02",
+      "TASK-04",
+      "TASK-05",
+      "TASK-07"
+    ],
+    [
+      "TASK-06",
+      "TASK-08",
+      "TASK-09"
+    ],
+    [
+      "TASK-10",
+      "TASK-11"
+    ],
+    [
+      "TASK-12"
     ]
   ],
   "nodes": [
     "TASK-01",
-    "TASK-02"
+    "TASK-02",
+    "TASK-03",
+    "TASK-04",
+    "TASK-05",
+    "TASK-06",
+    "TASK-07",
+    "TASK-08",
+    "TASK-09",
+    "TASK-10",
+    "TASK-11",
+    "TASK-12"
   ],
-  "edges": []
+  "edges": [
+    {
+      "from": "TASK-02",
+      "to": "TASK-01"
+    },
+    {
+      "from": "TASK-04",
+      "to": "TASK-03"
+    },
+    {
+      "from": "TASK-05",
+      "to": "TASK-03"
+    },
+    {
+      "from": "TASK-06",
+      "to": "TASK-05"
+    },
+    {
+      "from": "TASK-06",
+      "to": "TASK-03"
+    },
+    {
+      "from": "TASK-07",
+      "to": "TASK-03"
+    },
+    {
+      "from": "TASK-08",
+      "to": "TASK-07"
+    },
+    {
+      "from": "TASK-08",
+      "to": "TASK-03"
+    },
+    {
+      "from": "TASK-09",
+      "to": "TASK-07"
+    },
+    {
+      "from": "TASK-09",
+      "to": "TASK-05"
+    },
+    {
+      "from": "TASK-10",
+      "to": "TASK-09"
+    },
+    {
+      "from": "TASK-10",
+      "to": "TASK-07"
+    },
+    {
+      "from": "TASK-11",
+      "to": "TASK-09"
+    },
+    {
+      "from": "TASK-12",
+      "to": "TASK-11"
+    }
+  ]
 }

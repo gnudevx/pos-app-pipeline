@@ -9,15 +9,15 @@
   },
   "services": [
     {
-      "name": "Auth Service",
+      "name": "Auth Backend",
       "component": "backend",
       "entity_refs": ["ENT-01"],
-      "description": "Backend service for user signup, login, and session management using JWT.",
+      "description": "JWT authentication: signup, login, token refresh.",
       "file_structure": [
-        "src/services/auth_service/app/main.py",
-        "src/services/auth_service/app/routes/auth.py",
-        "src/services/auth_service/app/models/user.py",
-        "src/services/auth_service/requirements.txt"
+        "src/services/auth/main.py",
+        "src/services/auth/routes.py",
+        "src/services/auth/models.py",
+        "src/services/auth/requirements.txt"
       ],
       "api_routes": [
         {
@@ -58,51 +58,31 @@
       "depends_on": []
     },
     {
-      "name": "Product & Inventory Service",
-      "component": "backend",
-      "entity_refs": ["ENT-02", "ENT-03"],
-      "description": "Backend API for managing product information (name, price) and stock levels.",
+      "name": "Auth Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-02"],
+      "description": "Login and signup pages, JWT token storage, auth state.",
       "file_structure": [
-        "src/services/product_inventory_service/app/main.py",
-        "src/services/product_inventory_service/app/routes/products.py",
-        "src/services/product_inventory_service/app/models/product.py",
-        "src/services/product_inventory_service/requirements.txt"
+        "src/frontend/src/pages/Login.tsx",
+        "src/frontend/src/pages/Signup.tsx",
+        "src/frontend/src/api/auth.ts"
+      ],
+      "api_routes": [],
+      "shared_types": ["User"],
+      "depends_on": ["Auth Backend"]
+    },
+    {
+      "name": "Product Catalog Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-03"],
+      "description": "CRUD operations for product data (name, price, description).",
+      "file_structure": [
+        "src/services/product_catalog/main.py",
+        "src/services/product_catalog/routes.py",
+        "src/services/product_catalog/models.py",
+        "src/services/product_catalog/requirements.txt"
       ],
       "api_routes": [
-        {
-          "method": "POST",
-          "path": "/products",
-          "status_code": 201,
-          "request_body": {
-            "name": "str",
-            "price": "float",
-            "initial_stock": "int"
-          },
-          "response_body": {
-            "id": "int",
-            "name": "str",
-            "price": "float",
-            "stock": "int"
-          },
-          "errors": [
-            { "status_code": 400, "when": "invalid input data" }
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/products/{product_id}",
-          "status_code": 200,
-          "request_body": {},
-          "response_body": {
-            "id": "int",
-            "name": "str",
-            "price": "float",
-            "stock": "int"
-          },
-          "errors": [
-            { "status_code": 404, "when": "product not found" }
-          ]
-        },
         {
           "method": "GET",
           "path": "/products",
@@ -110,79 +90,319 @@
           "request_body": {},
           "response_body": {
             "items": [
-              {
-                "id": "int",
-                "name": "str",
-                "price": "float",
-                "stock": "int"
-              }
+              { "id": "int", "name": "str", "price": "float", "description": "str" }
             ]
           },
           "errors": []
         },
         {
-          "method": "PUT",
-          "path": "/products/{product_id}",
-          "status_code": 200,
+          "method": "POST",
+          "path": "/products",
+          "status_code": 201,
           "request_body": {
-            "name": "Optional[str]",
-            "price": "Optional[float]"
+            "name": "str",
+            "price": "float",
+            "description": "str"
           },
           "response_body": {
             "id": "int",
             "name": "str",
             "price": "float",
-            "stock": "int"
+            "description": "str"
+          },
+          "errors": [
+            { "status_code": 400, "when": "invalid product data" }
+          ]
+        },
+        {
+          "method": "PUT",
+          "path": "/products/{id}",
+          "status_code": 200,
+          "request_body": {
+            "name": "str",
+            "price": "float",
+            "description": "str"
+          },
+          "response_body": {
+            "id": "int",
+            "name": "str",
+            "price": "float",
+            "description": "str"
           },
           "errors": [
             { "status_code": 404, "when": "product not found" },
-            { "status_code": 400, "when": "invalid input data" }
+            { "status_code": 400, "when": "invalid product data" }
           ]
         },
         {
           "method": "DELETE",
-          "path": "/products/{product_id}",
+          "path": "/products/{id}",
           "status_code": 204,
           "request_body": {},
           "response_body": {},
           "errors": [
             { "status_code": 404, "when": "product not found" }
           ]
-        },
-        {
-          "method": "PUT",
-          "path": "/products/{product_id}/stock",
-          "status_code": 200,
-          "request_body": {
-            "quantity": "int"
-          },
-          "response_body": {
-            "id": "int",
-            "name": "str",
-            "price": "float",
-            "stock": "int"
-          },
-          "errors": [
-            { "status_code": 404, "when": "product not found" },
-            { "status_code": 400, "when": "invalid stock quantity (e.g., negative)" }
-          ]
-        },
+        }
+      ],
+      "shared_types": ["Product"],
+      "depends_on": []
+    },
+    {
+      "name": "Product Catalog Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-04"],
+      "description": "Display product list, forms for adding/editing products.",
+      "file_structure": [
+        "src/frontend/src/pages/ProductList.tsx",
+        "src/frontend/src/pages/ProductForm.tsx",
+        "src/frontend/src/api/products.ts"
+      ],
+      "api_routes": [],
+      "shared_types": ["Product"],
+      "depends_on": ["Product Catalog Backend"]
+    },
+    {
+      "name": "Inventory Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-05"],
+      "description": "API for updating and retrieving current stock levels for products.",
+      "file_structure": [
+        "src/services/inventory/main.py",
+        "src/services/inventory/routes.py",
+        "src/services/inventory/models.py",
+        "src/services/inventory/requirements.txt"
+      ],
+      "api_routes": [
         {
           "method": "GET",
-          "path": "/products/{product_id}/stock",
+          "path": "/inventory/{product_id}",
           "status_code": 200,
           "request_body": {},
           "response_body": {
             "product_id": "int",
-            "stock": "int"
+            "stock_level": "int"
           },
           "errors": [
             { "status_code": 404, "when": "product not found" }
           ]
+        },
+        {
+          "method": "PUT",
+          "path": "/inventory/{product_id}",
+          "status_code": 200,
+          "request_body": {
+            "stock_level": "int"
+          },
+          "response_body": {
+            "product_id": "int",
+            "stock_level": "int"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" },
+            { "status_code": 400, "when": "invalid stock level" }
+          ]
         }
       ],
-      "shared_types": ["Product", "ProductUpdate", "StockUpdate"],
-      "depends_on": []
+      "shared_types": ["Inventory"],
+      "depends_on": ["Product Catalog Backend"]
+    },
+    {
+      "name": "Inventory Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-06"],
+      "description": "UI to view current stock levels and adjust them for individual products.",
+      "file_structure": [
+        "src/frontend/src/pages/InventoryList.tsx",
+        "src/frontend/src/api/inventory.ts"
+      ],
+      "api_routes": [],
+      "shared_types": ["Inventory", "Product"],
+      "depends_on": ["Inventory Backend", "Product Catalog Backend"]
+    },
+    {
+      "name": "Shopping Cart Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-07"],
+      "description": "Manages items in the current sales transaction (in-session cart).",
+      "file_structure": [
+        "src/services/shopping_cart/main.py",
+        "src/services/shopping_cart/routes.py",
+        "src/services/shopping_cart/models.py",
+        "src/services/shopping_cart/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/cart/add",
+          "status_code": 200,
+          "request_body": {
+            "product_id": "int",
+            "quantity": "int"
+          },
+          "response_body": {
+            "id": "str",
+            "items": [
+              { "product_id": "int", "quantity": "int", "price": "float" }
+            ],
+            "total_price": "float"
+          },
+          "errors": [
+            { "status_code": 404, "when": "product not found" },
+            { "status_code": 400, "when": "invalid quantity or insufficient stock" }
+          ]
+        },
+        {
+          "method": "DELETE",
+          "path": "/cart/remove/{item_id}",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "id": "str",
+            "items": [
+              { "product_id": "int", "quantity": "int", "price": "float" }
+            ],
+            "total_price": "float"
+          },
+          "errors": [
+            { "status_code": 404, "when": "item not found in cart" }
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/cart",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "id": "str",
+            "items": [
+              { "product_id": "int", "quantity": "int", "price": "float" }
+            ],
+            "total_price": "float"
+          },
+          "errors": [
+            { "status_code": 404, "when": "cart not found for session/user" }
+          ]
+        }
+      ],
+      "shared_types": ["Cart", "CartItem"],
+      "depends_on": ["Product Catalog Backend"]
+    },
+    {
+      "name": "Shopping Cart Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-08"],
+      "description": "UI to add/remove items to the cart, display cart contents, and show total price.",
+      "file_structure": [
+        "src/frontend/src/components/Cart.tsx",
+        "src/frontend/src/api/cart.ts"
+      ],
+      "api_routes": [],
+      "shared_types": ["Cart", "CartItem", "Product"],
+      "depends_on": ["Shopping Cart Backend", "Product Catalog Backend"]
+    },
+    {
+      "name": "Checkout Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-09"],
+      "description": "Processes the sale, deducts inventory, creates an order record, and generates a receipt.",
+      "file_structure": [
+        "src/services/checkout/main.py",
+        "src/services/checkout/routes.py",
+        "src/services/checkout/models.py",
+        "src/services/checkout/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/checkout",
+          "status_code": 201,
+          "request_body": {
+            "cart_id": "str",
+            "payment_info": "dict"
+          },
+          "response_body": {
+            "order_id": "int",
+            "total_price": "float",
+            "status": "str"
+          },
+          "errors": [
+            { "status_code": 400, "when": "invalid cart or payment info" },
+            { "status_code": 409, "when": "insufficient stock" }
+          ]
+        }
+      ],
+      "shared_types": ["Order"],
+      "depends_on": ["Shopping Cart Backend", "Inventory Backend"]
+    },
+    {
+      "name": "Checkout Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-10"],
+      "description": "UI for the checkout flow, including payment confirmation and order summary display.",
+      "file_structure": [
+        "src/frontend/src/pages/Checkout.tsx",
+        "src/frontend/src/pages/OrderConfirmation.tsx",
+        "src/frontend/src/api/checkout.ts"
+      ],
+      "api_routes": [],
+      "shared_types": ["Order", "Cart"],
+      "depends_on": ["Checkout Backend", "Shopping Cart Backend"]
+    },
+    {
+      "name": "Order History Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-11"],
+      "description": "Stores and retrieves past sales transactions and their associated receipts.",
+      "file_structure": [
+        "src/services/order_history/main.py",
+        "src/services/order_history/routes.py",
+        "src/services/order_history/models.py",
+        "src/services/order_history/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "GET",
+          "path": "/orders",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "items": [
+              { "id": "int", "user_id": "int", "total_price": "float", "status": "str", "created_at": "str" }
+            ]
+          },
+          "errors": []
+        },
+        {
+          "method": "GET",
+          "path": "/orders/{id}/receipt",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": {
+            "order_id": "int",
+            "details": "dict"
+          },
+          "errors": [
+            { "status_code": 404, "when": "order not found" }
+          ]
+        }
+      ],
+      "shared_types": ["Order", "Receipt"],
+      "depends_on": ["Checkout Backend"]
+    },
+    {
+      "name": "Order History Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-12"],
+      "description": "UI to view a list of past orders and retrieve/display individual receipts.",
+      "file_structure": [
+        "src/frontend/src/pages/OrderHistory.tsx",
+        "src/frontend/src/pages/ReceiptView.tsx",
+        "src/frontend/src/api/orders.ts"
+      ],
+      "api_routes": [],
+      "shared_types": ["Order", "Receipt"],
+      "depends_on": ["Order History Backend"]
     }
   ],
   "shared_types": [
@@ -192,8 +412,8 @@
         "id": "int",
         "email": "str"
       },
-      "defined_in": "Auth Service",
-      "used_by": []
+      "defined_in": "Auth Backend",
+      "used_by": ["Auth Frontend"]
     },
     {
       "name": "Product",
@@ -201,33 +421,81 @@
         "id": "int",
         "name": "str",
         "price": "float",
-        "stock": "int"
+        "description": "str"
       },
-      "defined_in": "Product & Inventory Service",
-      "used_by": []
+      "defined_in": "Product Catalog Backend",
+      "used_by": ["Product Catalog Frontend", "Inventory Frontend", "Shopping Cart Backend", "Shopping Cart Frontend"]
     },
     {
-      "name": "ProductUpdate",
+      "name": "Inventory",
       "fields": {
-        "name": "Optional[str]",
-        "price": "Optional[float]"
+        "product_id": "int",
+        "stock_level": "int"
       },
-      "defined_in": "Product & Inventory Service",
-      "used_by": []
+      "defined_in": "Inventory Backend",
+      "used_by": ["Inventory Frontend", "Checkout Backend"]
     },
     {
-      "name": "StockUpdate",
+      "name": "CartItem",
       "fields": {
-        "quantity": "int"
+        "product_id": "int",
+        "quantity": "int",
+        "price": "float"
       },
-      "defined_in": "Product & Inventory Service",
-      "used_by": []
+      "defined_in": "Shopping Cart Backend",
+      "used_by": ["Shopping Cart Frontend", "Cart"]
+    },
+    {
+      "name": "Cart",
+      "fields": {
+        "id": "str",
+        "items": "list[CartItem]",
+        "total_price": "float"
+      },
+      "defined_in": "Shopping Cart Backend",
+      "used_by": ["Shopping Cart Frontend", "Checkout Backend", "Checkout Frontend"]
+    },
+    {
+      "name": "Order",
+      "fields": {
+        "id": "int",
+        "user_id": "int",
+        "items": "list[CartItem]",
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      },
+      "defined_in": "Checkout Backend",
+      "used_by": ["Checkout Frontend", "Order History Backend", "Order History Frontend"]
+    },
+    {
+      "name": "Receipt",
+      "fields": {
+        "order_id": "int",
+        "details": "dict"
+      },
+      "defined_in": "Order History Backend",
+      "used_by": ["Order History Frontend"]
     }
   ],
   "deployment": {
     "name": "Deployment & Testing",
-    "includes": ["docker-compose.yml", "Dockerfiles", "pytest tests"],
-    "depends_on": ["Auth Service", "Product & Inventory Service"]
+    "includes": ["docker-compose.yml", "Dockerfiles", "pytest tests", "Jest tests"],
+    "depends_on": [
+      "Auth Backend",
+      "Auth Frontend",
+      "Product Catalog Backend",
+      "Product Catalog Frontend",
+      "Inventory Backend",
+      "Inventory Frontend",
+      "Shopping Cart Backend",
+      "Shopping Cart Frontend",
+      "Checkout Backend",
+      "Checkout Frontend",
+      "Order History Backend",
+      "Order History Frontend"
+    ]
   }
 }
+ARCHITECT_DONE
 ```

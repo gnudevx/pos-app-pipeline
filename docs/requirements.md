@@ -1,68 +1,27 @@
-```markdown
 # PRD
 
 ## Problem
-Small retail shops lack an efficient system to manage product sales, track inventory, and process customer transactions, leading to manual errors and slow service.
+Small retail shops lack an efficient, integrated system to manage their product catalog, process sales transactions, track inventory in real-time, and generate receipts. This leads to manual errors, slow checkout processes, and inaccurate stock counts, impacting customer satisfaction and operational efficiency.
 
-## MVP Features
-- Product listing and search functionality.
-- Ability to add, remove, and update quantities of items in a sales cart.
-- Secure checkout process for completing transactions.
-- Basic recording of sales transactions.
+## Feature entities
+- **User Authentication Backend**: Handles user registration, login, and session management.
+- **Auth UI**: Provides user interface for login and signup.
+- **Product Catalog Backend**: Manages product data (name, price, description).
+- **Product Catalog UI**: Displays products and allows for their creation/editing.
+- **Inventory Management Backend**: Tracks and updates product stock levels.
+- **Inventory Management UI**: Provides interface to view and adjust product stock.
+- **Shopping Cart Backend**: Manages items added to a customer's current transaction.
+- **Shopping Cart UI**: Displays the current cart and allows item manipulation.
+- **Checkout Backend**: Processes sales, deducts inventory, and finalizes transactions.
+- **Checkout UI**: Guides the user through the payment and order confirmation process.
+- **Order History Backend**: Stores and retrieves records of past sales and receipts.
+- **Order History UI**: Displays a list of past orders and allows viewing of individual receipts.
 
-## Non-functional Requirements
-- **Performance**: Fast response times for product lookup and transaction processing, aiming for sub-second responses.
-- **Maintainability**: Modular codebase with clear separation of concerns, well-documented APIs, and adherence to coding standards.
-- **Testing**: Comprehensive automated unit, integration, and end-to-end tests for both backend and frontend components.
-- **Deployment**: Containerized application services (Docker) for consistent and easy deployment across environments.
-- **Usability**: Intuitive and user-friendly interface for quick and error-free sales operations by staff.
+## MVP scope
+The MVP will include core functionalities for user authentication, comprehensive product and inventory management, a complete sales transaction flow from cart to checkout, and the ability to view past order history and receipts.
 
-# Project context:
-# POS App — Shared Project Context
-
-## Project overview
-Point-of-sale system for small retail shops.
-Platforms: Web (React) + Mobile (React Native).
-
-## Tech stack
-- Frontend : React 18, TypeScript, Tailwind CSS
-- Backend  : FastAPI (Python 3.11), PostgreSQL 15
-- Mobile   : React Native with Expo SDK 51
-- Testing  : Jest (frontend), Pytest (backend)
-- CI/CD    : GitHub Actions
-- Infra    : Vercel (web), Railway (API), Expo EAS (mobile)
-
-## Repository
-- Pipeline repo: https://github.com/gnudevx/pos-app
-- POS App repo:  https://github.com/gnudevx/pos-app-test_v2  ← dev-agent làm việc ở đây
-- Local POS path: D:\Intern\pos-app-pipeline
-- Main branch: main
-- Branch convention: feature/TASK-{id}-short-description
-
-## Commit convention
-feat(scope): description     ← tính năng mới
-fix(scope): description      ← sửa bug
-test(scope): description     ← thêm/sửa test
-chore(scope): description    ← cấu hình, dependency
-
-## Agent roles
-- requirement-agent : đọc prompt → viết PRD + user stories
-- planner-agent     : đọc stories → chia tasks + sprint plan
-- dev-agent         : đọc ticket → viết code → tạo PR
-- tester-agent      : chạy test suite → tạo bug report
-
-## Output file paths
-- /docs/requirements.md   ← PRD
-- /docs/stories.json      ← user stories
-- /docs/tasks.json        ← sprint tasks
-- /docs/test-results.md   ← kết quả test
-- /docs/bugs/             ← bug reports
-
-## Definition of done (mỗi task)
-1. Code implement xong
-2. Unit test pass (coverage >= 80%)
-3. Lint pass (0 error)
-4. PR tạo trên GitHub
-5. Jira ticket cập nhật → Done
-```
-```json
+## Non-functional requirements
+- Performance: API responses for critical paths (e.g., product lookup, cart operations, checkout) must be under 200ms. Frontend rendering should be smooth and responsive.
+- Scalability: The system should be able to handle up to 100 concurrent users and process 500 transactions per hour without degradation in performance.
+- Testing: Comprehensive unit and integration tests with at least 80% code coverage for both frontend and backend. End-to-end tests for critical user flows.
+- Deployment: Automated CI/CD pipelines for seamless deployment to Vercel (web), Railway (API), and Expo EAS (mobile).

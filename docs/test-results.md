@@ -1214,3 +1214,329 @@ No frontend source files yet — SKIP
 ## TASK-03 (fullstack) — 2026-05-17T23:24:33.997844
 - Backend: PASS (health only)
 - Frontend: SKIP
+
+---
+## TASK-01 (backend) — 2026-05-23T19:08:38.587137
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-24T00:58:50.559402
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-03 (backend) — 2026-05-24T00:59:07.925050
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-02 (frontend) — 2026-05-24T00:59:26.996670
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-01 (backend) — 2026-05-24T01:43:45.449118
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-02 (backend) — 2026-05-24T01:44:11.096704
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-03 (backend) — 2026-05-24T01:45:26.285017
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-04 (frontend) — 2026-05-24T01:46:04.753160
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-01 (backend) — 2026-05-24T23:15:08.888713
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_post_auth_signup_c6dc0c FAILED                   [ 50%]
+tests/test_api.py::test_post_auth_login_fe43ba FAILED                    [ 75%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-03 (backend) — 2026-05-24T23:15:32.754843
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-06 (frontend) — 2026-05-24T23:16:01.447377
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-02 (frontend) — 2026-05-24T23:16:40.446831
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-04 (frontend) — 2026-05-24T23:17:15.988894
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-05 (backend) — 2026-05-24T23:17:41.206431
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-03 (backend) — 2026-05-25T00:27:47.573802
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-04 (frontend) — 2026-05-25T00:28:08.919904
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-05 (backend) — 2026-05-25T00:28:29.167489
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-07 (backend) — 2026-05-25T00:29:30.032803
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-06 (frontend) — 2026-05-25T00:29:55.603775
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-08 (frontend) — 2026-05-25T00:30:21.844270
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-09 (backend) — 2026-05-25T00:30:56.776214
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-10 (frontend) — 2026-05-25T00:31:21.415722
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-11 (backend) — 2026-05-25T00:31:44.403641
+- Backend: PASS (health only)
+- Frontend: SKIP
+
+---
+## TASK-12 (frontend) — 2026-05-25T00:32:09.787973
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-02 (backend) — 2026-05-25T15:06:53.356123
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-25T15:29:38.993069
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-25T15:41:23.304287
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-25T15:41:42.448389
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-03 (backend) — 2026-05-25T15:42:18.968118
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-04 (frontend) — 2026-05-25T15:42:46.355151
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-05 (frontend) — 2026-05-25T15:43:17.870394
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-06 (backend) — 2026-05-25T15:43:36.472939
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-07 (backend) — 2026-05-25T15:44:02.938816
+- Backend: PASS
+- Frontend: PASS
+
+```
+...
+Skipped — component=backend
+```
+
+---
+## TASK-09 (frontend) — 2026-05-25T15:44:26.895924
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-10 (frontend) — 2026-05-25T15:44:56.428116
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```
+
+---
+## TASK-12 (frontend) — 2026-05-25T15:45:21.532062
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+No frontend source files yet — SKIP
+```

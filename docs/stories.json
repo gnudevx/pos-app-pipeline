@@ -1,53 +1,72 @@
 [
   {
     "id": "US-01",
-    "title": "Implement core POS Backend APIs for products and sales",
-    "description": "Develop FastAPI backend APIs for managing products (CRUD), handling cart operations (add, remove, update quantity), and processing sales transactions. Use PostgreSQL for data storage and Pydantic for validation.",
+    "title": "User Authentication and Session Management",
+    "description": "As a POS user, I need to be able to securely log in and out of the system so that I can access my authorized functionalities and protect sensitive data.",
     "priority": "P0",
+    "entities": [
+      "ENT-01",
+      "ENT-02"
+    ],
     "acceptance_criteria": [
-      "API endpoints for product CRUD operations are functional.",
-      "API endpoints for adding items to cart, updating quantities, and removing items are functional.",
-      "API endpoint for processing a sale (checkout) is functional and records the transaction.",
-      "Data is persisted correctly in PostgreSQL.",
-      "Input data is validated using Pydantic models."
+      "Users can register a new account with a unique username and password.",
+      "Users can log in using their registered credentials.",
+      "Upon successful login, users receive an authentication token.",
+      "Users can log out, invalidating their current session."
     ]
   },
   {
     "id": "US-02",
-    "title": "Develop Web UI for product display, cart, and checkout",
-    "description": "Build a React TypeScript web application that displays products, allows users to add/remove items to a cart, update quantities, and complete the checkout process by interacting with the backend APIs.",
+    "title": "Product and Inventory Management",
+    "description": "As a shop owner, I need to manage my product catalog and track inventory levels so that I can accurately display available products and prevent overselling.",
     "priority": "P0",
+    "entities": [
+      "ENT-03",
+      "ENT-04",
+      "ENT-05",
+      "ENT-06"
+    ],
     "acceptance_criteria": [
-      "Products are displayed clearly with relevant information.",
-      "Users can add products to a cart, view cart contents, and adjust quantities.",
-      "The checkout flow is intuitive and allows for completing a sale.",
-      "Frontend successfully integrates and communicates with the backend APIs.",
-      "UI is responsive and user-friendly."
+      "Users can view a list of all products, including their name, price, and current stock.",
+      "Users can add new products by providing a name, price, and initial stock quantity.",
+      "Users can edit the name and price of existing products.",
+      "Users can manually adjust the stock level for any product.",
+      "The system accurately reflects product stock levels."
     ]
   },
   {
     "id": "US-03",
-    "title": "Set up automated testing and Dockerized deployment",
-    "description": "Configure automated unit and integration tests for both backend (Pytest) and frontend (Jest). Create Dockerfiles and a Docker Compose setup to containerize the application services for local development and deployment.",
+    "title": "Sales Transaction Flow",
+    "description": "As a cashier, I need to efficiently add items to a shopping cart, process payments, and complete sales transactions so that customers can quickly check out and receive a receipt.",
     "priority": "P0",
+    "entities": [
+      "ENT-07",
+      "ENT-08",
+      "ENT-09",
+      "ENT-10"
+    ],
     "acceptance_criteria": [
-      "Backend unit tests are implemented and pass with good coverage.",
-      "Frontend unit tests are implemented and pass.",
-      "Dockerfiles exist for both backend and frontend services.",
-      "docker-compose up successfully builds and runs all services.",
-      "Basic integration tests verify communication between frontend and backend."
+      "Users can add products to a shopping cart.",
+      "Users can remove products from the shopping cart.",
+      "The shopping cart displays the total price of all items.",
+      "Users can initiate the checkout process from the shopping cart.",
+      "Upon successful checkout, the system deducts the sold items from inventory.",
+      "Upon successful checkout, a digital receipt is generated and displayed."
     ]
   },
   {
     "id": "US-04",
-    "title": "Develop Mobile UI for product display and cart",
-    "description": "Build a React Native mobile application (using Expo) that displays products and allows users to add/remove items to a cart, update quantities, and view cart contents, integrating with the backend APIs.",
-    "priority": "P1",
+    "title": "Order History and Receipt Retrieval",
+    "description": "As a shop owner, I need to view past sales transactions and retrieve receipts so that I can review sales performance and provide customer support.",
+    "priority": "P0",
+    "entities": [
+      "ENT-11",
+      "ENT-12"
+    ],
     "acceptance_criteria": [
-      "Products are displayed correctly on mobile devices.",
-      "Users can interact with the cart on mobile.",
-      "Mobile app successfully integrates with the backend APIs.",
-      "Basic navigation between product list and cart is functional."
+      "Users can view a list of all past sales transactions.",
+      "Users can view the detailed breakdown of items and total amount for any specific past transaction.",
+      "Users can retrieve and view the digital receipt for any past transaction."
     ]
   }
 ]

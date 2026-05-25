@@ -1,0 +1,17 @@
+{
+  "schema_version": "2.0",
+  "task_id": "TASK-12",
+  "domain": "",
+  "component": "frontend",
+  "layer": "",
+  "summary": "Order History Frontend",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
+  "file_structure": [
+    "src/frontend/src/pages/OrderHistory.tsx",
+    "src/frontend/src/pages/ReceiptView.tsx",
+    "src/frontend/src/api/orders.ts"
+  ],
+  "routes": [],
+  "artifacts": []
+}

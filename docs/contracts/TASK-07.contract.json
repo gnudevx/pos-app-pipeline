@@ -1,0 +1,16 @@
+{
+  "schema_version": "2.0",
+  "task_id": "TASK-07",
+  "domain": "",
+  "component": "frontend",
+  "layer": "",
+  "summary": "Inventory Frontend",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
+  "file_structure": [
+    "src/frontend/src/pages/InventoryList.tsx",
+    "src/frontend/src/api/inventory.ts"
+  ],
+  "routes": [],
+  "artifacts": []
+}

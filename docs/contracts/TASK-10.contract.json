@@ -1,0 +1,17 @@
+{
+  "schema_version": "2.0",
+  "task_id": "TASK-10",
+  "domain": "",
+  "component": "frontend",
+  "layer": "",
+  "summary": "Checkout Frontend",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
+  "file_structure": [
+    "src/frontend/src/pages/Checkout.tsx",
+    "src/frontend/src/pages/OrderConfirmation.tsx",
+    "src/frontend/src/api/checkout.ts"
+  ],
+  "routes": [],
+  "artifacts": []
+}

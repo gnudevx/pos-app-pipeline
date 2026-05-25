@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "task_id": "TASK-09",
+  "domain": "",
+  "component": "backend",
+  "layer": "",
+  "summary": "Checkout Backend",
+  "source_dir": "src/services/checkout",
+  "routes_dir": "src/services/checkout/app/routes",
+  "file_structure": [
+    "src/services/checkout/main.py",
+    "src/services/checkout/routes.py",
+    "src/services/checkout/models.py",
+    "src/services/checkout/requirements.txt"
+  ],
+  "routes": [
+    {
+      "method": "post",
+      "path": "/checkout",
+      "status_code": 201,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "cart_id": "str",
+        "payment_info": "dict"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 400,
+          "when": "invalid cart or payment info"
+        },
+        {
+          "status_code": 409,
+          "when": "insufficient stock"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int",
+        "total": "float"
+      }
+    }
+  ],
+  "artifacts": []
+}

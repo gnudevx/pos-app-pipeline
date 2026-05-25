@@ -1,0 +1,17 @@
+{
+  "schema_version": "2.0",
+  "task_id": "TASK-04",
+  "domain": "",
+  "component": "frontend",
+  "layer": "",
+  "summary": "Product Catalog Frontend",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
+  "file_structure": [
+    "src/frontend/src/pages/ProductList.tsx",
+    "src/frontend/src/pages/ProductForm.tsx",
+    "src/frontend/src/api/products.ts"
+  ],
+  "routes": [],
+  "artifacts": []
+}

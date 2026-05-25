@@ -1,0 +1,50 @@
+{
+  "schema_version": "2.0",
+  "task_id": "TASK-11",
+  "domain": "",
+  "component": "backend",
+  "layer": "",
+  "summary": "Order History Backend",
+  "source_dir": "src/services/order_history",
+  "routes_dir": "src/services/order_history/app/routes",
+  "file_structure": [
+    "src/services/order_history/main.py",
+    "src/services/order_history/routes.py",
+    "src/services/order_history/models.py",
+    "src/services/order_history/requirements.txt"
+  ],
+  "routes": [
+    {
+      "method": "get",
+      "path": "/orders",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    },
+    {
+      "method": "get",
+      "path": "/orders/{id}/receipt",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "order not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    }
+  ],
+  "artifacts": []
+}

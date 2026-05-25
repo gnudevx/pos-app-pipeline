@@ -1,0 +1,119 @@
+{
+  "nodes": {
+    "src/frontend/src/App.tsx": {
+      "id": "src/frontend/src/App.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "useAuth"
+      ],
+      "imports": [
+        "./pages/Login",
+        "./pages/Signup",
+        "./api/auth",
+        "./pages/CartPage"
+      ],
+      "api_calls": [],
+      "text": "Exports: useAuth"
+    },
+    "src/frontend/src/main.tsx": {
+      "id": "src/frontend/src/main.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [
+        "./App"
+      ],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/main.tsx"
+    },
+    "src/frontend/src/api/auth.ts": {
+      "id": "src/frontend/src/api/auth.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "login",
+        "signup",
+        "logout",
+        "getToken"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/auth/login",
+        "${API_BASE_URL}/auth/signup"
+      ],
+      "text": "Exports: login, signup, logout, getToken. API calls: ${API_BASE_URL}/auth/login, ${API_BASE_URL}/auth/signup"
+    },
+    "src/frontend/src/pages/Login.tsx": {
+      "id": "src/frontend/src/pages/Login.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "LoginPage",
+        "Login"
+      ],
+      "imports": [
+        "../api/auth",
+        "../context/AuthContext"
+      ],
+      "api_calls": [],
+      "text": "Exports: LoginPage, Login"
+    },
+    "src/frontend/src/pages/Signup.tsx": {
+      "id": "src/frontend/src/pages/Signup.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "SignupPage",
+        "Signup"
+      ],
+      "imports": [
+        "../api/auth"
+      ],
+      "api_calls": [],
+      "text": "Exports: SignupPage, Signup"
+    }
+  },
+  "edges": [
+    {
+      "from": "src/frontend/src/App.tsx",
+      "to": "./pages/Login",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/App.tsx",
+      "to": "./pages/Signup",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/App.tsx",
+      "to": "./api/auth",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/App.tsx",
+      "to": "./pages/CartPage",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/main.tsx",
+      "to": "./App",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/pages/Login.tsx",
+      "to": "../api/auth",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/pages/Login.tsx",
+      "to": "../context/AuthContext",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/pages/Signup.tsx",
+      "to": "../api/auth",
+      "rel": "imports"
+    }
+  ]
+}

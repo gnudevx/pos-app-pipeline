@@ -1,0 +1,208 @@
+```json
+{
+  "schema_version": "1",
+  "tech_stack": {
+    "backend": "FastAPI + Pydantic v2",
+    "frontend": "React 18 + TypeScript + Vite",
+    "testing": "pytest (backend), Jest (frontend)",
+    "containerization": "Docker + docker-compose"
+  },
+  "services": [
+    {
+      "name": "Auth Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-01"],
+      "description": "Handles user registration and login. Provides JWT tokens for authenticated sessions.",
+      "file_structure": [
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/auth_backend/requirements.txt"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": []
+    },
+    {
+      "name": "Auth Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-02"],
+      "description": "Frontend forms for user signup and login. Manages JWT token storage and session state.",
+      "file_structure": [
+        "src/frontend/src/pages/Login.tsx",
+        "src/frontend/src/pages/Signup.tsx",
+        "src/frontend/src/api/auth.ts",
+        "src/frontend/src/store/authStore.ts"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Auth Backend"]
+    },
+    {
+      "name": "Product Catalog Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-03"],
+      "description": "Manages product data (name, price). Provides CRUD operations for products.",
+      "file_structure": [
+        "src/services/product_catalog_backend/app/main.py",
+        "src/services/product_catalog_backend/app/routes/products.py",
+        "src/services/product_catalog_backend/app/models/product.py",
+        "src/services/product_catalog_backend/requirements.txt"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": []
+    },
+    {
+      "name": "Product Catalog Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-04"],
+      "description": "Frontend interface for viewing, adding, editing, and deleting products. Displays product list with name and price.",
+      "file_structure": [
+        "src/frontend/src/pages/Products.tsx",
+        "src/frontend/src/components/ProductList.tsx",
+        "src/frontend/src/api/products.ts"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Product Catalog Backend"]
+    },
+    {
+      "name": "Inventory Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-05"],
+      "description": "Manages product stock levels. Supports updating stock and deducting stock during sales.",
+      "file_structure": [
+        "src/services/inventory_backend/app/main.py",
+        "src/services/inventory_backend/app/routes/inventory.py",
+        "src/services/inventory_backend/app/models/stock.py",
+        "src/services/inventory_backend/requirements.txt"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Product Catalog Backend"]
+    },
+    {
+      "name": "Inventory Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-06"],
+      "description": "Frontend interface for viewing current stock levels and manually adjusting stock for products.",
+      "file_structure": [
+        "src/frontend/src/pages/Inventory.tsx",
+        "src/frontend/src/components/StockList.tsx",
+        "src/frontend/src/api/inventory.ts"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Inventory Backend"]
+    },
+    {
+      "name": "Shopping Cart Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-07"],
+      "description": "Manages the in-session shopping cart. Allows adding, removing, and viewing items in the cart.",
+      "file_structure": [
+        "src/services/shopping_cart_backend/app/main.py",
+        "src/services/shopping_cart_backend/app/routes/cart.py",
+        "src/services/shopping_cart_backend/app/models/cart.py",
+        "src/services/shopping_cart_backend/requirements.txt"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Product Catalog Backend"]
+    },
+    {
+      "name": "Shopping Cart Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-08"],
+      "description": "Frontend display of the current shopping cart, with options to add/remove items and adjust quantities.",
+      "file_structure": [
+        "src/frontend/src/pages/Cart.tsx",
+        "src/frontend/src/components/CartDisplay.tsx",
+        "src/frontend/src/api/cart.ts"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Shopping Cart Backend"]
+    },
+    {
+      "name": "Checkout & Order Processing Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-09"],
+      "description": "Processes a sale from the shopping cart, deducts inventory, and generates an order/receipt.",
+      "file_structure": [
+        "src/services/checkout_order_backend/app/main.py",
+        "src/services/checkout_order_backend/app/routes/checkout.py",
+        "src/services/checkout_order_backend/app/models/order.py",
+        "src/services/checkout_order_backend/requirements.txt"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Shopping Cart Backend", "Inventory Backend"]
+    },
+    {
+      "name": "Checkout Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-10"],
+      "description": "Frontend interface for completing a purchase, displaying total, and confirming the order. Shows receipt post-purchase.",
+      "file_structure": [
+        "src/frontend/src/pages/Checkout.tsx",
+        "src/frontend/src/components/OrderConfirmation.tsx",
+        "src/frontend/src/api/checkout.ts"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Checkout & Order Processing Backend"]
+    },
+    {
+      "name": "Order History Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-11"],
+      "description": "Stores and retrieves records of past sales transactions and receipts.",
+      "file_structure": [
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order_history.py",
+        "src/services/order_history_backend/requirements.txt"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Checkout & Order Processing Backend"]
+    },
+    {
+      "name": "Order History Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-12"],
+      "description": "Frontend interface for viewing a list of past orders and their detailed receipts.",
+      "file_structure": [
+        "src/frontend/src/pages/OrderHistory.tsx",
+        "src/frontend/src/components/OrderList.tsx",
+        "src/frontend/src/api/orders.ts"
+      ],
+      "api_routes": [],
+      "shared_types": [],
+      "depends_on": ["Order History Backend"]
+    }
+  ],
+  "shared_types": [],
+  "deployment": {
+    "name": "Deployment & Testing",
+    "includes": ["docker-compose.yml", "Dockerfiles", "pytest tests", "Jest tests"],
+    "depends_on": [
+      "Auth Backend",
+      "Auth Frontend",
+      "Product Catalog Backend",
+      "Product Catalog Frontend",
+      "Inventory Backend",
+      "Inventory Frontend",
+      "Shopping Cart Backend",
+      "Shopping Cart Frontend",
+      "Checkout & Order Processing Backend",
+      "Checkout Frontend",
+      "Order History Backend",
+      "Order History Frontend"
+    ]
+  }
+}
+```
+ARCHITECT_DONE

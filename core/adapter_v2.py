@@ -53,27 +53,51 @@ import json
 import subprocess
 import datetime
 import re
-import core.ai_client as ai_client
-import core.git_ops as git_ops
-import core.parser as p
-from core.config import GEMINI_API_KEYS
-from core.git_ops import make_branch_name
+import ai_client as ai_client
+import git_ops as git_ops
+import parser as p
+from config import GEMINI_API_KEYS
+from git_ops import make_branch_name
 import textwrap
 import ast
 import hashlib
 import traceback
+from indexer import build_graph, save_graph
 
+    
 # Import từ contract_normalizer (REAL CONTRACT-FIRST)
-from core.contract_normalizer import (
+from contract_normalizer import (
     normalize_tasks_to_contracts,
     export_contracts_to_files,
     load_contract,
     list_contracts,
     resolve_route_schema,
     resolve_response_fields,
-    CONTRACT_SCHEMA_VERSION,
 )
-
+from dependency_graph import (
+        build_dependency_graph,
+        validate_no_cycles,
+        get_execution_order,
+        save_graph as save_dep_graph,
+        load_graph as load_dep_graph,
+    )
+from task_materializer import (
+    materialize,
+    save_materialized,
+)
+from knowledge_graph_builder import (
+    build_knowledge_graph,
+    save_knowledge_graph,
+)
+from structure_planner import (
+           run_structure_planner, load_plan,
+           format_graph_context_for_dev,
+       )
+from smart_scaffold import (
+    write_smart_scaffold, verify_smart_scaffold,
+    run_static_analysis,
+)
+from slot_injector import inject_all_slots, list_unfilled_slots
 AGENT_BACKEND = "gemini"
 
 
@@ -109,10 +133,18 @@ def _run_mock(agent_name, prompt):
 def _run_gemini(agent_name, prompt, bug_context=None):
     if agent_name == "requirement-agent":
         return _gemini_requirement(prompt)
+    elif agent_name == "knowledge-graph":
+        return _gemini_knowledge_graph(prompt)
+    elif agent_name == "architect-agent":         
+        return _gemini_architect(prompt)
+    elif agent_name == "task-materializer":          # ← THÊM
+            return _gemini_task_materializer(prompt)        
     elif agent_name == "planner-agent":
         return _gemini_planner(prompt)
     elif agent_name == "contract-compiler":
         return _gemini_contract_compiler(prompt)
+    elif agent_name == "structure-planner":
+           return _gemini_structure_planner(prompt)
     elif agent_name == "dev-agent":
         return _gemini_dev(task_id=prompt, bug_context=bug_context)
     elif agent_name == "tester-agent":
@@ -121,77 +153,786 @@ def _run_gemini(agent_name, prompt, bug_context=None):
 
 # ── Requirement agent ──────────────────────────────────────────────────────────
 def _gemini_requirement(prompt):
-    system   = p.load_agent_instruction("requirement-agent", backend="gemini")
+    system    = p.load_agent_instruction("requirement-agent", backend="gemini")
     claude_md = p.load_claude_md()
     if claude_md:
         system += f"\n\n# Project context:\n{claude_md}"
-
+ 
     response = ai_client.call(GEMINI_API_KEYS, system, prompt, "requirement-agent")
-
+ 
     os.makedirs("docs", exist_ok=True)
-    prd_text, stories, err = p.split_prd_and_stories(response)
-
+ 
+    # Parser trả về 4 values — entities được parse sẵn, không cần parse lại
+    prd_text, entities, stories, err = p.split_prd_and_stories(response)
+ 
     if err:
         raise RuntimeError(f"Requirement agent returned invalid output: {err}")
     if not stories:
         raise RuntimeError("Requirement agent produced empty stories")
     if not prd_text or len(prd_text.strip()) < 20:
         raise RuntimeError("Requirement agent produced invalid PRD")
-
+ 
+    # Ghi entities.json — trách nhiệm của adapter, không phải parser
+    if entities:
+        with open("docs/entities.json", "w", encoding="utf-8") as f:
+            json.dump(entities, f, indent=2, ensure_ascii=False)
+        print(f"      [gemini] entities.json ({len(entities)} entities)")
+    else:
+        # Không block pipeline — architect sẽ báo lỗi rõ hơn
+        print("      [gemini] WARNING: entities.json not found in response — architect may fail")
+ 
     with open("docs/requirements.md", "w", encoding="utf-8") as f:
         f.write(prd_text)
     with open("docs/stories.json", "w", encoding="utf-8") as f:
         json.dump(stories, f, indent=2, ensure_ascii=False)
-
+ 
     print(f"      [gemini] requirements.md + stories.json ({len(stories)} stories)")
     return "REQUIREMENT_DONE"
 
+# ── Knowledge Graph Builder ────────────────────────────────────────────────────
+
+def _gemini_knowledge_graph(prompt: str) -> str:
+    """
+    Deterministic step — không gọi AI.
+
+    Input:  docs/entities.json + docs/requirements.md
+    Output: docs/knowledge_graph.json
+
+    Làm giàu entities với domain_tags, lifecycle, ownership, security_level,
+    inferred edges (owns/triggers/references), service clusters, constraints,
+    và architect_hints trước khi architect đọc.
+    """
+    ent_path = "docs/entities.json"
+    req_path = "docs/requirements.md"
+
+    if not os.path.exists(ent_path):
+        raise RuntimeError("entities.json not found — run requirement-agent first")
+
+    with open(ent_path, encoding="utf-8") as f:
+        entities = json.load(f)
+
+    req_text = ""
+    if os.path.exists(req_path):
+        with open(req_path, encoding="utf-8") as f:
+            req_text = f.read()
+
+    kg = build_knowledge_graph(entities, req_text)
+    save_knowledge_graph(kg)
+
+    print(
+        f"      [knowledge-graph] {kg['node_count']} nodes, "
+        f"{kg['edge_count']} edges, "
+        f"{len(kg['clusters'])} clusters, "
+        f"{len(kg['architect_hints'])} hints"
+    )
+    return "KNOWLEDGE_GRAPH_DONE"
+
+
+# ── Architect agent ────────────────────────────────────────────────────────────
+# ── Helper: repair truncated JSON ─────────────────────────────────────────────
+ 
+def repair_truncated_json(text: str) -> tuple:
+    """
+    Sửa JSON bị truncate (response bị cắt giữa chừng do max_tokens).
+    
+    Algorithm:
+    1. Walk qua từng char, track in_string + brace/bracket stack
+    2. Nếu kết thúc mà in_string=True → thêm '"' để đóng string
+    3. Xóa trailing ',' hoặc ':' (partial key-value)
+    4. Đóng tất cả bracket/brace còn mở theo đúng thứ tự
+    5. Thử parse, nếu fail → thêm bước fix trailing comma trong nested structures
+    
+    Returns: (dict, None) nếu thành công, hoặc (None, error_str) nếu không cứu được.
+    """
+    start = text.find("{")
+    if start < 0:
+        return None, "No { found"
+ 
+    fragment = text[start:]
+ 
+    # Pass 1: scan để biết state khi bị cắt
+    stack = []          # 'obj' | 'arr'
+    in_string = False
+    escape_next = False
+ 
+    for ch in fragment:
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == '\\' and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == '{':
+            stack.append('obj')
+        elif ch == '}':
+            if stack and stack[-1] == 'obj':
+                stack.pop()
+        elif ch == '[':
+            stack.append('arr')
+        elif ch == ']':
+            if stack and stack[-1] == 'arr':
+                stack.pop()
+ 
+    # Pass 2: build repair
+    repair = fragment
+ 
+    # Đóng string nếu đang trong string khi bị cắt
+    if in_string:
+        repair += '"'
+ 
+    # Xóa trailing garbage (partial key: value hoặc trailing comma)
+    repair = repair.rstrip()
+    while repair and repair[-1] in (',', ':'):
+        repair = repair[:-1].rstrip()
+ 
+    # Đóng các cấu trúc còn mở (ngược stack)
+    for item in reversed(stack):
+        repair += ']' if item == 'arr' else '}'
+ 
+    # Parse attempt 1
+    try:
+        return json.loads(repair), None
+    except json.JSONDecodeError:
+        pass
+ 
+    # Parse attempt 2: fix trailing commas trong nested structures
+    repair2 = re.sub(r',\s*([\]\}])', r'\1', repair)
+    try:
+        return json.loads(repair2), None
+    except json.JSONDecodeError as e:
+        return None, f"repair failed: {e}"
+ 
+ 
+# ── Patched _try_parse với truncation recovery ─────────────────────────────────
+ 
+def _try_parse_patched(response: str):
+    """
+    [PATCHED] Thay thế _try_parse bên trong _gemini_architect.
+    
+    Thêm Cách 4: repair_truncated_json — xử lý response bị truncate.
+    Giữ nguyên Cách 1, 2, 3 để backward compat.
+    """
+    import parser as p
+ 
+    clean = response.replace("ARCHITECT_DONE", "").strip()
+ 
+    # Cách 1: extract_json_object (parser helper)
+    arch, err = p.extract_json_object(clean)
+    if arch:
+        return arch, None
+ 
+    # Cách 2: ```json block
+    json_blocks = re.findall(r'```json\s*([\s\S]*?)```', clean)
+    for block in json_blocks:
+        try:
+            arch = json.loads(block.strip())
+            if isinstance(arch, dict):
+                return arch, None
+        except json.JSONDecodeError as e:
+            err = str(e)
+ 
+    # Cách 3: trailing comma fix (approach cũ)
+    fixed = re.sub(r',\s*([\]\}])', r'\1', clean)
+    start = fixed.find("{")
+    end   = fixed.rfind("}") + 1
+    if start >= 0 and end > start:
+        try:
+            arch = json.loads(fixed[start:end])
+            if isinstance(arch, dict):
+                return arch, None
+        except json.JSONDecodeError as e:
+            err = str(e)
+ 
+    # Cách 4: [NEW] truncation repair
+    arch, repair_err = repair_truncated_json(clean)
+    if arch and isinstance(arch, dict):
+        n_services = len(arch.get("services", []))
+        print(f"      [architect] Truncation repair succeeded ({n_services} services recovered)")
+        return arch, None
+ 
+    return None, repair_err or err
+def _normalize_architecture_paths(architecture: dict) -> dict:
+    for svc in architecture.get("services", []):
+        component = svc.get("component", "backend")
+        if component != "backend":
+            continue
+
+        # Tìm source_dir từ file có app/main.py
+        source_dir = None
+        for fp in svc.get("file_structure", []):
+            if "app/main.py" in fp.replace("\\", "/"):
+                source_dir = fp.replace("\\", "/").split("app/main.py")[0].rstrip("/")
+                break
+
+        if not source_dir:
+            name = svc.get("name", "service").lower().replace(" ", "_")
+            source_dir = f"src/services/{name}"
+
+        # Normalize từng file trong file_structure
+        normalized = []
+        for fp in svc.get("file_structure", []):
+            fp = fp.replace("\\", "/")
+            
+            # models.py ở root service → vào app/models/
+            if fp == f"{source_dir}/models.py":
+                fp = f"{source_dir}/app/models/base.py"
+            
+            # routes.py ở app/ root → vào app/routes/
+            elif fp == f"{source_dir}/app/routes.py":
+                service_name = source_dir.split("/")[-1]
+                fp = f"{source_dir}/app/routes/{service_name}.py"
+            
+            # main.py ở root service → vào app/
+            elif fp == f"{source_dir}/main.py":
+                fp = f"{source_dir}/app/main.py"
+            
+            normalized.append(fp)
+
+        svc["file_structure"] = normalized
+        svc["source_dir"] = source_dir
+
+    return architecture
+def _gemini_architect(prompt: str) -> str:
+    """
+    [PATCHED] Thay thế _gemini_architect trong adapter_v2.py / adapter_agent.py.
+    
+    Thay đổi so với version gốc:
+      1. _try_parse → _try_parse_patched (thêm truncation repair)
+      2. Service count validation: nếu repair thành công nhưng services < entities_count / 2
+         → tiếp tục attempt tiếp theo thay vì chấp nhận architecture thiếu services
+      3. Attempt 2 prompt: giữ full entities + requirements (đã fix ở doc-9),
+         thêm instruction "output services one at a time" để giảm output length per call
+    """
+    import ai_client
+    import parser as p
+    from config import GEMINI_API_KEYS
+    from knowledge_graph_builder import load_knowledge_graph, format_for_architect
+ 
+    system = p.load_agent_instruction("architect-agent", backend="gemini")
+    if not system or len(system.strip()) < 50:
+        raise RuntimeError("architect-agent.md not found or empty")
+ 
+    if not os.path.exists("docs/entities.json"):
+        raise RuntimeError("entities.json not found — run requirement-agent first")
+    if not os.path.exists("docs/requirements.md"):
+        raise RuntimeError("requirements.md not found — run requirement-agent first")
+ 
+    with open("docs/entities.json", encoding="utf-8") as f:
+        entities_json = f.read()
+    with open("docs/requirements.md", encoding="utf-8") as f:
+        requirements_md = f.read()
+ 
+    # Đếm số entities để validate service count sau repair
+    try:
+        entities_list = json.loads(entities_json)
+        expected_min_services = max(2, len(entities_list) // 2)
+    except Exception:
+        expected_min_services = 2
+ 
+    # Load Knowledge Graph
+    kg_context = ""
+    kg = load_knowledge_graph()
+    if kg:
+        kg_context = format_for_architect(kg)
+        print(f"      [architect] Knowledge Graph loaded ({len(kg_context)} chars)")
+    else:
+        print("      [architect] WARNING: knowledge_graph.json not found")
+ 
+    prompts = [
+        # Attempt 1: full context
+        f"""# Knowledge Graph
+{kg_context if kg_context else "(not available)"}
+ 
+# entities.json
+{entities_json}
+ 
+# requirements.md
+{requirements_md}
+ 
+CRITICAL:
+- Output ONLY valid JSON then ARCHITECT_DONE
+- No markdown fences around the JSON
+- First character must be {{
+- Last character must be }}
+- Every string value must be properly closed with "
+- Every object must be properly closed with }}
+- Every array must be properly closed with ]
+""",
+        # Attempt 2: full input (không cắt), đơn giản hóa output request
+        # [FIX từ doc-9: không còn [:800] cắt input]
+        f"""Design the architecture for this system. Output ONLY valid JSON.
+ 
+# entities.json (COMPLETE — include ALL entities as services)
+{entities_json}
+ 
+# requirements.md
+{requirements_md}
+ 
+IMPORTANT — to avoid truncation:
+- Keep descriptions SHORT (max 1 line each)
+- Keep file_structure to 3-4 essential files per service
+- Keep api_routes to the most critical routes only (max 5 per service)
+- Output the entire JSON in one response — do not stop early
+ 
+Output format:
+{{
+  "schema_version": "1",
+  "tech_stack": {{"backend": "FastAPI + Pydantic v2", "frontend": "React 18 + TypeScript + Vite", "testing": "pytest (backend), Jest (frontend)", "containerization": "Docker + docker-compose"}},
+  "services": [...],
+  "shared_types": [],
+  "deployment": {{"name": "Deployment", "includes": ["docker-compose.yml"], "depends_on": [...]}}
+}}
+ 
+Rules:
+- JSON starts with {{ ends with }}
+- All strings closed with "
+- All objects closed with }}
+- All arrays closed with ]
+""",
+        # Attempt 3: [NEW] minimal JSON — chỉ cần services structure, bỏ routes detail
+        f"""Output a MINIMAL but COMPLETE architecture JSON.
+Keep descriptions short. Keep file_structure to 3 files max per service.
+STILL include api_routes — at least 1-2 routes per backend service.
+
+Entities:
+{entities_json}
+
+Output ONLY valid JSON in this exact shape:
+{{
+  "schema_version": "1",
+  "tech_stack": {{"backend": "FastAPI + Pydantic v2", "frontend": "React 18 + TypeScript + Vite", "testing": "pytest", "containerization": "Docker"}},
+  "services": [
+    {{
+      "name": "...",
+      "component": "backend",
+      "entity_refs": [...],
+      "description": "one line",
+      "file_structure": ["path/main.py", "path/routes/x.py", "requirements.txt"],
+      "api_routes": [
+        {{"method": "POST", "path": "/x/y", "status_code": 201,
+          "request_body": {{"field": "str"}},
+          "response_body": {{"id": "int"}},
+          "errors": []}}
+      ],
+      "shared_types": [],
+      "depends_on": []
+    }}
+  ],
+  "shared_types": [],
+  "deployment": {{"name": "Deployment", "includes": ["docker-compose.yml"], "depends_on": [...]}}
+}}
+
+RULES:
+- Every backend service MUST have at least 1 route in api_routes
+- Frontend services: api_routes = []
+- Output starts with {{ ends with }}
+- All strings closed, all arrays closed
+""",
+    ]
+ 
+    architecture = None
+    for attempt, user_prompt in enumerate(prompts):
+        print(f"      [architect] attempt {attempt + 1}/{len(prompts)}...")
+        response = ai_client.call(GEMINI_API_KEYS, system, user_prompt, "architect-agent")
+ 
+        os.makedirs("docs", exist_ok=True)
+        with open(f"docs/debug_architect_raw_{attempt+1}.txt", "w", encoding="utf-8") as f:
+            f.write(response)
+        print(f"      [architect] response {len(response)} chars")
+ 
+        arch, err = _try_parse_patched(response)
+
+        if arch:
+            n_services = len(arch.get("services", []))
+            total_routes = sum(len(s.get("api_routes", [])) for s in arch.get("services", []))
+            
+            if n_services < expected_min_services:
+                print(f"      [architect] Only {n_services} services — continuing")
+                architecture = architecture or arch
+                continue
+            
+            # NEW: reject nếu 0 routes toàn bộ
+            if total_routes == 0:
+                print(f"      [architect] {n_services} services but 0 routes total — continuing")
+                architecture = architecture or arch
+                continue
+            
+            print(f"      [architect] JSON parsed OK — {n_services} services, {total_routes} routes")
+            architecture = arch
+            break
+ 
+        print(f"      [architect] Parse failed: {err}")
+ 
+    if architecture is None:
+        raise RuntimeError(
+            f"Architect returned invalid JSON after {len(prompts)} attempts.\n"
+            f"See docs/debug_architect_raw_*.txt"
+        )
+ 
+    # Validate minimal structure
+    if "services" not in architecture:
+        raise RuntimeError("Architect output missing 'services'")
+    architecture = _normalize_architecture_paths(architecture)
+    with open("docs/architecture.json", "w", encoding="utf-8") as f:
+        json.dump(architecture, f, indent=2, ensure_ascii=False)
+ 
+    n_services = len(architecture.get("services", []))
+    n_routes   = sum(len(s.get("api_routes", [])) for s in architecture.get("services", []))
+    print(f"      [gemini] architecture.json ({n_services} services, {n_routes} routes)")
+    return "ARCHITECT_DONE"
+# ══════════════════════════════════════════════════════════════════════════════
+#  structure-planner
+# ══════════════════════════════════════════════════════════════════════════════
+ 
+def _gemini_structure_planner(prompt: str) -> str:
+    """
+    Deterministic step — no LLM call.
+ 
+    Reads:  docs/architecture.json + docs/knowledge_graph.json + docs/contracts/
+    Writes: docs/structure_plans/TASK-XX.plan.json for each task
+ 
+    Must run AFTER contract-compiler, BEFORE dev-agent.
+    """
+    return run_structure_planner(prompt)
+
+
+# ── Dependency Graph Builder ───────────────────────────────────────────────
+ 
+def _gemini_dependency_graph(prompt: str) -> str:
+    """Giữ nguyên để backward compat nếu ai gọi trực tiếp,
+    nhưng pipeline KHÔNG gọi bước này nữa — materializer tự handle."""
+    arch_path = "docs/architecture.json"
+    if not os.path.exists(arch_path):
+        raise RuntimeError("architecture.json not found")
+
+    with open(arch_path, encoding="utf-8") as f:
+        architecture = json.load(f)
+
+    graph = build_dependency_graph(architecture)
+    ok, err = validate_no_cycles(graph)
+    if not ok:
+        raise RuntimeError(f"[dependency-graph] Pipeline aborted: {err}")
+
+    save_dep_graph(graph)
+    order = get_execution_order(graph)
+    print(f"      [dependency-graph] Execution order: {order}")
+    return "DEPENDENCY_GRAPH_DONE"
+ 
+ 
+# ── Task Materializer ──────────────────────────────────────────────────────
+ 
+def _gemini_task_materializer(prompt: str) -> str:
+    """
+    Deterministic step — không gọi AI.
+ 
+    Input:  docs/architecture.json + docs/dependency_graph.json + docs/stories.json
+    Output: docs/materialized_tasks.json
+ 
+    Tách biệt hoàn toàn với Planner:
+      - Task Materializer: what tasks exist + what they build
+      - Planner: sprint grouping + priority + story points
+    """
+    arch_path  = "docs/architecture.json"
+    story_path = "docs/stories.json"
+
+    if not os.path.exists(arch_path):
+        raise RuntimeError("architecture.json not found — run architect-agent first")
+
+    with open(arch_path, encoding="utf-8") as f:
+        architecture = json.load(f)
+
+    stories = []
+    if os.path.exists(story_path):
+        with open(story_path, encoding="utf-8") as f:
+            stories = json.load(f)
+
+    # ── PASS 1: Gán task_id tạm theo thứ tự services (chưa cần execution order) ──
+    # Mục đích: để dep-graph có nodes để build
+    architecture = _assign_task_ids(architecture, execution_order=[])
+
+    # Ghi architecture với task_ids để dep-graph đọc đúng
+    with open(arch_path, "w", encoding="utf-8") as f:
+        json.dump(architecture, f, indent=2, ensure_ascii=False)
+
+    # ── Build dep-graph SAU KHI architecture đã có task_ids ──
+    from dependency_graph import build_dependency_graph, validate_no_cycles, save_graph as save_dep_graph
+    graph = build_dependency_graph(architecture)
+    ok, err = validate_no_cycles(graph)
+    if not ok:
+        raise RuntimeError(f"[dependency-graph] Pipeline aborted: {err}")
+    save_dep_graph(graph)
+
+    # ── PASS 2: Re-assign task_ids theo đúng execution order từ dep-graph ──
+    order = get_execution_order(graph)   # ['TASK-01', 'TASK-03', ...] — PASS-1 IDs
+    print(f"      [dependency-graph] Execution order: {order}")
+
+    # [FIX] Dep-graph returns PASS-1 task_ids as the execution order, but
+    # _assign_task_ids maps by service NAME. Build a reverse map
+    # (PASS-1 task_id → service name) BEFORE stripping the old task_ids,
+    # then translate `order` into service names so _assign_task_ids can
+    # produce a correctly-numbered TASK-01…TASK-N set.
+    # Without this fix, _assign_task_ids received old IDs as "names", built
+    # a name_to_id map from them, found no matching service by that name, and
+    # fell through to the counter branch — giving services TASK-13…TASK-24
+    # while execution_order still said TASK-01…TASK-12, causing a 0-task
+    # mismatch in the planner.
+    id_to_name = {
+        svc["task_id"]: svc.get("name", "")
+        for svc in architecture.get("services", [])
+        if "task_id" in svc
+    }
+    dep = architecture.get("deployment")
+    if dep and "task_id" in dep:
+        id_to_name[dep["task_id"]] = dep.get("name", "")
+
+    order_names = [id_to_name.get(tid, tid) for tid in order]
+
+    # Reset task_ids cũ trước khi gán lại
+    for svc in architecture.get("services", []):
+        svc.pop("task_id", None)
+    if dep:
+        dep.pop("task_id", None)
+
+    # Pass service NAMES so _assign_task_ids numbers them correctly
+    architecture = _assign_task_ids(architecture, order_names)
+
+    # Ghi lại architecture.json với task_ids đúng thứ tự
+    with open(arch_path, "w", encoding="utf-8") as f:
+        json.dump(architecture, f, indent=2, ensure_ascii=False)
+
+    # Derive the new canonical task_id order from the freshly-assigned
+    # architecture so materialize() receives TASK-01…TASK-N (not stale IDs).
+    id_map_new = {
+        svc.get("name", ""): svc["task_id"]
+        for svc in architecture.get("services", [])
+        if "task_id" in svc
+    }
+    if dep and "task_id" in dep:
+        id_map_new[dep.get("name", "")] = dep["task_id"]
+    order_ids = [id_map_new.get(n, n) for n in order_names]
+
+    # [FIX BUG-C] Truyền execution_order đã tính sẵn vào materialize().
+    # Trước đây materialize() tự gọi build_dependency_graph() bên trong —
+    # khiến dep graph bị build lần thứ 3 và save_graph() overwrite file,
+    # dẫn đến execution_order trả về IDs sai (TASK-13~24 thay vì TASK-01~12).
+    # Bây giờ materialize() nhận order từ ngoài, không rebuild graph nữa.
+    result = materialize(architecture, stories, execution_order=order_ids)
+    save_materialized(result)
+
+    print(
+        f"      [task-materializer] {result['task_count']} tasks materialized"
+        f" | order: {result['execution_order']}"
+    )
+    return "TASK_MATERIALIZED"
+ 
+ 
+def _assign_task_ids(architecture: dict, execution_order: list) -> dict:
+    """
+    Gán task_id cho mỗi service dựa vào execution order.
+ 
+    Nếu architect đã gán task_id (backward compat) → giữ nguyên.
+    Nếu chưa có → gán TASK-01, TASK-02, ... theo thứ tự execution_order.
+ 
+    depends_on: architect dùng service NAME → convert sang task_id.
+    """
+    services = architecture.get("services", [])
+ 
+    # Build name → index map
+    name_to_idx: dict[str, int] = {}
+    for i, svc in enumerate(services):
+        name_to_idx[svc.get("name", "")] = i
+ 
+    # Nếu architect đã gán task_id → chỉ resolve depends_on names → ids
+    all_have_ids = all("task_id" in svc for svc in services)
+    if all_have_ids:
+        id_map = {svc["name"]: svc["task_id"] for svc in services}
+        for svc in services:
+            svc["depends_on"] = [
+                id_map.get(dep, dep)   # nếu dep đã là task_id → giữ nguyên
+                for dep in svc.get("depends_on", [])
+            ]
+        # Cập nhật deployment nếu có
+        dep = architecture.get("deployment")
+        if dep and "depends_on" in dep:
+            dep["depends_on"] = [id_map.get(d, d) for d in dep["depends_on"]]
+        return architecture
+ 
+    # Gán task_id mới theo execution order
+    # execution_order là list service names (từ dependency graph)
+    # Nếu execution_order rỗng → gán theo thứ tự trong services
+    ordered_names = execution_order if execution_order else [svc.get("name", "") for svc in services]
+ 
+    # Tạo name → task_id mapping
+    name_to_id: dict[str, str] = {}
+    counter = 1
+    for name in ordered_names:
+        if name and name not in name_to_id:
+            name_to_id[name] = f"TASK-{counter:02d}"
+            counter += 1
+ 
+    # Gán vào services
+    for svc in services:
+        name = svc.get("name", "")
+        if name in name_to_id:
+            svc["task_id"] = name_to_id[name]
+        elif "task_id" not in svc:
+            svc["task_id"] = f"TASK-{counter:02d}"
+            counter += 1
+ 
+    # Resolve depends_on: service name → task_id
+    for svc in services:
+        svc["depends_on"] = [
+            name_to_id.get(dep, dep)
+            for dep in svc.get("depends_on", [])
+        ]
+ 
+    # Cập nhật deployment nếu có
+    dep = architecture.get("deployment")
+    if dep:
+        dep["task_id"] = "DEPLOY-01"
+        dep["depends_on"] = [
+            name_to_id.get(d, d)
+            for d in dep.get("depends_on", [])
+        ]
+ 
+    return architecture
 
 # ── Planner agent ──────────────────────────────────────────────────────────────
 
 def _gemini_planner(prompt):
-    system = p.load_agent_instruction("planner-agent", backend="gemini")
+    mat_path = "docs/materialized_tasks.json"
+    if not os.path.exists(mat_path):
+        raise RuntimeError("materialized_tasks.json not found — run task-materializer first")
 
-    if not os.path.exists("docs/stories.json"):
-        raise RuntimeError("stories.json not found")
+    with open(mat_path, encoding="utf-8") as f:
+        materialized = json.load(f)
 
-    with open("docs/stories.json", encoding="utf-8") as f:
-        stories_json = f.read()
+    raw_tasks = materialized.get("tasks", [])
+    if not raw_tasks:
+        raise RuntimeError("materialized_tasks.json has no tasks")
 
-    claude_md = p.load_claude_md() or ""
+    # [DEBUG] Log để xác định format thực tế — xóa sau khi fix xong
+    print(f"      [planner-debug] raw_tasks count: {len(raw_tasks)}")
+    print(f"      [planner-debug] raw_tasks[0] keys: {list(raw_tasks[0].keys()) if raw_tasks else 'empty'}")
+    print(f"      [planner-debug] raw_tasks[0] id: {raw_tasks[0].get('id','MISSING')} name: {raw_tasks[0].get('name','MISSING')}")
+    print(f"      [planner-debug] execution_order sample: {materialized.get('execution_order', [])[:4]}")
 
-    user_prompt = f"""
-{prompt}
+    # Load stories để lấy acceptance_criteria nếu có
+    stories = []
+    if os.path.exists("docs/stories.json"):
+        with open("docs/stories.json", encoding="utf-8") as f:
+            stories = json.load(f)
 
-# stories.json
-{stories_json}
+    story_map = {}
+    for s in stories:
+        ref = s.get("id") or s.get("story_id") or s.get("ref")
+        if ref:
+            story_map[ref] = s.get("acceptance_criteria", "")
 
-# project_context
-{claude_md}
+    # Priority map theo component
+    PRIORITY_MAP = {
+        "backend":   "P0",
+        "frontend":  "P1",
+        "fullstack": "P0",
+        "infra":     "P2",
+        "service":   "P1",
+    }
 
-CRITICAL:
-- Output ONLY valid JSON
-- No markdown
-- No explanations
-- First character must be {{
-- Last character must be }}
-"""
+    # Story points theo component
+    POINTS_MAP = {
+        "backend":   5,
+        "frontend":  5,
+        "fullstack": 8,
+        "infra":     3,
+        "service":   5,
+    }
 
-    response = ai_client.call(GEMINI_API_KEYS, system, user_prompt, "planner-agent")
-    tasks, err = p.extract_json_object(response)
+    # Group tasks vào sprints theo depends_on depth
+    # Tính depth của mỗi task dựa vào dependency graph
+    execution_order = materialized.get("execution_order", [t["id"] for t in raw_tasks])
 
-    if err:
-        raise RuntimeError(f"Planner returned invalid JSON: {err}")
-    if not tasks:
-        raise RuntimeError("Planner returned empty tasks")
-    if "sprints" not in tasks:
-        raise RuntimeError("Planner output missing 'sprints'")
+    # Chia đều vào sprints (tối đa 5 tasks/sprint)
+    SPRINT_SIZE = 5
+    sprints_dict = {}
+
+    for i, task_id in enumerate(execution_order):
+        sprint_num = (i // SPRINT_SIZE) + 1
+        if sprint_num not in sprints_dict:
+            sprints_dict[sprint_num] = []
+        sprints_dict[sprint_num].append(task_id)
+
+    # [FIX] Build task lookup bằng cả id lẫn name.
+    # Nếu execution_order chứa service names thay vì task IDs (do dep graph
+    # trả về names), lookup bằng name sẽ vẫn tìm được task đúng.
+    task_lookup: dict = {}
+    for t in raw_tasks:
+        if t.get("id"):
+            task_lookup[t["id"]] = t
+        if t.get("name"):
+            task_lookup[t["name"]] = t
+
+    # Debug: cảnh báo nếu execution_order không khớp task_lookup
+    missing_keys = [tid for tid in execution_order if tid not in task_lookup]
+    if missing_keys:
+        print(f"      [planner] WARN: {len(missing_keys)} keys not in task_lookup: {missing_keys[:4]}")
+        print(f"      [planner] WARN: task_lookup sample: {list(task_lookup.keys())[:6]}")
+
+    # Build final sprints
+    sprints = []
+    sprint_names = ["Foundation", "Core Features", "Integration", "Polish", "Deployment"]
+
+    for sprint_num, task_ids in sprints_dict.items():
+        sprint_tasks = []
+        for task_id in task_ids:
+            t = task_lookup.get(task_id)
+            if not t:
+                continue
+            component = t.get("component", "fullstack")
+            story_ref = t.get("story_ref", "")
+            ac = story_map.get(story_ref, f"Complete {t.get('summary', task_id)}")
+
+            sprint_tasks.append({
+                **t,
+                "summary": t.get("summary") or t.get("name", task_id),  # FIX
+                "sprint": sprint_num,
+                "priority": PRIORITY_MAP.get(component, "P1"),
+                "story_points": POINTS_MAP.get(component, 5),
+                "status": "TODO",
+                "acceptance_criteria": ac,
+            })
+
+        name_idx = sprint_num - 1
+        sprint_name = sprint_names[name_idx] if name_idx < len(sprint_names) else f"Sprint {sprint_num}"
+        sprints.append({
+            "number": sprint_num,
+            "name": sprint_name,
+            "tasks": sprint_tasks,
+        })
+
+    tasks_json = {
+        "project": "POS App",
+        "generated_from": "materialized_tasks.json",
+        "dependency_graph": materialized.get("dependency_graph", {}),
+        "sprints": sprints,
+    }
+
+    total = sum(len(s["tasks"]) for s in sprints)
+
+    # Validation: số task phải khớp materialized
+    if total != len(raw_tasks):
+        raise RuntimeError(
+            f"Planner task count mismatch: got {total}, expected {len(raw_tasks)}"
+        )
 
     with open("docs/tasks.json", "w", encoding="utf-8") as f:
-        json.dump(tasks, f, indent=2, ensure_ascii=False)
+        json.dump(tasks_json, f, indent=2, ensure_ascii=False)
 
-    total = sum(len(s["tasks"]) for s in tasks["sprints"])
-    print(f"      [gemini] tasks.json ({total} tasks)")
+    print(f"      [planner] tasks.json ({total} tasks, {len(sprints)} sprints) — deterministic")
     return "PLANNER_DONE"
 
 
@@ -230,9 +971,19 @@ def _gemini_contract_compiler(prompt: str) -> str:
     with open(tasks_path, "w", encoding="utf-8") as f:
         json.dump(compiled, f, indent=2, ensure_ascii=False)
 
-    # Bước 2: [NEW v4] Export contract artifacts
-    written = export_contracts_to_files(compiled, contracts_dir="docs/contracts")
+    # [FIX BUG-C] Xóa contract files cũ trước khi ghi mới
+    # Tránh tình huống pipeline cũ (3 tasks) để lại contract của pipeline mới (4 tasks)
+    contracts_dir = "docs/contracts"
+    if os.path.isdir(contracts_dir):
+        stale = [f for f in os.listdir(contracts_dir) if f.endswith(".contract.json")]
+        if stale:
+            for fname in stale:
+                os.remove(os.path.join(contracts_dir, fname))
+            print(f"      [contract-compiler] Cleared {len(stale)} stale contract file(s)")
 
+    # Bước 2: [NEW v4] Export contract artifacts
+    written = export_contracts_to_files(compiled, contracts_dir=contracts_dir)
+    
     total_routes = sum(
         len(t.get("api_contract", {}).get("routes", []))
         for s in compiled.get("sprints", [])
@@ -242,7 +993,7 @@ def _gemini_contract_compiler(prompt: str) -> str:
     print(
         f"      [contract-compiler] DONE — "
         f"{total_routes} routes normalized, "
-        f"{len(written)} contract files → docs/contracts/"
+        f"{len(written)} contract files → {contracts_dir}/"
     )
     return "CONTRACT_COMPILED"
 
@@ -269,7 +1020,79 @@ def _require_contract(task_id: str) -> dict:
 # DEV AGENT  [v4: đọc contract file thay vì tasks.json trực tiếp]
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _read_existing_code(pos_app_dir, component):
+def _read_existing_code(pos_app_dir, component, task_id=""):
+    """
+    v3: dùng code_graph.json nếu có.
+    Seed files được suy ra từ architecture.json (contract-driven),
+    không hardcode tên service cụ thể.
+    """
+    graph_path = "docs/code_graph.json"
+
+    # ── Fallback: graph chưa build (TASK-01 lần đầu) ──
+    if not os.path.exists(graph_path):
+        return _read_existing_code_fallback(pos_app_dir, component)
+
+    with open(graph_path, encoding="utf-8") as f:
+        graph = json.load(f)
+
+    # ── Seed files: từ architecture.json nếu có, fallback về convention ──
+    seed_files = []
+    arch_path = "docs/architecture.json"
+    if os.path.exists(arch_path):
+        with open(arch_path, encoding="utf-8") as f:
+            arch = json.load(f)
+        for svc in arch.get("services", []):
+            comp = svc.get("component", "")
+            if component in ("backend", "fullstack") and comp == "backend":
+                for fp in svc.get("file_structure", []):
+                    if fp.endswith(".py") and ("main.py" in fp or "/routes/" in fp):
+                        seed_files.append(fp)
+            if component in ("frontend", "fullstack") and comp == "frontend":
+                for fp in svc.get("file_structure", []):
+                    if fp.endswith((".ts", ".tsx")) and (
+                        "types" in fp or "client" in fp or "store" in fp
+                    ):
+                        seed_files.append(fp)
+
+    # Convention fallback nếu arch chưa có
+    if not seed_files:
+        if component in ("backend", "fullstack"):
+            seed_files += ["src/backend/app/main.py"]
+        if component in ("frontend", "fullstack"):
+            seed_files += [
+                "src/frontend/src/types/index.ts",
+                "src/frontend/src/api/client.ts",
+            ]
+    
+    # ── Graph traversal: lấy direct imports của seed files ──
+    related = set(seed_files)
+    edges   = graph.get("edges", [])
+    for seed in seed_files:
+        for edge in edges:
+            if edge["from"] == seed and edge["rel"] == "imports":
+                # Resolve relative path
+                dep = edge["to"]
+                related.add(dep)
+    
+    # ── Đọc file thật, giới hạn 150 dòng / file ──
+    context = ""
+    for rel in sorted(related):
+        full = os.path.join(pos_app_dir, rel)
+        if not os.path.exists(full):
+            continue
+        with open(full, encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+        snippet = "".join(lines[:150])  # tăng từ 300 ký tự → 150 dòng
+        node_info = graph["nodes"].get(rel, {})
+        symbols   = node_info.get("symbols", []) or node_info.get("exports", [])
+        sym_str   = f"  # exports: {symbols}" if symbols else ""
+        context  += f"\n### {rel}{sym_str}\n```\n{snippet}\n```\n"
+    
+    return context or _read_existing_code_fallback(pos_app_dir, component)
+
+
+def _read_existing_code_fallback(pos_app_dir, component):
+    """Hàm cũ, giữ nguyên làm fallback."""
     context = ""
     check = []
     if component in ("backend", "fullstack"):
@@ -361,6 +1184,16 @@ SHARED_FILES = {
 
 
 def _filter_by_component(generated: dict, component: str) -> dict:
+    """
+    [FIX BUG-2] Filter generated files theo component scope.
+
+    Dùng _build_valid_prefixes() thay vì hardcode "src/backend/" / "src/frontend/"
+    để không reject file trong "src/services/auth_backend/" v.v.
+    """
+    all_prefixes      = _build_valid_prefixes()
+    frontend_prefixes = tuple(p for p in all_prefixes if "frontend" in p)
+    backend_prefixes  = tuple(p for p in all_prefixes if "frontend" not in p)
+
     result = {}
     for path, code in generated.items():
         basename = os.path.basename(path)
@@ -374,12 +1207,12 @@ def _filter_by_component(generated: dict, component: str) -> dict:
         if component == "fullstack":
             result[path] = code
         elif component == "frontend":
-            if path.startswith("src/frontend/"):
+            if path.startswith(frontend_prefixes):
                 result[path] = code
             else:
                 print(f"      [filter] SCOPE REJECT ({component}): {path}")
         elif component == "backend":
-            if path.startswith("src/backend/"):
+            if path.startswith(backend_prefixes):
                 result[path] = code
             else:
                 print(f"      [filter] SCOPE REJECT ({component}): {path}")
@@ -395,76 +1228,124 @@ def _build_dev_user_prompt(
     stories_context: str,
     existing_code: str,
     bug_context: str | None = None,
+    graph_context: str = "",   # NEW PARAM
 ) -> str:
     """
-    [v4] User prompt inject CONTRACT FILE thay vì inline api_contract từ tasks.json.
-    Contract đã được locked bởi compiler — dev không được tự bịa route.
+    [PATCHED] Same as original but adds graph_context section.
+ 
+    graph_context contains:
+      - KG neighbor entities (Cart's neighbors: Product, Inventory, Checkout)
+      - Relevant KG edges (Cart --[owns]--> Product)
+      - Actual code from neighbor files (first 80 lines each)
+ 
+    This makes the LLM aware of system state so it won't write
+    Cart logic that ignores stock deduction in inventory.py.
     """
+    import textwrap
+ 
     if not task:
         return ""
-
-    # Format contract routes để dễ đọc
-    contract_routes_str = json.dumps(
+ 
+    contract_routes_str = __import__("json").dumps(
         contract.get("routes", []),
         ensure_ascii=False,
         indent=2
     )
+ 
+    source_dir = contract.get("source_dir", "")
+    file_structure = contract.get("file_structure", [])
+    file_struct_str = "\n".join(f"  - {f}" for f in file_structure) if file_structure else "  (not specified)"
+ 
+    source_dir_instruction = ""
+    if source_dir:
+        source_dir_instruction = f"""
+# FILE PATH RULES — CRITICAL
+source_dir: {source_dir}
+RIGHT:
+  {source_dir}/app/models/user.py
+  {source_dir}/app/routes/auth.py
+  {source_dir}/app/main.py
 
+WRONG — DO NOT use:
+  {source_dir}/models.py          ← must be app/models/xxx.py
+  {source_dir}/app/routes.py      ← must be app/routes/xxx.py
+  {source_dir}/main.py            ← must be app/main.py
+All files for this task MUST use paths starting with: {source_dir}/
+DO NOT use "src/backend/" — use "{source_dir}/" instead.
+ 
+Expected file structure:
+{file_struct_str}
+ 
+SCAFFOLD IS ALREADY ON DISK — DO NOT REWRITE:
+- {source_dir}/app/__init__.py
+- {source_dir}/app/main.py  (has /health route + [MAIN_ROUTER_SLOT])
+- {source_dir}/app/routes/__init__.py
+- {source_dir}/requirements.txt
+ 
+YOUR JOB: Fill the [ROUTES_SLOT] and [MODEL_SLOT] in existing scaffold files.
+DO NOT rewrite main.py from scratch — only add include_router calls.
+"""
+ 
+    # Slot fill instructions (new section)
+    slot_instructions = """
+# SLOT FILL INSTRUCTIONS (NEW — READ CAREFULLY)
+ 
+The scaffold files already exist on disk with [SLOT] markers:
+  Python:     # [ROUTES_SLOT]
+  TypeScript: {/* [ROUTES_SLOT] */}
+ 
+When you output a FILE: block, the pipeline will:
+  1. Find the [SLOT] marker in the existing file
+  2. Replace ONLY that region with your code
+  3. Leave the rest of the file (imports, providers, config) untouched
+ 
+This means:
+  - App.tsx's React/Vite setup is preserved when CartPage is injected
+  - main.py's CORS and health endpoint survive when routers are added
+  - NO MORE "LLM rewrites App.tsx from scratch and breaks everything"
+ 
+For main.py: output ONLY the include_router calls, not the full file.
+  Example output for main.py:
+    from app.routes.cart import router as cart_router
+    app.include_router(cart_router)
+ 
+For route files: output the complete route implementations.
+For page/component .tsx files: output the complete component.
+"""
+ 
     prompt = textwrap.dedent(f"""
     task_id:   {task_id}
     component: {component.upper()}
     summary:   {task.get("summary", "")}
-
+ 
     description:
     {task.get("description", "")[:400]}
-
+    {source_dir_instruction}
+    {slot_instructions}
     # EXECUTABLE CONTRACT (locked — do NOT deviate)
-    # Source: docs/contracts/{task_id}.contract.json  (schema_version={contract.get("schema_version", "?")})
-    # Each route contains: method, path, status_code, request_body, response_body,
-    #   errors (handle ALL listed error cases), rules (enforce ALL), depends_on.
-
-    CRITICAL API RULES:
-    - Response body MUST match the contract exactly.
-    - If response_fields contains fields like:
-    ["id", "name", "price", "stock"]
-    then the API response MUST contain ALL those fields.
-    - NEVER return empty JSON objects {{}} for successful 200/201 responses.
-    - NEVER return None for successful API responses.
-    - PUT/PATCH routes MUST return the updated entity object.
-    - POST create routes MUST return the created entity object.
-    - List routes MUST return arrays/lists.
-    - DELETE routes using 204 should return empty response body only when contract specifies 204.
-
     {contract_routes_str}
-
+ 
     # requirements.md
     {requirements_md or "(not found)"}
-
+ 
     # stories (relevant to this task)
     {stories_context or "(not found)"}
-
+ 
     # existing code in repo (do not duplicate)
     {existing_code}
     """).strip()
-
+ 
+    # NEW: append graph context if available
+    if graph_context:
+        prompt += f"\n\n{graph_context}"
+ 
     if bug_context:
         prompt += textwrap.dedent(f"""
-
-        # CRITICAL — BUGS FROM PREVIOUS TEST RUN
-
-        You MUST fix ALL bugs listed below.
-        If the same bug reappears the task fails permanently.
-        
-        # ADDITIONAL FIX RULES:
-        - Fix the failing tests exactly.
-        - Preserve existing working routes.
-        - Do not change contract paths/status codes.
-        - Return complete JSON responses matching response_fields.
-        - Empty JSON responses {{}} are forbidden unless explicitly required by contract.
-        
+ 
+        # CRITICAL — BUGS FROM PREVIOUS TEST RUN (FIX ALL)
         {bug_context[:1200]}
         """)
-
+ 
     return prompt
 
 
@@ -487,12 +1368,35 @@ DEFAULT_STATUS_CODES = {
 }
 
 
-def _extract_routes_from_ast(code: str):
+def _extract_routes_from_ast(code: str, router_prefix: str = ""):
     routes = []
     try:
         tree = ast.parse(code)
     except Exception:
         return routes
+
+    # ── FIX: tìm APIRouter prefix ──────────────────────────────
+    router_prefix = ""
+    if not router_prefix:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign):
+                continue
+            if not isinstance(node.value, ast.Call):
+                continue
+            func = node.value.func
+            func_name = (
+                func.id if isinstance(func, ast.Name)
+                else func.attr if isinstance(func, ast.Attribute)
+                else ""
+            )
+            if func_name != "APIRouter":
+                continue
+            for kw in node.value.keywords:
+                if kw.arg == "prefix" and isinstance(kw.value, ast.Constant):
+                    raw = kw.value.value
+                    if isinstance(raw, str):                  # ← guard Pylance
+                        router_prefix = raw.rstrip("/")
+                    break
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -539,9 +1443,10 @@ def _extract_routes_from_ast(code: str):
                                 status_code = int(m.group(1))
             if status_code is None:
                 status_code = DEFAULT_STATUS_CODES.get(method, 200)
+            full_route = router_prefix + (route if isinstance(route, str) else "")
             routes.append({
                 "method": method,
-                "route": route,
+                "route": full_route,   # ← thay vì chỉ route
                 "status_code": status_code,
                 "function": node.name,
             })
@@ -683,49 +1588,426 @@ def validate_backend_contract(pos_app_dir: str):
     return True, None
 
 
-def run_backend_smoke_test(pos_app_dir: str):
-    import sys
-    backend_dir = os.path.join(pos_app_dir, "src/backend")
-    if backend_dir not in sys.path:
-        sys.path.insert(0, backend_dir)
+# ══════════════════════════════════════════════════════════════════════════════
+# CONTRACT-DRIVEN HELPERS — thay thế hardcode TASK-01/products/cart
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_critical_files_from_contract(task_id: str, component: str) -> list:
+    """
+    Lấy danh sách critical files từ architecture.json (file_structure của task).
+    Fallback về convention theo component nếu không tìm được.
+    KHÔNG hardcode TASK-01/TASK-02.
+    """
+    arch_path = "docs/architecture.json"
+    if os.path.exists(arch_path):
+        try:
+            with open(arch_path, encoding="utf-8") as f:
+                arch = json.load(f)
+            for svc in arch.get("services", []):
+                if svc.get("task_id") == task_id:
+                    files = svc.get("file_structure", [])
+                    if files:
+                        # Lọc bỏ test files
+                        return [fp for fp in files if "test" not in fp.lower()]
+        except Exception:
+            pass
+
+    # Fallback theo component
+    if component == "backend":
+        return ["src/backend/app/main.py", "src/backend/requirements.txt"]
+    elif component == "frontend":
+        return ["src/frontend/src/App.tsx", "src/frontend/package.json"]
+    elif component in ("fullstack", "service"):
+        return ["docker-compose.yml"]
+    return []
+
+def _extract_router_prefix_from_main(pos_app_dir: str, contract: dict) -> dict[str, str]:
+    """
+    Scan main.py tìm app.include_router(xxx, prefix="/yyy")
+    Trả về dict: router_var_name → prefix
+    Ví dụ: {"auth_router": "/auth", "product_router": "/products"}
+    """
+    source_dir = contract.get("source_dir", "src/backend")
+    main_path = os.path.join(pos_app_dir, source_dir, "app", "main.py")
+    if not os.path.exists(main_path):
+        return {}
+
+    with open(main_path, encoding="utf-8") as f:
+        code = f.read()
+
     try:
-        from fastapi.testclient import TestClient
-        from app.main import app
-        client = TestClient(app)
-        r = client.get("/health")
-        if r.status_code != 200:
-            return False, f"health failed: {r.text}"
-        r = client.post("/products/", json={"name": "Smoke Product", "price": 10.0, "stock": 100})
-        if r.status_code not in (200, 201):
-            return False, "POST /products failed"
-        pid = r.json().get("id")
-        if pid is None:
-            r_put = client.put(f"/products/{pid}", json={"name": "Updated", "price": 20.0, "stock": 50})
-            if r_put.status_code != 200:
-                return False, f"PUT /products/{pid} failed with status {r_put.status_code}: {r_put.text}"
-            put_data = r_put.json()
-            if not isinstance(put_data, dict) or "id" not in put_data:
-                return False, f"PUT /products/{pid} response missing 'id' — got: {put_data}"
-            return False, f"POST /products/ response missing 'id': {r.json()}"
-        
-        r = client.post("/cart/add", json={"product_id": pid, "quantity": 1})
-        if r.status_code not in (200, 201):
-            return False, "POST /cart/add failed"
-        r = client.post("/cart/checkout")
-        print("CHECKOUT RESPONSE:", r.status_code, r.text)
-        data = r.json()
-        receipt_id = data.get("id") or data.get("receipt_id")
-        if receipt_id is None:
-            return False, f"receipt id missing in checkout response: {data}"
-        if r.status_code != 200:
-            return False, "checkout failed"
-        return True, None
+        tree = ast.parse(code)
     except Exception:
-        return False, traceback.format_exc()
+        return {}
+
+    prefix_map: dict[str, str] = {}
+    for node in ast.walk(tree):
+        # Tìm: app.include_router(some_router, prefix="/auth")
+        if not isinstance(node, ast.Expr):
+            continue
+        if not isinstance(node.value, ast.Call):
+            continue
+        call = node.value
+        if not isinstance(call.func, ast.Attribute):
+            continue
+        if call.func.attr != "include_router":
+            continue
+        if not call.args:
+            continue
+
+        # Lấy tên biến router (arg đầu tiên)
+        router_arg = call.args[0]
+        router_name = (
+            router_arg.id if isinstance(router_arg, ast.Name)
+            else router_arg.attr if isinstance(router_arg, ast.Attribute)
+            else ""
+        )
+        # Lấy prefix keyword
+        for kw in call.keywords:
+            if kw.arg == "prefix" and isinstance(kw.value, ast.Constant):
+                raw = kw.value.value
+                if isinstance(raw, str) and router_name:
+                    prefix_map[router_name] = raw.rstrip("/")
+
+    return prefix_map
+
+def validate_backend_contract_from_contract(pos_app_dir: str, task_id: str):
+    """
+    [FIX BUG-1e] Fallback main_path dùng contract["source_dir"] thay vì hardcode.
+    Trước: fallback check hardcode 'src/backend/app/main.py' khi routes_spec rỗng.
+ 
+    Thay đổi duy nhất: resolve source_dir từ contract trước khi build main_path.
+    Phần còn lại của hàm giữ nguyên.
+    """
+    from contract_normalizer import load_contract, resolve_response_fields
+ 
+    contract = load_contract(task_id, contracts_dir="docs/contracts")
+    if not contract:
+        return validate_backend_contract(pos_app_dir)
+ 
+    routes_spec = contract.get("routes", [])
+ 
+    # [FIX BUG-1e] Resolve source_dir cho fallback main_path
+    source_dir = contract.get("source_dir", "src/backend")
+ 
+    if not routes_spec:
+        # [FIX] dùng source_dir từ contract, không hardcode
+        main_path = os.path.join(pos_app_dir, source_dir, "app", "main.py")
+        if not os.path.exists(main_path):
+            return False, f"{source_dir}/app/main.py missing"
+        return True, None
+ 
+    checks = []
+    contract_routes_dir = contract.get("routes_dir", os.path.join(source_dir, "app", "routes"))
+    routes_dir = os.path.join(pos_app_dir, contract_routes_dir)
+ 
+    all_routes_found: list = []
+    prefix_map = _extract_router_prefix_from_main(pos_app_dir, contract)
+    if os.path.isdir(routes_dir):
+        for fname in os.listdir(routes_dir):
+            if not fname.endswith(".py"):
+                continue
+            fpath = os.path.join(routes_dir, fname)
+            try:
+                with open(fpath, encoding="utf-8") as f:
+                    code = f.read()
+                file_prefix = ""
+                for var_name, prefix in prefix_map.items():
+                    slug = fname.replace(".py", "")
+                    if slug in var_name or var_name in slug:
+                        file_prefix = prefix
+                        break
+                found = _extract_routes_from_ast(code, router_prefix=file_prefix)
+                for r in found:
+                    r["_file"] = fname
+                    r["_code"] = code
+                all_routes_found.extend(found)
+            except Exception:
+                pass
+ 
+    print(
+        f"      [contract-validator] routes found: "
+        f"{[(r['method'], r['route'], r['status_code']) for r in all_routes_found]}"
+    )
+    for spec in routes_spec:
+        method = spec.get("method", "").lower()
+        path   = spec.get("path", "")
+        status = spec.get("status_code", 200)
+        if not method or not path:
+            continue
+        if not route_exists_flexible(all_routes_found, method, path, status):
+            checks.append(f"{method.upper()} {path} missing or wrong status_code={status}")
+ 
+    if checks:
+        print("      [contract-validator] FAIL")
+        for c in checks:
+            print(f"        - {c}")
+        return False, "\n".join(checks)
+ 
+    print("      [contract-validator] PASS (contract-driven)")
+    return True, None
 
 
-def validate_no_set_literals(pos_app_dir: str):
-    backend_root = os.path.join(pos_app_dir, "src/backend/app")
+def _find_setup_post_routes(all_routes: list, current_path: str) -> list:
+    """
+    Tìm các POST routes cần chạy trước để setup data cho current_path.
+    Logic: nếu current_path có {id} hoặc depends_on một resource khác →
+    tìm POST route tạo resource đó.
+
+    Ví dụ:
+      current_path = "/applications/{id}"
+      → tìm POST /jobs/ hoặc POST /applications/
+
+      current_path = "/cart/checkout"
+      → tìm POST /[resource]/ (route tạo item) + POST /cart/add
+
+    Trả về list các route dict cần emit setup code, theo thứ tự.
+    """
+    setup = []
+    path_lower = current_path.lower()
+
+    # Tìm các POST create routes (status 201) không phải chính nó
+    post_creates = [
+        r for r in all_routes
+        if r.get("method", "").upper() == "POST"
+        and r.get("status_code") == 201
+        and r.get("path", "") != current_path
+    ]
+
+    # Nếu current path có path param → cần create resource trước
+    has_param = bool(re.search(r"\{[^}]+\}", current_path))
+
+    # Tìm resource name từ path
+    parts = [p for p in current_path.split("/") if p and not p.startswith("{")]
+    resource_name = parts[0] if parts else ""
+
+    # Bước 1: create parent resource nếu path có {id}
+    if has_param and post_creates:
+        # Tìm POST route cho cùng resource
+        parent_posts = [
+            r for r in post_creates
+            if resource_name and resource_name in r.get("path", "").lower()
+        ]
+        if parent_posts:
+            setup.append(parent_posts[0])
+        elif post_creates:
+            setup.append(post_creates[0])  # fallback: POST route đầu tiên
+
+    # Bước 2: nếu path có "checkout" hay tương tự → cần thêm "add to collection"
+    if any(kw in path_lower for kw in ("checkout", "confirm", "submit", "finalize")):
+        # Tìm POST route "add" cho collection (cart/add, basket/add, ...)
+        add_routes = [
+            r for r in all_routes
+            if r.get("method", "").upper() == "POST"
+            and any(kw in r.get("path", "").lower() for kw in ("add", "item", "entry"))
+            and r.get("path", "") != current_path
+        ]
+        if add_routes:
+            setup.append(add_routes[0])
+
+    return setup
+
+
+def _emit_setup_chain(lines: list, setup_routes: list, all_routes: list):
+    """
+    Emit Python test setup code cho các setup_routes.
+    Mỗi route: POST → assert → lấy id để dùng tiếp.
+    """
+    if not setup_routes:
+        return
+
+    created_vars: dict[str, str] = {}  # resource_name → var_name
+
+    for i, route in enumerate(setup_routes):
+        path   = route.get("path", "")
+        status = route.get("status_code", 201)
+        req_body = route.get("request_body") or {}
+
+        # Tạo dummy body
+        dummy = {}
+        for field, ftype in req_body.items():
+            if ftype == "str":
+                dummy[field] = f"Setup {field.capitalize()}"
+            elif ftype == "float":
+                dummy[field] = 9.99
+            elif ftype == "int":
+                # Nếu field là foreign key đã biết → inject var
+                found_var = next(
+                    (v for k, v in created_vars.items() if k in field.lower()),
+                    None
+                )
+                dummy[field] = found_var if found_var else 1
+            elif ftype == "bool":
+                dummy[field] = True
+            else:
+                dummy[field] = "setup_value"
+
+        # Build body string (xử lý var injection)
+        body_parts = []
+        for field, ftype in req_body.items():
+            found_var = None
+            if ftype == "int":
+                found_var = next(
+                    (v for k, v in created_vars.items() if k in field.lower()),
+                    None
+                )
+            if found_var:
+                body_parts.append(f'"{field}": {found_var}')
+            else:
+                body_parts.append(f'"{field}": {repr(dummy[field])}')
+
+        body_str = "{" + ", ".join(body_parts) + "}" if body_parts else "{}"
+        var_prefix = f"_setup_{i}"
+        lines.append(f"    # Setup: {route.get('method','POST')} {path}")
+        lines.append(f'    {var_prefix}_r = client.post("{path}", json={body_str})')
+        lines.append(f'    assert {var_prefix}_r.status_code in ({status}, 200, 201), f"Setup {path} failed: {{{var_prefix}_r.text}}"')
+        lines.append(f"    {var_prefix}_data = {var_prefix}_r.json()")
+
+        # Tìm id field từ response_body
+        resp_body = route.get("response_body") or {}
+        id_field = next((k for k in resp_body if k == "id" or k.endswith("_id")), None)
+        if id_field:
+            resource_key = path.strip("/").split("/")[0]  # vd: "products" từ "/products/"
+            var_name = f"{resource_key}_id"
+            lines.append(f'    assert "{id_field}" in {var_prefix}_data, f"Setup missing {id_field}: {{{var_prefix}_data}}"')
+            lines.append(f'    {var_name} = {var_prefix}_data["{id_field}"]')
+            created_vars[resource_key] = var_name
+        lines.append("")
+
+
+def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
+    """
+    [v2] Subprocess-based smoke test — avoids in-process sys.path/module conflicts.
+    Runs a tiny Python script in a subprocess so stale sys.modules from
+    verify_smart_scaffold never interfere. Falls back to in-process if needed.
+    """
+    import sys
+
+    source_dir = "src/backend"
+    if task_id:
+        contract = load_contract(task_id, contracts_dir="docs/contracts")
+        if contract and contract.get("source_dir"):
+            source_dir = contract["source_dir"]
+
+    backend_dir = os.path.join(pos_app_dir, source_dir)
+    contract_data = load_contract(task_id, contracts_dir="docs/contracts") if task_id else {}
+    contract_data = contract_data or {}
+
+    routes = contract_data.get("routes", [])
+    post_routes = [r for r in routes if r.get("method", "").upper() == "POST"]
+    first_post = post_routes[0] if post_routes else None
+
+    post_test_code = ""
+    dummy = {}
+    if first_post:
+        path = first_post.get("path", "")
+        req_body = first_post.get("request_body") or {}
+        expected = first_post.get("status_code", 201)
+        for field, ftype in req_body.items():
+            dummy[field] = (
+                f"Smoke {field}" if ftype == "str" else
+                9.99 if ftype == "float" else
+                1    if ftype == "int" else
+                True if ftype == "bool" else "test"
+            )
+        post_test_code = (
+            f"r2 = client.post({path!r}, json={dummy!r})\n"
+            f"if r2.status_code not in ({expected}, 200, 201):\n"
+            f"    print('SMOKE_FAIL:POST {path} status=' + str(r2.status_code) + ' body=' + r2.text[:200])\n"
+            f"    sys.exit(1)\n"
+        )
+
+    smoke_script = (
+        "import sys\n"
+        f"sys.path.insert(0, {backend_dir!r})\n"
+        "from fastapi.testclient import TestClient\n"
+        "from app.main import app\n"
+        "client = TestClient(app)\n"
+        "r = client.get('/health')\n"
+        "if r.status_code != 200:\n"
+        "    print('SMOKE_FAIL:health status=' + str(r.status_code) + ' body=' + r.text[:200])\n"
+        "    sys.exit(1)\n"
+        + post_test_code +
+        "print('SMOKE_PASS')\n"
+    )
+
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", smoke_script],
+            capture_output=True, text=True,
+            cwd=backend_dir, timeout=30,
+            encoding="utf-8", errors="ignore",
+        )
+        output = (result.stdout + result.stderr).strip()
+        if result.returncode != 0 or "SMOKE_FAIL" in output:
+            for line in output.splitlines()[-20:]:
+                if line.strip():
+                    print(f"        [smoke-test] {line}")
+            fail_line = next(
+                (l for l in output.splitlines() if "SMOKE_FAIL" in l or "Error" in l or "Traceback" in l),
+                output[-400:]
+            )
+            return False, fail_line
+        return True, None
+    except subprocess.TimeoutExpired:
+        return False, "smoke test timed out (30s)"
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"      [smoke-test] subprocess error: {e} — falling back to in-process")
+        # Fallback: in-process
+        sys.path = [
+            p for p in sys.path
+            if not (os.path.join(pos_app_dir, "src") in p and p != backend_dir)
+        ]
+        if backend_dir not in sys.path:
+            sys.path.insert(0, backend_dir)
+        try:
+            import importlib
+            from fastapi.testclient import TestClient
+            for k in list(sys.modules.keys()):
+                if k.startswith("app"):
+                    del sys.modules[k]
+            from app.main import app
+            client = TestClient(app)
+            r = client.get("/health")
+            if r.status_code != 200:
+                return False, f"health failed: {r.text}"
+            if first_post:
+                path = first_post.get("path", "")
+                r2 = client.post(path, json=dummy)
+                if r2.status_code not in (first_post.get("status_code", 201), 200, 201):
+                    return False, f"POST {path} smoke failed: status={r2.status_code} body={r2.text[:200]}"
+            return True, None
+        except Exception:
+            tb2 = traceback.format_exc()
+            print(f"      [smoke-test] in-process also failed:\n{tb2}")
+            return False, tb2
+
+
+def validate_no_set_literals(pos_app_dir: str, task_id: str = ""):
+    """
+    [FIX BUG-1d] backend_root resolve từ contract["source_dir"].
+    Trước: hardcode 'src/backend/app' — bỏ sót toàn bộ service nằm ở
+    'src/services/auth_backend/app/' hay bất kỳ path nào khác.
+ 
+    Thêm param task_id (optional, backward compat).
+    Caller trong _gemini_dev cần truyền task_id:
+        serialization_ok, serialization_bug = validate_no_set_literals(POS_APP_DIR, task_id)
+    """
+    # Resolve source_dir
+    source_dir = "src/backend"
+    if task_id:
+        contract = load_contract(task_id, contracts_dir="docs/contracts")
+        if contract and contract.get("source_dir"):
+            source_dir = contract["source_dir"]
+ 
+    # app subdirectory là nơi chứa business logic
+    backend_root = os.path.join(pos_app_dir, source_dir, "app")
+ 
+    if not os.path.isdir(backend_root):
+        # source_dir tồn tại nhưng không có app/ → kiểm tra toàn bộ source_dir
+        backend_root = os.path.join(pos_app_dir, source_dir)
+ 
     for root, _, files in os.walk(backend_root):
         for fname in files:
             if not fname.endswith(".py"):
@@ -741,143 +2023,261 @@ def validate_no_set_literals(pos_app_dir: str):
             except Exception as e:
                 return False, str(e)
     return True, None
+ 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# VALID_PREFIXES — dynamic từ architecture.json  [FIX BUG-2]
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _build_valid_prefixes() -> tuple:
+    """
+    Build VALID_PREFIXES dynamically từ file_structure trong architecture.json.
+
+    Lấy depth-2 ("src/services/", "src/frontend/") và depth-3
+    ("src/services/auth_backend/") để chấp nhận mọi path mà architect định nghĩa.
+
+    Fallback: ("src/backend/", "src/frontend/") nếu arch chưa có.
+
+    FIX: Hardcode ("src/backend/", "src/frontend/") reject toàn bộ file
+    "src/services/..." trong multi-service architecture.
+    """
+    arch_path = "docs/architecture.json"
+    prefixes: set[str] = set()
+
+    if os.path.exists(arch_path):
+        try:
+            with open(arch_path, encoding="utf-8") as f:
+                arch = json.load(f)
+            for svc in arch.get("services", []):
+                for fp in svc.get("file_structure", []):
+                    parts = fp.split("/")
+                    if len(parts) >= 2:
+                        prefixes.add("/".join(parts[:2]) + "/")
+                    if len(parts) >= 3:
+                        prefixes.add("/".join(parts[:3]) + "/")
+        except Exception:
+            pass
+
+    if not prefixes:
+        prefixes = {"src/backend/", "src/frontend/"}
+
+    return tuple(sorted(prefixes))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # _gemini_dev  [v4: đọc contract file, không đọc tasks.json cho API contract]
 # ══════════════════════════════════════════════════════════════════════════════
+def _ensure_service_requirements(contract: dict, pos_app_dir: str):
+    """
+    Đảm bảo requirements.txt của service có đủ package trước khi
+    verify_smart_scaffold chạy pip install.
+    """
+    source_dir = contract.get("source_dir", "src/backend")
+    req_path = os.path.join(pos_app_dir, source_dir, "requirements.txt")
+    if not os.path.exists(req_path):
+        return
 
+    with open(req_path, encoding="utf-8") as f:
+        content = f.read()
+
+    must_have = {
+        "pydantic[email]": "pydantic[email]>=2.0",
+        "email-validator":  "email-validator>=2.0",
+        "fastapi":          "fastapi>=0.100.0",
+        "uvicorn":          "uvicorn[standard]>=0.20.0",
+        "python-jose":      "python-jose[cryptography]>=3.3.0",
+        "passlib":          "passlib[bcrypt]>=1.7.4",
+    }
+    additions = []
+    for pkg, spec in must_have.items():
+        # Chỉ thêm nếu chưa có bất kỳ dạng nào của package đó
+        pkg_base = pkg.split("[")[0]
+        if not re.search(rf"\b{re.escape(pkg_base)}\b", content, re.IGNORECASE):
+            additions.append(spec)
+
+    if additions:
+        with open(req_path, "a", encoding="utf-8") as f:
+            f.write("\n# Auto-added by pipeline\n" + "\n".join(additions) + "\n")
+        print(f"      [fix-req] Service requirements patched: {additions}")
 def _gemini_dev(task_id, bug_context=None):
-    from core.config import POS_APP_DIR
-
-    # ── 0. Load contract file (v4: artifact riêng) ────────────────────────
-    #    Nếu contract chưa có → compile tự động (safety net)
+    """
+    PATCHED VERSION of _gemini_dev.
+ 
+    Changes from original:
+      ① Scaffold: write_scaffold() → write_smart_scaffold() with plan
+      ② Scaffold verify: verify_scaffold() → verify_smart_scaffold() (adds tsc --noEmit)
+      ③ Existing code: _read_existing_code() → now also injects graph_context from KG
+      ④ File writing: direct write → inject_all_slots() (slot-aware patching)
+      ⑤ Post-write: NEW run_static_analysis() before tester agent runs
+      ⑥ Unfilled slots check: warns if dev agent left slots unfilled
+ 
+    The function signature is identical — drop-in replacement.
+    """
+    import os, json, textwrap, re, importlib, sys, traceback
+    import git_ops, parser as p, ai_client as ai_client
+    from config import POS_APP_DIR, GEMINI_API_KEYS
+    from contract_normalizer import load_contract, list_contracts
+    from indexer import build_graph, save_graph
+    import git_ops
+ 
+    # ── 0. Load contract file ─────────────────────────────────────────────
     contract = load_contract(task_id, contracts_dir="docs/contracts")
     if contract is None:
         print(f"      [gemini-dev] Contract not found for {task_id} — running contract-compiler...")
         _gemini_contract_compiler(task_id)
         contract = load_contract(task_id, contracts_dir="docs/contracts")
     if contract is None:
-        raise RuntimeError(
-            f"Contract still missing after compiler ran for {task_id}. "
-            "Check tasks.json has api_contract.routes for this task."
-        )
+        raise RuntimeError(f"Contract still missing after compiler ran for {task_id}.")
+ 
     print(
         f"      [gemini-dev] Contract loaded: docs/contracts/{task_id}.contract.json "
         f"(v{contract.get('schema_version','?')}, {len(contract.get('routes',[]))} routes)"
     )
-
-    # ── 1. Load task meta từ tasks.json (chỉ lấy summary/description/component) ─
+ 
+    # ── 1. Load task meta ─────────────────────────────────────────────────
     with open("docs/tasks.json", encoding="utf-8") as f:
         data = json.load(f)
-
+ 
     task = next(
         (t for s in data["sprints"] for t in s["tasks"] if t["id"] == task_id),
         None,
     )
     if not task:
         return f"DEV_ESCALATE:{task_id}"
-
+ 
     component = task.get("component", "fullstack")
-    branch    = make_branch_name(task_id, task.get("summary", task_id))
+    branch = git_ops.make_branch_name(task_id, task.get("summary", task_id))
     print(f"      [gemini-dev] Task: {task_id} | {task['summary']} | {component}")
-
+ 
     git_ops.prepare_feature_branch(POS_APP_DIR, branch)
-
+ 
+    # ── 1b. LOAD STRUCTURE PLAN ① ─────────────────────────────────────────
+    # NEW: load the plan generated by structure-planner step
+    plan = load_plan(task_id)
+    if plan is None:
+        print(f"      [gemini-dev] No structure plan for {task_id} — running structure-planner...")
+        run_structure_planner()
+        plan = load_plan(task_id)
+ 
+    # ── 1c. SMART SCAFFOLD ② ─────────────────────────────────────────────
+    # CHANGED: write_scaffold → write_smart_scaffold (uses plan + writes [SLOT] markers)
+    print(f"      [gemini-dev] Writing smart scaffold (component={component})...")
+    scaffold_result = write_smart_scaffold(POS_APP_DIR, component, contract, plan)
+    _ensure_service_requirements(contract, POS_APP_DIR)
+    # CHANGED: verify_scaffold → verify_smart_scaffold (adds tsc --noEmit)
+    scaffold_ok, scaffold_err = verify_smart_scaffold(POS_APP_DIR, component, contract)
+    if not scaffold_ok:
+        print(f"      [gemini-dev] Smart scaffold verify FAILED: {scaffold_err}")
+        _WIN_LOCK_SIGNALS = ("WinError 5", "Access is denied", "pip install error")
+        if any(sig in (scaffold_err or "") for sig in _WIN_LOCK_SIGNALS):
+            print("      [gemini-dev] Scaffold verify: pip file-lock (Windows) — skipping.")
+        else:
+            git_ops._back_to_develop(POS_APP_DIR)
+            return f"DEV_IMPORT_FAIL:{scaffold_err}"
+    print(
+        f"      [gemini-dev] Smart scaffold OK "
+        f"(wrote={scaffold_result['written']}, skipped={scaffold_result['skipped']})"
+    )
+ 
     # ── 2. Load system prompt ─────────────────────────────────────────────
     system = p.load_agent_instruction("dev-agent", backend="gemini", task_id=task_id)
     if not system or len(system.strip()) < 50:
-        raise RuntimeError(
-            "dev-agent-gemini.md not found or empty — "
-            "expected at .claude/agents/dev-agent-gemini.md"
-        )
+        raise RuntimeError("dev-agent-gemini.md not found or empty")
     print(f"      [gemini-dev] System prompt loaded ({len(system)} chars)")
-
-    # ── 3. Load context data ──────────────────────────────────────────────
-    requirements_md  = _load_requirements_md()
-    stories_context  = _load_stories_for_task(task_id)
-    existing_code    = _read_existing_code(POS_APP_DIR, component)
-
-    if requirements_md:
-        print(f"      [gemini-dev] requirements.md loaded ({len(requirements_md)} chars)")
-    else:
-        print("      [gemini-dev] WARNING: requirements.md not found")
-
-    # ── 4. Build user prompt (inject contract file) ───────────────────────
+ 
+    # ── 3. Load context — GRAPH-AWARE ③ ──────────────────────────────────
+    requirements_md = _load_requirements_md()
+    stories_context = _load_stories_for_task(task_id)
+ 
+    # OLD: _read_existing_code(POS_APP_DIR, component)
+    # NEW: _read_existing_code + graph_context from KG traversal
+    existing_code = _read_existing_code(POS_APP_DIR, component, task_id)
+    graph_context_text = ""
+    if plan:
+        graph_context_text = format_graph_context_for_dev(plan, POS_APP_DIR)
+        if graph_context_text:
+            print(f"      [gemini-dev] Graph context injected ({len(graph_context_text)} chars)")
+ 
+    # ── 4. Build user prompt ──────────────────────────────────────────────
+    # Inject graph_context_text into the prompt alongside contract
     user_prompt = _build_dev_user_prompt(
         task_id=task_id,
         task=task,
         component=component,
-        contract=contract,           # [v4] từ contract file
+        contract=contract,
         requirements_md=requirements_md,
         stories_context=stories_context,
         existing_code=existing_code,
         bug_context=bug_context,
+        graph_context=graph_context_text,  # NEW PARAM — add to _build_dev_user_prompt
     )
-
+ 
     token_est = (len(system) + len(user_prompt)) // 4
     print(f"      [gemini-dev] Calling Gemini (~{token_est} tokens)...")
     response = ai_client.call(GEMINI_API_KEYS, system, user_prompt, "dev-agent")
-
-    # ── 5. Parse + filter + write ─────────────────────────────────────────
+ 
+    # ── 5. Parse + filter + SLOT-AWARE INJECT ④ ─────────────────────────
     generated = p.parse_file_blocks(response)
     print(f"      [gemini-dev] Raw parsed: {len(generated)} files")
-
+ 
     if not generated:
         print("      [gemini-dev] No FILE blocks — escalating")
         git_ops._back_to_develop(POS_APP_DIR)
         return f"DEV_ESCALATE:{task_id}"
-
+ 
     generated = _filter_by_component(generated, component)
     generated = _normalize_backend_paths(generated)
-
-    VALID_PREFIXES = ("src/backend/", "src/frontend/")
-    VALID_EXACT    = {"docker-compose.yml", ".dockerignore", "README.md", ".env.example", "Makefile"}
-
-    os.makedirs(POS_APP_DIR, exist_ok=True)
-    written = 0
+ 
+    VALID_PREFIXES = _build_valid_prefixes()
+    VALID_EXACT = {"docker-compose.yml", ".dockerignore", "README.md", ".env.example", "Makefile"}
+ 
+    # Filter out-of-scope files
+    filtered_generated = {}
     for filepath, code in generated.items():
-        if not (filepath.startswith(VALID_PREFIXES) or filepath in VALID_EXACT):
+        if filepath.startswith(VALID_PREFIXES) or filepath in VALID_EXACT:
+            filtered_generated[filepath] = code
+        else:
             print(f"      [gemini-dev] REJECTED: {filepath}")
-            continue
-        if not code.strip():
-            continue
-        full_path = os.path.join(POS_APP_DIR, filepath)
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        with open(full_path, "w", encoding="utf-8") as fw:
-            fw.write(code)
-        print(f"      [gemini-dev] Written: {filepath}")
-        written += 1
-
+    generated = filtered_generated
+ 
+    os.makedirs(POS_APP_DIR, exist_ok=True)
+ 
+    # CHANGED: direct write → inject_all_slots (slot-aware patching)
+    inject_results = inject_all_slots(generated, POS_APP_DIR, plan)
+    written = len(inject_results["injected"]) + len(inject_results["overwritten"])
+ 
     _ensure_app_inits(generated, POS_APP_DIR)
-
-    # ── 6. Retry nếu thiếu critical files ────────────────────────────────
-    CRITICAL_BY_TASK = {
-        "TASK-01": [
-            "src/backend/app/main.py",
-            "src/backend/app/routes/products.py",
-            "src/backend/app/routes/cart.py",
-            "src/backend/requirements.txt",
-        ],
-        "TASK-02": [
-            "src/frontend/src/App.tsx",
-            "src/frontend/package.json",
-            "src/frontend/src/components/Cart.tsx",
-        ],
-        "TASK-03": [
-            "src/backend/Dockerfile",
-            "src/frontend/Dockerfile",
-            "docker-compose.yml",
-        ],
-    }
-    CRITICAL_BY_COMPONENT = {
-        "backend":   ["src/backend/app/main.py", ...],
-        "frontend":  ["src/frontend/src/App.tsx", ...],
-        "fullstack": [],  # ← fullstack tasks phải có entry riêng trong CRITICAL_BY_TASK
-    }
-    critical = CRITICAL_BY_TASK.get(task_id) or CRITICAL_BY_COMPONENT.get(component, [])
-    missing  = [f for f in critical if not os.path.exists(os.path.join(POS_APP_DIR, f))]
-
+ 
+    # Update code graph
+    graph = build_graph(POS_APP_DIR)
+    save_graph(graph)
+    print(f"      [indexer] code_graph.json updated ({len(graph['nodes'])} nodes)")
+ 
+    # ── 5b. Warn about unfilled slots ⑥ ─────────────────────────────────
+    unfilled = list_unfilled_slots(POS_APP_DIR, component)
+    if unfilled:
+        print(f"      [gemini-dev] WARNING: {len(unfilled)} files still have unfilled slots:")
+        for uf in unfilled[:5]:
+            print(f"        - {uf['file']}: {uf['slots']}")
+ 
+    # ── 6. Static analysis ⑤ ─────────────────────────────────────────────
+    # NEW: run real static analysis BEFORE tester agent
+    # py_compile + tsc --noEmit + npm run build
+    static_ok, static_errors = run_static_analysis(POS_APP_DIR, component, contract)
+    if not static_ok:
+        print(f"      [static-analysis] FAIL — {len(static_errors)} errors")
+        for e in static_errors[:5]:
+            print(f"        {e}")
+        git_ops._back_to_develop(POS_APP_DIR)
+        bug_summary = "\n".join(static_errors[:10])
+        return f"DEV_STATIC_FAIL:{bug_summary[:300]}"
+    print(f"      [static-analysis] PASS")
+ 
+    # ── 6b. Retry missing critical files ──────────────────────────────────
+    critical = _get_critical_files_from_contract(task_id, component)
+    missing = [f for f in critical if not os.path.exists(os.path.join(POS_APP_DIR, f))]
+ 
     if missing:
         print(f"      [gemini-dev] Missing critical: {missing} — retrying...")
         retry_prompt = (
@@ -885,35 +2285,76 @@ def _gemini_dev(task_id, bug_context=None):
             f"Generate ONLY these missing files:\n"
             + "\n".join(f"- {f}" for f in missing)
             + f"\n\nTask summary: {task.get('summary', '')}\n"
-            f"Rules: complete code, FILE: path format, no test files, "
-            f"no placeholders.\nEnd with: DEV_DONE:{task_id}"
+            f"Rules: complete code, FILE: path format, no test files, no placeholders.\n"
+            f"End with: DEV_DONE:{task_id}"
         )
         retry_response = ai_client.call(GEMINI_API_KEYS, system, retry_prompt, "dev-agent")
         retry_generated = _filter_by_component(p.parse_file_blocks(retry_response), component)
         retry_generated = _normalize_backend_paths(retry_generated)
-        for filepath, code in retry_generated.items():
-            if not any(filepath.startswith(px) for px in VALID_PREFIXES) or not code.strip():
-                continue
-            full_path = os.path.join(POS_APP_DIR, filepath)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            with open(full_path, "w", encoding="utf-8") as fw:
-                fw.write(code)
-            print(f"      [gemini-dev] Retry written: {filepath}")
-    TASKS_WITH_BACKEND_CODE = {"TASK-01"} 
+        inject_all_slots(retry_generated, POS_APP_DIR, plan)
+ 
+        # Re-run static analysis after retry
+        static_ok, static_errors = run_static_analysis(POS_APP_DIR, component, contract)
+        if not static_ok:
+            git_ops._back_to_develop(POS_APP_DIR)
+            return f"DEV_STATIC_FAIL:{'; '.join(static_errors[:3])}"
+ 
+        graph = build_graph(POS_APP_DIR)
+        save_graph(graph)
+        print(f"      [indexer] graph rebuilt after retry")
+ 
     # ── 7. Contract validation + smoke test ──────────────────────────────
-    if component in ("backend", "fullstack") and task_id in TASKS_WITH_BACKEND_CODE:
-        ok, validation_bug = validate_backend_contract(POS_APP_DIR)
-        serialization_ok, serialization_bug = validate_no_set_literals(POS_APP_DIR)
+    if component in ("backend", "fullstack"):
+        # [FIX BUG-A] Kiểm tra unfilled slots TRƯỚC khi import.
+        # Nếu LLM không fill đủ slots, file vẫn chứa placeholder không phải
+        # valid Python → import sẽ fail chắc chắn. Phát hiện sớm ở đây
+        # giúp trả về DEV_IMPORT_FAIL ngay, orchestrator sẽ retry với bug_context.
+        unfilled_before_import = list_unfilled_slots(POS_APP_DIR, component)
+        critical_unfilled = [u for u in unfilled_before_import if u["file"].endswith(".py")]
+        if critical_unfilled:
+            # [FIX] Kiểm tra xem file có thực sự trống không,
+            # hay chỉ còn sót marker nhưng đã có code thật bên dưới.
+            truly_empty = []
+            for u in critical_unfilled:
+                fpath = os.path.join(POS_APP_DIR, u["file"])
+                try:
+                    with open(fpath, encoding="utf-8") as f:
+                        content = f.read()
+                    # File được coi là thực sự unfilled nếu KHÔNG có
+                    # định nghĩa function/class nào (chỉ có marker + imports)
+                    has_real_code = bool(re.search(
+                        r"^\s*(def |class |async def )", content, re.MULTILINE
+                    ))
+                    if not has_real_code:
+                        truly_empty.append(u)
+                except Exception:
+                    truly_empty.append(u)
 
+            if truly_empty:
+                slot_summary = "; ".join(
+                    f"{u['file']}: {u['slots']}" for u in truly_empty[:3]
+                )
+                git_ops._back_to_develop(POS_APP_DIR)
+                return f"DEV_IMPORT_FAIL:unfilled slots — {slot_summary}"
+            else:
+                print(f"      [gemini-dev] Slot markers remain but file has real code — continuing")
+
+        ok, validation_bug = validate_backend_contract_from_contract(POS_APP_DIR, task_id)
+        serialization_ok, serialization_bug = validate_no_set_literals(POS_APP_DIR, task_id)
+ 
         if not serialization_ok:
             git_ops._back_to_develop(POS_APP_DIR)
             return f"DEV_SERIALIZATION_FAIL:{serialization_bug}"
-
+ 
         if ok:
             try:
-                import importlib
-                import sys
-                backend_dir = os.path.join(POS_APP_DIR, "src/backend")
+                source_dir = contract.get("source_dir", "src/backend")
+                backend_dir = os.path.join(POS_APP_DIR, source_dir)
+                # [FIX BUG-3] Purge stale backend paths before import
+                sys.path = [
+                    p for p in sys.path
+                    if not (os.path.join(POS_APP_DIR, "src") in p and p != backend_dir)
+                ]
                 if backend_dir not in sys.path:
                     sys.path.insert(0, backend_dir)
                 for k in list(sys.modules.keys()):
@@ -923,21 +2364,24 @@ def _gemini_dev(task_id, bug_context=None):
             except Exception as e:
                 git_ops._back_to_develop(POS_APP_DIR)
                 return f"DEV_IMPORT_FAIL:{str(e)}"
-
-            smoke_ok, smoke_bug = run_backend_smoke_test(POS_APP_DIR)
+ 
+            smoke_ok, smoke_bug = run_backend_smoke_test(POS_APP_DIR, task_id=task_id)
             if not smoke_ok:
-                print("      [smoke-test] FAIL")
+                print(f"      [smoke-test] FAIL: {str(smoke_bug)[:400]}")
                 git_ops._back_to_develop(POS_APP_DIR)
                 return f"DEV_SMOKE_FAIL:{smoke_bug}"
             print("      [smoke-test] PASS")
-
+ 
         if not ok:
             print("      [gemini-dev] Contract validation failed")
             git_ops._back_to_develop(POS_APP_DIR)
             return f"DEV_CONTRACT_FAIL:{validation_bug}"
-
+ 
     # ── 8. Commit + update tasks.json ─────────────────────────────────────
     git_ops.commit_and_push(POS_APP_DIR, branch, task, component)
+ 
+    with open("docs/tasks.json", encoding="utf-8") as f:
+        data = json.load(f)
 
     for s in data["sprints"]:
         for t in s["tasks"]:
@@ -947,7 +2391,7 @@ def _gemini_dev(task_id, bug_context=None):
 
     with open("docs/tasks.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-
+ 
     return f"DEV_DONE:{task_id}"
 
 
@@ -968,7 +2412,7 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
       - Setup chain (product → cart/add → checkout) đúng thứ tự, sử dụng
         response_fields từ contract để biết "id" có tồn tại không
     """
-    from core.config import POS_APP_DIR as _pos_app_dir
+    from config import POS_APP_DIR as _pos_app_dir
     if not pos_app_dir:
         pos_app_dir = _pos_app_dir
 
@@ -1039,36 +2483,10 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
         lines.append("    client = TestClient(app)")
         lines.append("")
 
-        # ── Setup chain ───────────────────────────────────────────────
-        needs_product  = "/cart" in path or ("{id}" in path and "/products" in path) or "{product_id}" in path
-        needs_cart_item = "/checkout" in path
-
-        if needs_product or needs_cart_item:
-            lines.append("    # Setup: create product")
-            lines.append("    rp = client.post(\"/products/\", json={")
-            lines.append("        \"name\": \"Test Product\", \"price\": 10.0, \"stock\": 100,")
-            lines.append("    })")
-            lines.append("    assert rp.status_code in (200, 201), f\"Setup POST /products/ failed: {rp.text}\"")
-            lines.append("    rp_data = rp.json()")
-
-            # [v4] Safe field access — assert trước, access sau
-            post_product_fields = resolve_response_fields("post", "/products/")
-            if "id" in post_product_fields:
-                lines.append("    assert \"id\" in rp_data, f\"POST /products/ response missing 'id': {rp_data}\"")
-                lines.append("    product_id = rp_data[\"id\"]")
-            else:
-                # Fallback safe: thử cả 2 key
-                lines.append("    product_id = rp_data.get(\"id\") or rp_data.get(\"product_id\")")
-                lines.append("    assert product_id is not None, f\"Cannot find product id in: {rp_data}\"")
-            lines.append("")
-
-        if needs_cart_item:
-            lines.append("    # Setup: add to cart")
-            lines.append("    rc = client.post(\"/cart/add\", json={")
-            lines.append("        \"product_id\": product_id, \"quantity\": 1,")
-            lines.append("    })")
-            lines.append("    assert rc.status_code in (200, 201), f\"Setup POST /cart/add failed: {rc.text}\"")
-            lines.append("")
+        # ── Setup chain (contract-driven) ────────────────────────────
+        # Dùng contract để tìm POST endpoint tạo resource — không hardcode /products/ hay /cart/
+        setup_post_routes = _find_setup_post_routes(contract_routes, path)
+        _emit_setup_chain(lines, setup_post_routes, contract_routes)
 
         # ── Build request ─────────────────────────────────────────────
         call_path = path
@@ -1147,44 +2565,48 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
         lines.append("")
         lines.append("")
 
-    # ── Explicit end-to-end checkout test ─────────────────────────────────
-    checkout_routes = [r for r in contract_routes if "/checkout" in r.get("path", "")]
-    if checkout_routes:
-        lines.append("def test_cart_checkout():")
+    # ── Explicit end-to-end test cho các "finalize" routes ───────────────
+    # Contract-driven: tìm route có "finalize" semantics (checkout, submit, confirm, ...)
+    # Không hardcode "/checkout", "/products/", "/cart/add"
+    finalize_keywords = ("checkout", "submit", "confirm", "finalize", "complete", "pay")
+    finalize_routes = [
+        r for r in contract_routes
+        if any(kw in r.get("path", "").lower() for kw in finalize_keywords)
+    ]
+    if finalize_routes:
+        finalize_route = finalize_routes[0]
+        finalize_path  = finalize_route.get("path", "")
+        finalize_status = finalize_route.get("status_code", 200)
+        finalize_resp   = finalize_route.get("response_body") or {}
+
+        # Tìm setup chain cho finalize route
+        setup_chain = _find_setup_post_routes(contract_routes, finalize_path)
+
+        lines.append("def test_e2e_finalize_flow():")
         lines.append("    client = TestClient(app)")
-        lines.append("    # Step 1: create product")
-        lines.append("    rp = client.post(\"/products/\", json={")
-        lines.append("        \"name\": \"Test\", \"price\": 10, \"stock\": 100,")
-        lines.append("    })")
-        lines.append("    assert rp.status_code in (200, 201), f\"POST /products/ failed: {rp.text}\"")
-        lines.append("    rp_data = rp.json()")
-        # [v4] Safe access
-        lines.append("    assert \"id\" in rp_data, f\"POST /products/ response missing 'id': {rp_data}\"")
-        lines.append("    product_id = rp_data[\"id\"]")
-        lines.append("    # Step 2: add to cart")
-        lines.append("    rc = client.post(\"/cart/add\", json={\"product_id\": product_id, \"quantity\": 1})")
-        lines.append("    assert rc.status_code in (200, 201), f\"POST /cart/add failed: {rc.text}\"")
-        lines.append("    # Step 3: checkout")
-        lines.append("    r = client.post(\"/cart/checkout\")")
-        lines.append("    assert r.status_code == 200, f\"POST /cart/checkout failed: {r.text}\"")
-        lines.append("    data = r.json()")
-        lines.append("    assert \"id\" in data, f\"checkout response missing 'id': {data}\"")
-        lines.append("    assert \"total\" in data, f\"checkout response missing 'total': {data}\"")
+        _emit_setup_chain(lines, setup_chain, contract_routes)
+
+        lines.append(f'    r = client.post("{finalize_path}")')
+        lines.append(f'    assert r.status_code == {finalize_status}, f"POST {finalize_path} failed: {{r.text}}"')
+        if finalize_resp and finalize_status not in (204,):
+            lines.append("    data = r.json()")
+            for field in finalize_resp:
+                lines.append(f'    assert "{field}" in data, f"Finalize response missing \'{field}\': {{data}}"')
         lines.append("")
 
     return "\n".join(lines)
 
 
-def _write_test_file(pos_app_dir: str, content: str):
+def _write_test_file(pos_app_dir: str, content: str, source_dir: str = "src/backend"):
     # [v4] tests đặt trong src/backend/tests/ (không phải src/tests/)
-    test_path = os.path.join(pos_app_dir, "src/backend/tests/test_api.py")
+    test_path = os.path.join(pos_app_dir, source_dir, "tests", "test_api.py")
     os.makedirs(os.path.dirname(test_path), exist_ok=True)
     with open(test_path, "w", encoding="utf-8") as f:
         f.write(content)
-    init_path = os.path.join(pos_app_dir, "src/backend/tests/__init__.py")
+    init_path = os.path.join(pos_app_dir, source_dir, "tests", "__init__.py")
     if not os.path.exists(init_path):
         open(init_path, "w").close()
-    print(f"      [tester] test_api.py written ({len(content)} chars) ✓")
+    print(f"      [tester] test_api.py written to {source_dir}/tests/ ({len(content)} chars) ✓")
 
 
 def _fix_bad_imports_in_dir(target_dir, label=""):
@@ -1405,66 +2827,93 @@ def _validate_python_syntax(filepath):
 
     except SyntaxError as e:
         return False, str(e)
+ 
 def _gemini_tester(task_id):
-    from core.config import BACKEND_DIR, FRONTEND_DIR
-
+    """
+    [FIX BUG-1b] Toàn bộ hàm này dùng actual_backend_dir và contract_source_dir
+    thay vì BACKEND_DIR global hay literal "src/backend".
+ 
+    Thay đổi so với doc-9:
+      1. Resolve contract_source_dir = contract["source_dir"] TRƯỚC khi gọi
+         _write_test_file và _validate_python_syntax
+      2. _write_test_file(POS_APP_DIR, test_code, source_dir=contract_source_dir)
+      3. test_path dùng contract_source_dir thay vì hardcode "src/backend"
+      4. _run_pytest(actual_backend_dir) — đã đúng ở doc-9, giữ nguyên
+    """
+    # Import ở đây để tránh circular import ở module level
+    from config import BACKEND_DIR, FRONTEND_DIR, POS_APP_DIR
+    # Import các hàm khác từ cùng module — trong file thật chúng đã là local
+    # (dòng import này chỉ cho patch standalone, xoá khi merge vào adapter_agent.py)
+ 
     component = _get_task_component(task_id)
     os.makedirs("docs/bugs", exist_ok=True)
+ 
+    import datetime
     ts = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
+ 
+    # [FIX BUG-1] Resolve actual_backend_dir + contract_source_dir từ contract
+    actual_backend_dir  = BACKEND_DIR          # fallback nếu không tìm được contract
+    contract_source_dir = "src/backend"        # fallback
+ 
     if component in ("backend", "fullstack"):
-        from core.config import POS_APP_DIR
+        contract = load_contract(task_id, contracts_dir="docs/contracts")
+        if contract and contract.get("source_dir"):
+            contract_source_dir = contract["source_dir"]
+            actual_backend_dir  = os.path.join(POS_APP_DIR, contract_source_dir)
+            print(f"      [TEST] backend_dir resolved from contract: {actual_backend_dir}")
+        else:
+            print(f"      [TEST] backend_dir fallback to BACKEND_DIR: {actual_backend_dir}")
+ 
         print("      [TEST] Contract-first: generating tests from contract file...")
         test_code = _generate_tests_from_contract(task_id, pos_app_dir=POS_APP_DIR)
-        _write_test_file(POS_APP_DIR, test_code)
-        test_path = os.path.join(
-            POS_APP_DIR,
-            "src/backend/tests/test_api.py"
-        )
-
+ 
+        # [FIX BUG-1b] Truyền contract_source_dir vào _write_test_file
+        _write_test_file(POS_APP_DIR, test_code, source_dir=contract_source_dir)
+ 
+        # [FIX BUG-1b] test_path dùng contract_source_dir, không hardcode
+        test_path = os.path.join(POS_APP_DIR, contract_source_dir, "tests", "test_api.py")
         ok, err = _validate_python_syntax(test_path)
-
         if not ok:
             return f"TEST_GEN_SYNTAX_FAIL:{err}"
-        # [v5] Nếu contract rỗng → chỉ chạy health check, không cần full pipeline
+ 
+        # [v5] Nếu contract rỗng → chỉ chạy health check
         contract = load_contract(task_id, contracts_dir="docs/contracts")
         if contract and len(contract.get("routes", [])) == 0:
             print(f"      [TEST] Contract has 0 routes — health-only test, skip heavy pipeline")
             backend_ok  = {"passed": True, "output": "Contract empty — health only"}
             frontend_ok = {"passed": True, "output": "Skipped — contract empty"}
-            if frontend_ok["passed"] and component != "backend":
+            if component != "backend":
                 build_ok = _run_frontend_build(FRONTEND_DIR)
                 if not build_ok["passed"]:
-                    frontend_ok = build_ok  # escalate as frontend failure
-            # Vẫn ghi kết quả
+                    frontend_ok = build_ok
             with open("docs/test-results.md", "a", encoding="utf-8") as f:
                 f.write(
                     f"\n---\n## {task_id} ({component}) — {datetime.datetime.now().isoformat()}\n"
                     f"- Backend: PASS (health only)\n- Frontend: SKIP\n"
                 )
             return f"TEST_PASS:{task_id}"
-
+ 
     if component == "frontend":
         backend_ok = {"passed": True, "output": f"Skipped — component={component}"}
         print(f"      [TEST] Backend: SKIP")
     else:
         print("      [TEST] Running backend tests...")
-        backend_ok = _run_pytest(BACKEND_DIR)
+        # [FIX BUG-1b] dùng actual_backend_dir, không dùng BACKEND_DIR global
+        backend_ok = _run_pytest(actual_backend_dir)
         print(f"      [TEST] Backend: {'PASS' if backend_ok['passed'] else 'FAIL'}")
-
+ 
     if component == "backend":
         frontend_ok = {"passed": True, "output": f"Skipped — component={component}"}
         print(f"      [TEST] Frontend: SKIP")
     else:
-        # Skip nếu chưa có src/ files thật — chỉ có package.json chưa đủ
         frontend_src = os.path.join(FRONTEND_DIR, "src")
         has_frontend_code = (
             os.path.isdir(frontend_src)
             and any(
-                f.endswith((".tsx", ".ts", ".jsx", ".js"))
+                fname.endswith((".tsx", ".ts", ".jsx", ".js"))
                 for _, _, files in os.walk(frontend_src)
-                for f in files
-                if not f.endswith((".test.tsx", ".test.ts", ".spec.ts"))
+                for fname in files
+                if not fname.endswith((".test.tsx", ".test.ts", ".spec.ts"))
             )
         )
         if not has_frontend_code:
@@ -1473,7 +2922,7 @@ def _gemini_tester(task_id):
         else:
             print("      [TEST] Running frontend tests...")
             frontend_ok = _run_jest(FRONTEND_DIR)
-
+ 
     with open("docs/test-results.md", "a", encoding="utf-8") as f:
         f.write(
             f"\n---\n## {task_id} ({component}) — {datetime.datetime.now().isoformat()}\n"
@@ -1482,12 +2931,13 @@ def _gemini_tester(task_id):
             f"```\n{backend_ok.get('output','')[:400]}\n"
             f"{frontend_ok.get('output','')[:400]}\n```\n"
         )
-
+ 
     if backend_ok["passed"] and frontend_ok["passed"]:
         print(f"      [tester-agent] PASSED — {task_id}")
         return f"TEST_PASS:{task_id}"
-
+ 
     print("      [tester-agent] Analyzing failures with Gemini...")
+    import parser as p
     system = p.load_agent_instruction("tester-agent", backend="gemini")
     combined = (
         f"=== BACKEND PYTEST OUTPUT ===\n{backend_ok.get('output', 'No output')}\n\n"
@@ -1500,7 +2950,9 @@ def _gemini_tester(task_id):
         f"TEST_FAIL:{task_id}:permanent_count:transient_count\n"
         f"If FAIL, include detailed bug report before the signal line."
     )
-
+ 
+    import ai_client
+    from config import GEMINI_API_KEYS
     try:
         response = ai_client.call(GEMINI_API_KEYS, system, user_prompt, "tester-agent")
         signal_line = ""
@@ -1511,7 +2963,10 @@ def _gemini_tester(task_id):
         if not signal_line:
             permanent = (0 if backend_ok["passed"] else 1) + (0 if frontend_ok["passed"] else 1)
             signal_line = f"TEST_FAIL:{task_id}:{permanent}:0"
-        bug_report = response[:response.find(signal_line)].strip() if signal_line in response else response
+        bug_report = (
+            response[:response.find(signal_line)].strip()
+            if signal_line in response else response
+        )
         if "TEST_FAIL" in signal_line:
             with open(f"docs/bugs/BUG-{task_id}-{ts}.md", "w", encoding="utf-8") as f:
                 f.write(f"{bug_report}\n\n---\n{signal_line}\n")

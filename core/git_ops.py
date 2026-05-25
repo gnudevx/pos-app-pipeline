@@ -77,28 +77,24 @@ def init_repo_if_needed(repo_dir):
         _ensure_remote(repo_dir)
 
 
-def prepare_feature_branch(repo_dir, branch):
-    """
-    Checkout feature branch TRƯỚC khi dev-agent ghi file.
-    *** Gọi hàm này TRƯỚC khi Gemini generate + ghi file ***
-    """
-    os.makedirs(repo_dir, exist_ok=True)
-
-    # Về develop sạch
-    run("checkout develop", repo_dir)
-    run("reset --hard HEAD", repo_dir)
-    run("clean -fd", repo_dir)
-
-    # Xóa branch cũ nếu có (retry scenario)
-    run(f"branch -D {branch}", repo_dir)
-
-    # Tạo feature branch mới từ develop
-    ok, out = run(f"checkout -b {branch}", repo_dir)
-    if not ok:
-        raise RuntimeError(f"Cannot create branch: {branch}\n{out}")
-
-    print(f"      [git] On branch: {branch}")
-    return branch
+def prepare_feature_branch(repo_dir, branch_name):
+    # Nếu branch đã tồn tại → xóa và tạo lại
+    result = subprocess.run(
+        f'git -C "{repo_dir}" branch --list {branch_name}',
+        shell=True, capture_output=True, text=True
+    )
+    if result.stdout.strip():
+        # Branch tồn tại → checkout develop rồi xóa
+        subprocess.run(f'git -C "{repo_dir}" checkout develop', shell=True, capture_output=True)
+        subprocess.run(f'git -C "{repo_dir}" branch -D {branch_name}', shell=True, capture_output=True)
+    
+    # Tạo branch mới
+    r = subprocess.run(
+        f'git -C "{repo_dir}" checkout -b {branch_name}',
+        shell=True, capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"Cannot create branch: {branch_name}\n{r.stderr}")
 
 
 def commit_and_push(repo_dir, branch, task, component):

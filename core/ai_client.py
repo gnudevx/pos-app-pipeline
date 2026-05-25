@@ -10,9 +10,10 @@ Nhận GEMINI_API_KEYS (list) từ config.py.
 import time
 import random
 from google import genai
-
+from google.genai import types
 AGENT_MODELS = {
     "requirement-agent": "gemini-2.5-flash",
+    "architect-agent":   "gemini-2.5-flash",
     "planner-agent":     "gemini-2.5-flash",
     "dev-agent":         "gemini-2.5-flash",
     "tester-agent":      "gemini-2.5-flash",
@@ -139,10 +140,11 @@ def call(api_keys, system_prompt, user_prompt, agent_name="default"):
             response = client.models.generate_content(
                 model=model_name,
                 contents=full_prompt,
-                config={
-                    "temperature": 0.2,
-                    "max_output_tokens": 8192,
-                },
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    top_p=0.1,
+                    max_output_tokens=16384,
+                ),
             )
             return (response.text or "").strip()
 

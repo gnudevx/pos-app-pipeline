@@ -2,8 +2,8 @@
 POS Pipeline Orchestrator - V2
 Luong day du: Phase1 -> Phase2 (Jira sprint that) -> Phase3 (code+test+push that)
 
-Chay: python orchestrator.py
-      python orchestrator.py "Build me a POS app with inventory"
+Chay: 
+      python core/orchestrator_v2.py "Build a POS app with product catalog (name, price, stock), shopping cart with add/remove items, checkout that generates a receipt, and inventory stock management"
 """
 
 import json
@@ -14,20 +14,39 @@ import datetime
 import urllib.request
 import urllib.error
 import base64
-
-from core.adapter_v2 import run_agent
-from core.config import POS_APP_DIR
-import core.parser as p
+from state_manager import (
+    set_task_state,
+    can_execute,
+    print_state_summary
+)
+from adapter_v2 import run_agent
+from config import POS_APP_DIR
+import parser as p
 DOCS_DIR = "docs"
 BUGS_DIR = os.path.join(DOCS_DIR, "bugs")
 MAX_RETRY = 3
 
-from core.git_ops import (
+from git_ops import (
     init_repo_if_needed,
     make_branch_name,
 )
 # ── Jira helpers ─────────────────────────────────────────
+def log_step(
+    task_id,
+    step,
+    message=""
+):
+    ts = datetime.datetime.now().strftime(
+        "%H:%M:%S"
+    )
 
+    print(
+        f"\n[{ts}]"
+        f" [{task_id}]"
+        f" [{step}]"
+        f" {message}"
+    )
+    
 def _jira_cfg():
     try:
         with open(".mcp.json", encoding="utf-8") as f:
@@ -207,32 +226,87 @@ def jira_add_pr_link(jira_key, branch_name):
 # ── Phase 1 ───────────────────────────────────────────────
 
 def phase1_requirement(requirement):
-    """Phase 1: Requirement Agent + Planner Agent."""
+    """
+    Phase 1: Full planning pipeline.
+
+    Thứ tự đúng:
+      [1/7] Requirement Agent   → entities.json + stories.json + requirements.md
+      [2/7] Knowledge Graph     → knowledge_graph.json  (enrichment, hints)
+      [3/7] Architect Agent     → architecture.json     (đọc KG context)
+      [5/7] Task Materializer   → materialized_tasks.json
+      [6/7] Planner Agent       → tasks.json
+      [7/7] Contract Compiler   → docs/contracts/
+      [8/7] structure-planner   → docs/contracts/
+    
+    """
     print("\n" + "=" * 60)
     print("PHASE 1 — Requirement & Planning")
     print("=" * 60)
     os.makedirs(DOCS_DIR, exist_ok=True)
     os.makedirs(BUGS_DIR, exist_ok=True)
 
-    print("\n  [1/2] Requirement Agent...")
+    # ── [1/7] Requirement Agent ───────────────────────────────────────────
+    print("\n  [1/7] Requirement Agent...")
     result = run_agent("requirement-agent", requirement)
     if not result.startswith("REQUIREMENT_DONE"):
         raise RuntimeError(f"Requirement agent failed: {result}")
     if result == "REQUIREMENT_DONE:FALLBACK":
         print("  [WARN] Using fallback stories — Gemini output may be low quality")
-    print("  PRD + stories.json created")
+    print("  entities.json + stories.json + requirements.md created")
 
-    print("\n  [2/2] Planner Agent...")
+    # ── [2/7] Knowledge Graph ─────────────────────────────────────────────
+    print("\n  [2/7] Knowledge Graph...")
+    result = run_agent("knowledge-graph", "Build knowledge graph from entities")
+    if not result.startswith("KNOWLEDGE_GRAPH_DONE"):
+        raise RuntimeError(f"Knowledge Graph failed: {result}")
+    print("  knowledge_graph.json created")
+
+    # ── [3/7] Architect Agent ─────────────────────────────────────────────
+    print("\n  [3/7] Architect Agent...")
+    result = run_agent("architect-agent", "Read entities.json and requirements.md")
+    if not result.startswith("ARCHITECT_DONE"):
+        raise RuntimeError(f"Architect agent failed: {result}")
+    print("  architecture.json created")
+
+    # ── [5/7] Task Materializer ───────────────────────────────────────────
+    print("\n  [4/7] Task Materializer...")
+    result = run_agent("task-materializer", "Materialize tasks from architecture")
+    if not result.startswith("TASK_MATERIALIZED"):
+        raise RuntimeError(f"Task Materializer failed: {result}")
+    print("  materialized_tasks.json created")
+
+    # ── [6/7] Planner Agent ───────────────────────────────────────────────
+    print("\n  [5/7] Planner Agent...")
     result = run_agent("planner-agent", "Read stories.json and create tasks.json")
     if not result.startswith("PLANNER_DONE"):
         raise RuntimeError(f"Planner agent failed: {result}")
+    print("\n  [6/7] Contract Compiler...")
+    result = run_agent(
+        "contract-compiler",
+        "Compile contracts from tasks.json"
+    )
+    if not result.startswith("CONTRACT_COMPILED"):
+        raise RuntimeError(f"Contract compiler failed: {result}")
+    print("  docs/contracts/ populated")
+    # ── [7/7] Structure Planner ───────────────────────────────────────────
+    print("\n  [7/7] Structure Planner...")
+    result = run_agent(
+        "structure-planner",
+        "Generate scaffold structure from contracts and knowledge graph"
+    )
+
+    if not result.startswith("STRUCTURE_PLANNED"):
+        raise RuntimeError(f"Structure planner failed: {result}")
+
+    print("  docs/structure_plan.json created")
     if result == "PLANNER_DONE:FALLBACK":
         print("  [WARN] Using fallback tasks — Gemini output may be low quality")
+
     with open(f"{DOCS_DIR}/tasks.json", encoding="utf-8") as f:
         tasks = json.load(f)
-   
-    total = sum(len(s["tasks"]) for s in tasks["sprints"])
-    pts = sum(t["story_points"] for s in tasks["sprints"] for t in s["tasks"])
+
+    total   = sum(len(s["tasks"]) for s in tasks["sprints"])
+    pts     = sum(t["story_points"] for s in tasks["sprints"] for t in s["tasks"])
     sprints = len(tasks["sprints"])
     print(f"  tasks.json: {total} tasks, {pts} pts, {sprints} sprints")
     return tasks
@@ -293,45 +367,6 @@ def phase2_jira_sync(tasks):
 
 
 # ── Phase 3 ───────────────────────────────────────────────
-TARGET_BRANCH = "develop"
-def _merge_to_develop(branch, task_id):
-    from core.config import POS_APP_DIR
-    import subprocess
-
-    def git(cmd):
-        return subprocess.run(
-            f"git {cmd}", shell=True,
-            capture_output=True, text=True,
-            cwd=POS_APP_DIR
-        )
-
-    print(f"    [MERGE] Merging {branch} -> {TARGET_BRANCH}...")
-
-    # Tao develop neu chua co
-    r = git(f"checkout {TARGET_BRANCH}")
-    if r.returncode != 0:
-        r = git(f"checkout -b {TARGET_BRANCH}")  # tao moi tu main
-        if r.returncode != 0:
-            print(f"    [MERGE] Cannot create {TARGET_BRANCH}: {r.stderr.strip()}")
-            return
-
-    # Merge --no-ff
-    r = git(f'merge --no-ff {branch} -m "merge: {branch} -> {TARGET_BRANCH} [{task_id}]"')
-    if r.returncode != 0:
-        print(f"    [MERGE] Conflict: {r.stderr.strip()[:100]}")
-        git("merge --abort")
-        git("checkout main")  # quay ve main neu conflict
-        return
-
-    # Push
-    r = git(f"push origin {TARGET_BRANCH}")
-    if r.returncode == 0:
-        print(f"    [MERGE] Done — {TARGET_BRANCH} updated")
-    else:
-        print(f"    [MERGE] Push skipped (no remote)")
-
-    # Quay ve main sau khi merge xong
-    git("checkout main")
 def _read_latest_bug_report(task_id):
     """Đọc bug report mới nhất của task để truyền cho dev retry."""
     import glob
@@ -349,19 +384,30 @@ def phase3_sprint_execution(tasks, ticket_map):
 
     results = {"passed": [], "failed": [], "escalated": []}
 
-    # Khởi tạo repo nếu chưa có commit nào
-    init_repo_if_needed(POS_APP_DIR)  # ← THÊM DÒNG NÀY
+    init_repo_if_needed(POS_APP_DIR)
 
     for sprint in tasks["sprints"]:
         print(f"\n  ========== Sprint {sprint['number']}: {sprint['name']} ==========")
+        print_state_summary()
 
         for task in sprint["tasks"]:
             task_id = task["id"]
+
+            if not can_execute(task):
+                log_step(task_id, "SKIP", "dependency not passed")
+                set_task_state(task_id, "blocked", "dependency failed")
+                continue
+
             jira_key = ticket_map.get(task_id, "N/A")
 
-            print(f"\n  [{task_id}] {task['summary']}")
+            # FIX 1: thêm log_step START bị thiếu
+            log_step(task_id, "START", task.get("summary", ""))
+
+            set_task_state(task_id, "in_progress")
+
+            # FIX 2: dùng .get() với default để tránh KeyError
             print(f"  Jira: {jira_key} | Component: {task.get('component', '?')}")
-            print(f"  Points: {task['story_points']} | Priority: {task['priority']}")
+            print(f"  Points: {task.get('story_points', '?')} | Priority: {task.get('priority', '?')}")
 
             jira_update_status(jira_key, "In Progress")
 
@@ -370,33 +416,52 @@ def phase3_sprint_execution(tasks, ticket_map):
             bug_context = None
 
             for dev_retry in range(MAX_DEV_RETRY + 1):
-                print(f"\n    [DEV] attempt {dev_retry + 1}/{MAX_DEV_RETRY + 1}...")
-                dev_result = run_agent("dev-agent", task_id, bug_context=bug_context)
+                log_step(task_id, "DEV", f"attempt {dev_retry + 1}")
+                if dev_retry == 0:
+                    log_step(task_id, "SCAFFOLD", "will run before LLM call")
+
+                try:
+                    dev_result = run_agent("dev-agent", task_id, bug_context=bug_context)
+                except Exception as e:
+                    log_step(task_id, "DEV_ERROR", str(e))
+                    set_task_state(task_id, "escalated", str(e))
+                    continue
 
                 if dev_result.startswith("DEV_ESCALATE"):
                     print("    [DEV] ESCALATED")
                     results["escalated"].append(task_id)
                     jira_update_status(jira_key, "Blocked")
                     _write_escalation(task_id, "Dev agent could not implement")
+                    # [FIX] Update tasks.json status khi escalate
+                    set_task_state(task_id, "escalated", "dev escalated")
                     break
+
                 if dev_result.startswith("DEV_CONTRACT_FAIL"):
                     print("    [DEV] Contract invalid — retrying immediately")
-
-                    bug_context = dev_result.replace(
-                        "DEV_CONTRACT_FAIL:",
-                        ""
-                    )
-
+                    bug_context = dev_result.replace("DEV_CONTRACT_FAIL:", "")
                     time.sleep(1)
                     continue
+
+                # FIX 3: handle thêm các DEV_*_FAIL signals từ _gemini_dev
+                if dev_result.startswith((
+                    "DEV_STATIC_FAIL",
+                    "DEV_SMOKE_FAIL",
+                    "DEV_IMPORT_FAIL",
+                    "DEV_SERIALIZATION_FAIL",
+                )):
+                    signal = dev_result.split(":")[0]
+                    detail = dev_result[len(signal) + 1:]
+                    print(f"    [DEV] {signal} — retrying")
+                    bug_context = detail[:800]
+                    time.sleep(2 ** (dev_retry + 1))
+                    continue
+
                 if dev_result.startswith("DEV_SKIP"):
                     results["failed"].append(task_id)
                     jira_update_status(jira_key, "Won't Do")
                     break
 
-                # ← DÙNG make_branch_name thay vì đọc lại tasks.json
                 branch = make_branch_name(task_id, task["summary"])
-
                 if dev_retry == 0:
                     jira_add_pr_link(jira_key, branch)
                 print(f"    [DEV] Done — branch: {branch}")
@@ -406,25 +471,28 @@ def phase3_sprint_execution(tasks, ticket_map):
                 sig = p.parse_test_signal(test_result)
 
                 if sig["passed"]:
+                    set_task_state(task_id, "passed")
+                    log_step(task_id, "DONE", "tester passed")
                     jira_update_status(jira_key, "Done")
 
-                    results["passed"].append({
-                        "task_id": task_id,
-                        "branch": branch,
-                        "summary": task["summary"],
-                        "depends_on": task.get("depends_on", [])
-                    })
+                    # FIX 4: results["passed"] nhất quán — chỉ append string task_id
+                    # thông tin branch/summary lưu vào tasks.json bởi _gemini_dev
+                    results["passed"].append(task_id)
 
                     print("    [TEST] PASSED")
                     task_passed = True
                     break
+
                 bug_context = _read_latest_bug_report(task_id)
                 print(f"    [TEST] FAIL (permanent={sig['permanent']}, transient={sig['transient']})")
+                set_task_state(task_id, "failed", "tester failed")
+
                 if dev_retry >= MAX_DEV_RETRY:
                     print(f"    [TEST] ESCALATED after {MAX_DEV_RETRY + 1} attempts")
                     results["escalated"].append(task_id)
                     jira_update_status(jira_key, "Blocked")
                     _write_escalation(task_id, f"Failed after {MAX_DEV_RETRY + 1} attempts")
+                    set_task_state(task_id, "escalated", "retry exceeded")
                     break
 
                 wait = 2 ** (dev_retry + 1)
@@ -434,7 +502,6 @@ def phase3_sprint_execution(tasks, ticket_map):
             if not task_passed and task_id not in results["escalated"]:
                 results["failed"].append(task_id)
 
-    # Dùng tasks gốc (tham số), không bị shadow nữa
     total = sum(len(s["tasks"]) for s in tasks["sprints"])
     print("\n  ========== Sprint Summary ==========")
     print(f"  Passed   : {len(results['passed'])}/{total}")
@@ -458,7 +525,7 @@ def _write_escalation(task_id, reason):
 # ── Main ──────────────────────────────────────────────────
 
 def run_pipeline(requirement):
-    from core.adapter_v2 import AGENT_BACKEND
+    from adapter_v2 import AGENT_BACKEND
     print(f"\n{'=' * 60}")
     print(f"POS PIPELINE V2  |  backend: {AGENT_BACKEND.upper()}")
     print(f"{'=' * 60}")

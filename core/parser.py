@@ -1,87 +1,90 @@
 """
-Parser - doc file agent instruction, strip markdown fences, parse JSON an toan.
-Khong phu thuoc vao Gemini hay Git — co the unit test doc lap.
+Parser — đọc agent instruction files, strip markdown fences, parse JSON an toàn.
+Không phụ thuộc vào Gemini hay Git — có thể unit test độc lập.
+
+THAY ĐỔI từ v1:
+  [v1] TASK_FILE_MAP hardcode TASK-01/02/03 → dead code, gây nhầm lẫn
+       dev-agent-gemini.md đã là generic (không còn task-specific md)
+  [v2] Xoá TASK_FILE_MAP + smart-mode cho dev-agent
+       load_agent_instruction: đọc đúng 1 file duy nhất theo agent_name + backend
+       Nếu cần inject task context → caller tự inject vào user prompt (không phải system prompt)
+
+  [v1] split_prd_and_stories có side effect ẩn: ghi entities.json ra disk
+       → trách nhiệm của adapter_v2._gemini_requirement, không phải parser
+  [v2] split_prd_and_stories chỉ trả về (prd_text, entities, stories, error)
+       Không còn ghi file. Caller quyết định ghi ở đâu.
 """
 import os
 import json
-import os
 import re
 
-AGENTS_DIR = ".claude/agents"
 
-# ── Agent instruction ─────────────────────────────────────
- 
-# Map task_id → file chứa spec của task đó
-TASK_FILE_MAP = {
-    "TASK-01": "dev-agent-task01.md",
-    "TASK-02": "dev-agent-task02.md",
-    "TASK-03": "dev-agent-task03.md",
-}
- 
-# File luôn được load bất kể task nào
+AGENTS_DIR = ".claude/agents"
 CORE_FILE = "dev-agent-core.md"
+
+
+# ── Agent instruction ─────────────────────────────────────────────────────────
+
 def _read_agent_file(path: str) -> str:
     """Đọc file và strip frontmatter YAML (--- ... ---)."""
     with open(path, encoding="utf-8") as f:
         content = f.read()
     content = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
     return content.strip()
- 
+
 
 def load_agent_instruction(agent_name: str, backend: str = "gemini", task_id: str = "") -> str:
     """
-    Load system prompt cho agent.
- 
-    Chế độ hoạt động:
-      - agent khác dev-agent  → đọc file đơn như cũ (backward compat)
-      - dev-agent + task_id   → core + task file tương ứng (SMART MODE)
-      - dev-agent + no task_id → core + ALL task files (fallback)
- 
-    Token so sánh (ước tính):
-      Cũ  : core + task01 + task02 + task03 ~ 4,000 tokens mỗi lần gọi
-      Mới : core + task01 only              ~ 1,500 tokens  (-62%)
+    Load system prompt cho agent từ .claude/agents/.
+
+    Quy tắc tìm file (theo thứ tự ưu tiên):
+      1. {agent_name}-{backend}.md   (vd: dev-agent-gemini.md)
+      2. {agent_name}.md             (fallback không có backend suffix)
+
+    Dev-agent:
+      - Luôn load dev-agent-core.md làm base
+      - Sau đó append dev-agent-{backend}.md nếu tồn tại
+      - task_id KHÔNG dùng để chọn file nữa (không còn task-specific md)
+        Caller inject task context vào user prompt, không phải system prompt
+
+    Tất cả agent khác: đọc đúng 1 file.
     """
     base_dir = AGENTS_DIR
- 
-    # ── Non-dev agents: đọc file đơn như cũ ──────────────────────────────
-    if agent_name != "dev-agent":
-        filename = f"{agent_name}-{backend}.md" if backend else f"{agent_name}.md"
-        filepath = os.path.join(base_dir, filename)
-        if not os.path.exists(filepath):
-            filepath = os.path.join(base_dir, f"{agent_name}.md")
-        if not os.path.exists(filepath):
-            return ""
-        return _read_agent_file(filepath)
- 
-    # ── Dev agent: SMART MODE ─────────────────────────────────────────────
-    core_path = os.path.join(base_dir, CORE_FILE)
-    if not os.path.exists(core_path):
-        raise RuntimeError(f"Core file not found: {core_path}")
- 
-    parts = [_read_agent_file(core_path)]
- 
-    if task_id and task_id in TASK_FILE_MAP:
-        # Chỉ load đúng 1 file task
-        task_filename = TASK_FILE_MAP[task_id]
-        task_path = os.path.join(base_dir, task_filename)
-        if not os.path.exists(task_path):
-            raise RuntimeError(f"Task file not found: {task_path} (for {task_id})")
-        parts.append(_read_agent_file(task_path))
-        print(f"      [parser] dev-agent: core + {task_filename}")
-    else:
-        # Fallback: load tất cả (không biết task_id)
-        for fname in TASK_FILE_MAP.values():
-            task_path = os.path.join(base_dir, fname)
-            if os.path.exists(task_path):
-                parts.append(_read_agent_file(task_path))
-        print(f"      [parser] dev-agent: core + ALL tasks (fallback — no task_id)")
- 
-    return "\n\n---\n\n".join(parts)
- 
+
+    if agent_name == "dev-agent":
+        # Core luôn required
+        core_path = os.path.join(base_dir, CORE_FILE)
+        if not os.path.exists(core_path):
+            raise RuntimeError(f"Core file not found: {core_path}")
+        parts = [_read_agent_file(core_path)]
+
+        # Backend-specific addendum (execution approach, model config, v.v.)
+        addendum_path = os.path.join(base_dir, f"dev-agent-{backend}.md")
+        if os.path.exists(addendum_path):
+            parts.append(_read_agent_file(addendum_path))
+            print(f"      [parser] dev-agent: core + dev-agent-{backend}.md")
+        else:
+            print(f"      [parser] dev-agent: core only (no dev-agent-{backend}.md)")
+
+        return "\n\n---\n\n".join(parts)
+
+    # Tất cả agent còn lại
+    candidates = []
+    if backend:
+        candidates.append(os.path.join(base_dir, f"{agent_name}-{backend}.md"))
+    candidates.append(os.path.join(base_dir, f"{agent_name}.md"))
+
+    for filepath in candidates:
+        if os.path.exists(filepath):
+            print(f"      [parser] {agent_name}: {os.path.basename(filepath)}")
+            return _read_agent_file(filepath)
+
+    print(f"      [parser] WARNING: no instruction file found for '{agent_name}' (tried: {candidates})")
+    return ""
 
 
-def load_claude_md():
-    """Doc CLAUDE.md lam shared project context."""
+def load_claude_md() -> str:
+    """Đọc CLAUDE.md làm shared project context."""
     for path in ["CLAUDE.md", "context/claude.md"]:
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
@@ -89,12 +92,12 @@ def load_claude_md():
     return ""
 
 
-# ── Markdown fence stripping ──────────────────────────────
+# ── Markdown fence stripping ──────────────────────────────────────────────────
 
-def strip_fences(text, lang=""):
+def strip_fences(text: str, lang: str = "") -> str:
     """
-    Bo markdown code fences khoi response cua Gemini.
-    Thu strip ```{lang} truoc, fallback sang ``` bat ky.
+    Bỏ markdown code fences khỏi response của Gemini.
+    Thử strip ```{lang} trước, fallback sang ``` bất kỳ.
     """
     marker = f"```{lang}" if lang else "```"
     if marker in text:
@@ -113,12 +116,12 @@ def strip_fences(text, lang=""):
     return text.strip()
 
 
-# ── JSON extraction ───────────────────────────────────────
+# ── JSON extraction ───────────────────────────────────────────────────────────
 
-def extract_json_array(text):
+def extract_json_array(text: str):
     """
-    Tim va parse JSON array [...] dau tien trong text.
-    Tra ve (list, None) neu ok, hoac (None, error_msg) neu fail.
+    Tìm và parse JSON array [...] đầu tiên trong text.
+    Trả về (list, None) nếu ok, hoặc (None, error_msg) nếu fail.
     """
     if "[" not in text or "]" not in text:
         return None, "No [ ] found in response"
@@ -136,11 +139,11 @@ def extract_json_array(text):
         return None, str(e)
 
 
-def extract_json_object(text):
+def extract_json_object(text: str):
     """
-    Tim va parse JSON object {...} dau tien trong text.
-    Strip fences truoc, sau do tim { }.
-    Tra ve (dict, None) neu ok, hoac (None, error_msg) neu fail.
+    Tìm và parse JSON object {...} đầu tiên trong text.
+    Strip fences trước, sau đó tìm { }.
+    Trả về (dict, None) nếu ok, hoặc (None, error_msg) nếu fail.
     """
     raw = strip_fences(text, "json")
 
@@ -159,28 +162,80 @@ def extract_json_object(text):
         return None, str(e)
 
 
-def split_prd_and_stories(response):
+def split_prd_and_stories(response: str):
     """
-    Tach response cua requirement-agent thanh:
-      - prd_text: phan markdown truoc JSON array
-      - stories:  JSON array da parse
-    Tra ve (prd_text, stories, error_msg).
+    Tách response của requirement-agent thành các phần.
+
+    Trả về: (prd_text, entities, stories, error_msg)
+      - prd_text : phần markdown trước JSON block đầu tiên
+      - entities : JSON array entities (có field "component") — có thể None
+      - stories  : JSON array stories (có field "title")
+      - error_msg: None nếu thành công
+
+    KHÔNG ghi file — caller (adapter) chịu trách nhiệm ghi entities.json,
+    stories.json, requirements.md. Parser chỉ parse, không có side effect.
+
+    Hỗ trợ cả format cũ (1 JSON array) và mới (2 JSON arrays: entities + stories).
     """
-    stories, err = extract_json_array(response)
-    if err:
-        return response, None, err
+    # Ưu tiên extract từ ```json blocks
+    json_blocks = re.findall(r'```json\s*([\s\S]*?)```', response)
 
-    bracket_pos = response.find("[")
-    prd_text = response[:bracket_pos].strip()
-    return prd_text, stories, None
+    parsed_arrays = []
+    for block in json_blocks:
+        try:
+            parsed = json.loads(block.strip())
+            if isinstance(parsed, list) and parsed:
+                parsed_arrays.append(parsed)
+        except Exception:
+            continue
+
+    # Fallback: không có ```json block → tìm [...] thô
+    if not parsed_arrays:
+        for match in re.finditer(r'\[[\s\S]*?\]', response):
+            try:
+                parsed = json.loads(match.group())
+                if isinstance(parsed, list) and parsed:
+                    parsed_arrays.append(parsed)
+            except Exception:
+                continue
+
+    if not parsed_arrays:
+        return response, None, None, "No JSON array found in response"
+
+    # Phân loại: entities có "component", stories có "title"
+    stories = None
+    entities = None
+    for arr in parsed_arrays:
+        first = arr[0] if arr else {}
+        if not isinstance(first, dict):
+            continue
+        if "title" in first and stories is None:
+            stories = arr
+        elif "component" in first and "title" not in first and entities is None:
+            entities = arr
+
+    # Format cũ: chỉ có 1 array → treat as stories
+    if stories is None and entities is None and parsed_arrays:
+        stories = parsed_arrays[0]
+
+    if not stories:
+        return response, entities, None, "No stories array found (need list with 'title' field)"
+
+    # PRD text = phần trước ```json đầu tiên
+    first_fence = response.find("```")
+    prd_text = response[:first_fence].strip() if first_fence > 0 else ""
+    if not prd_text:
+        prd_text = "# PRD\n\nRequirement processed successfully."
+
+    return prd_text, entities, stories, None
 
 
-# ── Signal parsing (orchestrator dung) ───────────────────
+# ── Signal parsing ────────────────────────────────────────────────────────────
 
-def parse_test_signal(signal):
+def parse_test_signal(signal: str) -> dict:
     """
-    Parse 'TEST_PASS:TASK-01' hoac 'TEST_FAIL:TASK-01:2:0'.
-    Tra ve dict: { passed, task_id, permanent, transient }
+    Parse 'TEST_PASS:TASK-01' hoặc 'TEST_FAIL:TASK-01:2:0'.
+    Trả về dict: { passed, task_id, permanent, transient }
     """
     parts = signal.split(":")
     if len(parts) < 2:
@@ -199,29 +254,27 @@ def parse_test_signal(signal):
     }
 
 
-def is_fallback(signal):
-    """Kiem tra requirement/planner agent co dung default data khong."""
+def is_fallback(signal: str) -> bool:
+    """Kiểm tra requirement/planner agent có dùng default data không."""
     return signal.endswith(":FALLBACK")
 
 
-# ── File block parsing (dev-agent output) ────────────────
+# ── File block parsing ────────────────────────────────────────────────────────
 
-def parse_file_blocks(response):
+def parse_file_blocks(response: str) -> dict:
     """
-    Parse output cua dev-agent theo format:
+    Parse output của dev-agent theo format:
 
         FILE: src/backend/main.py
         ```python
         [code]
         ```
 
-    Tra ve dict { filepath: code_string }.
-    Bo qua cac block rong hoac chi co placeholder.
+    Trả về dict { filepath: code_string }.
+    Bỏ qua các block rỗng hoặc chỉ có placeholder.
     """
-    import re
     result = {}
 
-    # Match: FILE: <path>\n```<lang>\n<code>\n```
     pattern = re.compile(
         r"FILE:\s*(\S+)\s*\n```[a-zA-Z]*\n(.*?)```",
         re.DOTALL
@@ -231,7 +284,6 @@ def parse_file_blocks(response):
         filepath = match.group(1).strip()
         code = match.group(2).strip()
 
-        # Bo qua placeholder rong
         if not code or len(code) < 10:
             continue
         if "[complete file content here]" in code:
@@ -240,8 +292,6 @@ def parse_file_blocks(response):
         result[filepath] = code
 
     if not result:
-        # Fallback: Gemini doi khi khong theo format FILE:
-        # Thu parse tat ca code blocks va gan ten theo thu tu
         fallback_pattern = re.compile(r"```[a-zA-Z]*\n(.*?)```", re.DOTALL)
         blocks = [m.group(1).strip() for m in fallback_pattern.finditer(response)
                   if len(m.group(1).strip()) > 20]

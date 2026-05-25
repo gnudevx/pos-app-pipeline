@@ -227,7 +227,48 @@ def merge_one_branch(
 
 
 # ── Main Entry ─────────────────────────────────────────────────────────────
-
+def check_shared_frontend_files(tasks_list: list) -> list[str]:
+    """
+    [FIX BUG-A3] Phát hiện shared frontend files trước khi merge.
+    
+    Những files như App.tsx, package.json được nhiều task modify nhưng
+    không nằm trong task["artifacts"] → detect_artifact_conflicts() bỏ sót.
+ 
+    Trả về list warnings (không raise — pipeline vẫn chạy, chỉ warn).
+    
+    Thêm vào run_merge_coordinator() sau detect_artifact_conflicts():
+        warnings = check_shared_frontend_files(candidate_tasks)
+        for w in warnings:
+            print(w)
+    """
+    KNOWN_SHARED = {"App.tsx", "package.json", "tsconfig.json", "vite.config.ts"}
+    
+    # Tìm tất cả frontend tasks
+    frontend_tasks = [t for t in tasks_list if t.get("component") == "frontend"]
+    
+    if len(frontend_tasks) <= 1:
+        return []
+ 
+    warnings = []
+    for shared_file in KNOWN_SHARED:
+        tasks_touching = [
+            t["id"] for t in frontend_tasks
+            if any(shared_file in str(art) for art in t.get("artifacts", []))
+        ]
+        if len(tasks_touching) > 1:
+            warnings.append(
+                f"  [WARN] Shared file '{shared_file}' appears in multiple tasks: {tasks_touching}\n"
+                f"         This will cause merge conflict. Ensure write_frontend_infra_once() was called."
+            )
+        elif len(frontend_tasks) > 1:
+            # File không trong artifacts nhưng scaffold có thể đã viết
+            warnings.append(
+                f"  [INFO] {len(frontend_tasks)} frontend tasks detected. "
+                f"Verify '{shared_file}' was only written to develop branch, not feature branches."
+            )
+            break  # Chỉ warn 1 lần
+ 
+    return warnings
 def run_merge_coordinator(
     passed_task_ids: list[str],
     repo_dir: str = REPO_DIR,
@@ -250,7 +291,9 @@ def run_merge_coordinator(
 
     validate_dependencies(candidate_tasks, passed_set)
     detect_artifact_conflicts(candidate_tasks)
-
+    warnings = check_shared_frontend_files(candidate_tasks)
+    for w in warnings:
+        print(w)
     if not candidate_tasks:
         print("  [merge] No passed tasks to merge.")
         return {"branch": None, "tasks": []}

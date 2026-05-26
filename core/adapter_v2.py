@@ -94,14 +94,19 @@ from structure_planner import (
            format_graph_context_for_dev,
        )
 from smart_scaffold import (
-    write_smart_scaffold, verify_smart_scaffold,
+    write_smart_scaffold, 
+    verify_smart_scaffold,
     run_static_analysis,
 )
 from slot_injector import inject_all_slots, list_unfilled_slots
 AGENT_BACKEND = "gemini"
 
+from git_ops import (
+    commit_wip,
+    abort_to_backbone,
+)
 
-def run_agent(agent_name, prompt, bug_context=None):
+def run_agent(agent_name, prompt, bug_context=None, attempt=1):
     print(f"    [{AGENT_BACKEND.upper()}] {agent_name}: {prompt[:60]}")
     if AGENT_BACKEND == "mock":
         return _run_mock(agent_name, prompt)
@@ -130,7 +135,7 @@ def _run_mock(agent_name, prompt):
 
 # ── Gemini router ──────────────────────────────────────────────────────────────
 
-def _run_gemini(agent_name, prompt, bug_context=None):
+def _run_gemini(agent_name, prompt, bug_context=None, attempt=1):
     if agent_name == "requirement-agent":
         return _gemini_requirement(prompt)
     elif agent_name == "knowledge-graph":
@@ -146,7 +151,7 @@ def _run_gemini(agent_name, prompt, bug_context=None):
     elif agent_name == "structure-planner":
            return _gemini_structure_planner(prompt)
     elif agent_name == "dev-agent":
-        return _gemini_dev(task_id=prompt, bug_context=bug_context)
+        return _gemini_dev(task_id=prompt, bug_context=bug_context, attempt=attempt)
     elif agent_name == "tester-agent":
         return _gemini_tester(prompt)
     raise ValueError(f"Unknown agent: {agent_name}")
@@ -2100,7 +2105,7 @@ def _ensure_service_requirements(contract: dict, pos_app_dir: str):
         with open(req_path, "a", encoding="utf-8") as f:
             f.write("\n# Auto-added by pipeline\n" + "\n".join(additions) + "\n")
         print(f"      [fix-req] Service requirements patched: {additions}")
-def _gemini_dev(task_id, bug_context=None):
+def _gemini_dev(task_id, bug_context=None, attempt=1):
     """
     PATCHED VERSION of _gemini_dev.
  
@@ -2173,7 +2178,7 @@ def _gemini_dev(task_id, bug_context=None):
         if any(sig in (scaffold_err or "") for sig in _WIN_LOCK_SIGNALS):
             print("      [gemini-dev] Scaffold verify: pip file-lock (Windows) — skipping.")
         else:
-            git_ops._back_to_develop(POS_APP_DIR)
+            abort_to_backbone(POS_APP_DIR)
             return f"DEV_IMPORT_FAIL:{scaffold_err}"
     print(
         f"      [gemini-dev] Smart scaffold OK "
@@ -2223,7 +2228,7 @@ def _gemini_dev(task_id, bug_context=None):
  
     if not generated:
         print("      [gemini-dev] No FILE blocks — escalating")
-        git_ops._back_to_develop(POS_APP_DIR)
+        abort_to_backbone(POS_APP_DIR)
         return f"DEV_ESCALATE:{task_id}"
  
     generated = _filter_by_component(generated, component)
@@ -2269,7 +2274,7 @@ def _gemini_dev(task_id, bug_context=None):
         print(f"      [static-analysis] FAIL — {len(static_errors)} errors")
         for e in static_errors[:5]:
             print(f"        {e}")
-        git_ops._back_to_develop(POS_APP_DIR)
+        abort_to_backbone(POS_APP_DIR)
         bug_summary = "\n".join(static_errors[:10])
         return f"DEV_STATIC_FAIL:{bug_summary[:300]}"
     print(f"      [static-analysis] PASS")
@@ -2296,7 +2301,7 @@ def _gemini_dev(task_id, bug_context=None):
         # Re-run static analysis after retry
         static_ok, static_errors = run_static_analysis(POS_APP_DIR, component, contract)
         if not static_ok:
-            git_ops._back_to_develop(POS_APP_DIR)
+            abort_to_backbone(POS_APP_DIR)
             return f"DEV_STATIC_FAIL:{'; '.join(static_errors[:3])}"
  
         graph = build_graph(POS_APP_DIR)
@@ -2334,7 +2339,7 @@ def _gemini_dev(task_id, bug_context=None):
                 slot_summary = "; ".join(
                     f"{u['file']}: {u['slots']}" for u in truly_empty[:3]
                 )
-                git_ops._back_to_develop(POS_APP_DIR)
+                abort_to_backbone(POS_APP_DIR)
                 return f"DEV_IMPORT_FAIL:unfilled slots — {slot_summary}"
             else:
                 print(f"      [gemini-dev] Slot markers remain but file has real code — continuing")
@@ -2343,7 +2348,7 @@ def _gemini_dev(task_id, bug_context=None):
         serialization_ok, serialization_bug = validate_no_set_literals(POS_APP_DIR, task_id)
  
         if not serialization_ok:
-            git_ops._back_to_develop(POS_APP_DIR)
+            abort_to_backbone(POS_APP_DIR)
             return f"DEV_SERIALIZATION_FAIL:{serialization_bug}"
  
         if ok:
@@ -2362,23 +2367,24 @@ def _gemini_dev(task_id, bug_context=None):
                         del sys.modules[k]
                 importlib.import_module("app.main")
             except Exception as e:
-                git_ops._back_to_develop(POS_APP_DIR)
+                abort_to_backbone(POS_APP_DIR)
                 return f"DEV_IMPORT_FAIL:{str(e)}"
  
             smoke_ok, smoke_bug = run_backend_smoke_test(POS_APP_DIR, task_id=task_id)
             if not smoke_ok:
                 print(f"      [smoke-test] FAIL: {str(smoke_bug)[:400]}")
-                git_ops._back_to_develop(POS_APP_DIR)
+                abort_to_backbone(POS_APP_DIR)
                 return f"DEV_SMOKE_FAIL:{smoke_bug}"
             print("      [smoke-test] PASS")
  
         if not ok:
             print("      [gemini-dev] Contract validation failed")
-            git_ops._back_to_develop(POS_APP_DIR)
+            abort_to_backbone(POS_APP_DIR)
             return f"DEV_CONTRACT_FAIL:{validation_bug}"
  
     # ── 8. Commit + update tasks.json ─────────────────────────────────────
-    git_ops.commit_and_push(POS_APP_DIR, branch, task, component)
+    commit_wip(POS_APP_DIR, branch, task_id, attempt=attempt)
+
  
     with open("docs/tasks.json", encoding="utf-8") as f:
         data = json.load(f)

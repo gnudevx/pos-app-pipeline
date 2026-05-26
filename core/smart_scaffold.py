@@ -44,9 +44,21 @@ FRONTEND_SHARED_FILES = {
     "tsconfig.node.json",
     "vite.config.ts",
     "index.html",
-    "main.tsx",
-    "App.tsx",
+    "main.tsx"
 }
+def write_file_safely(target_path: str, default_scaffold_content: str):
+    """
+    Hàm ghi file có Guard bảo vệ chống xung đột add/add.
+    Nếu file đã được tạo bởi task trước đó, giữ nguyên file để slot_injector chèn code.
+    """
+    if os.path.exists(target_path):
+        print(f"      [scaffold-guard] File đã tồn tại: {target_path} -> GIỮ NGUYÊN (Kế thừa gối đầu)")
+        return
+        
+    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+    with open(target_path, "w", encoding="utf-8") as f:
+        f.write(default_scaffold_content)
+    print(f"      [scaffold-guard] Khởi tạo file mới: {target_path}")
 def write_frontend_infra_once(pos_app_dir: str) -> dict:
     """
     [FIX BUG-A1] Viết shared frontend infra files MỘT LẦN DUY NHẤT.
@@ -468,15 +480,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 def _write_if_missing(fpath: str, content: str, pos_app_dir: str) -> bool:
     """Write file only if it doesn't exist. Return True if written."""
+    rel = os.path.relpath(fpath, pos_app_dir)
+    
+    # Kích hoạt Scaffold Guard bảo vệ file dùng chung gối đầu từ task trước
     if os.path.exists(fpath):
-        rel = os.path.relpath(fpath, pos_app_dir)
-        print(f"      [smart-scaffold] skip (exists): {rel}")
+        print(f"      [scaffold-guard] File đã tồn tại: {rel} -> GIỮ NGUYÊN (Kế thừa gối đầu)")
         return False
+        
     os.makedirs(os.path.dirname(fpath), exist_ok=True)
     with open(fpath, "w", encoding="utf-8") as f:
         f.write(content)
-    rel = os.path.relpath(fpath, pos_app_dir)
-    print(f"      [smart-scaffold] wrote: {rel}")
+    print(f"      [scaffold-guard] Khởi tạo file mới: {rel}")
     return True
 
 
@@ -621,7 +635,9 @@ def write_smart_scaffold(
             if _write_if_missing(fpath, content, pos_app_dir):
                 written += 1
             else:
-                skipped += 1
+                print("      [smart-scaffold] SKIP shared infra (already on backbone)")
+                skipped += len(FRONTEND_SHARED_FILES)
+
 
         # Pages from plan
         page_files = [f for f in files_to_write if f.get("role") == "page"]

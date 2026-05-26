@@ -192,8 +192,12 @@ export default App
         # Replace từ ROUTES_SLOT đến cuối
         slot_idx = current.find("// [ROUTES_SLOT]")
         if slot_idx != -1:
-            # Tìm "function App" sau slot (nếu có) và giữ lại
-            current = current[:slot_idx] + app_body + "\n"
+            slot_end = current.find("\n", slot_idx) + 1
+            current = current[:slot_idx] + current[slot_end:]  # xóa chỉ dòng slot
+            # Inject app_body trước "export default App"
+            export_idx = current.rfind("export default App")
+            if export_idx != -1:
+                current = current[:export_idx] + app_body + "\n"
  
     return current
 def _detect_slots(content: str) -> list[tuple[str, int, int]]:

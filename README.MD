@@ -132,27 +132,34 @@ flowchart TD
         O -- FAIL\n> 3 times --> Q[🚨 Human Escalation\nbug report → /docs/bugs/]
         P --> R{next task?}
         R -- yes --> L
-        R -- no --> S
+        R -- no --> S[End Sprint State]
     end
+
+    %% Ép cấu trúc Phase 6 và Phase 7 xuống dưới Phase 5 theo hàng dọc
+    S --> P6
 
     subgraph P6["Phase 6 — CI/CD [GitHub Actions]"]
-        S[lint · build check\nDeploy → Staging]
+        U_CI[lint · build check\nDeploy → Staging]
     end
 
+    P6 --> P7
+
     subgraph P7["Phase 7 — Production Release [Human Approval]"]
-        S --> T{Approved?}
+        T{Approved?}
         T -- YES --> U([🚀 Production\nVercel · Railway · Render])
         T -- NO --> V[Rollback\nnew sprint → Phase 5]
     end
 
-    style P1 fill:#E8F5E9,stroke:#4CAF50
-    style P2 fill:#E3F2FD,stroke:#2196F3
-    style P3 fill:#FFF3E0,stroke:#FF9800
-    style P3B fill:#F3E5F5,stroke:#9C27B0
-    style P4 fill:#E8EAF6,stroke:#3F51B5
-    style P5 fill:#FCE4EC,stroke:#E91E63
-    style P6 fill:#E0F2F1,stroke:#009688
-    style P7 fill:#F1F8E9,stroke:#8BC34A
+    %% Định nghĩa màu sắc dịu nhẹ, tương thích tốt với cả Light/Dark Mode
+    %% Chữ (color) được ép màu xám tối/sáng tùy biến hoặc giữ mặc định an toàn
+    style P1 fill:#2e3b2e,stroke:#4CAF50,stroke-width:2px,color:#fff
+    style P2 fill:#243342,stroke:#2196F3,stroke-width:2px,color:#fff
+    style P3 fill:#3d3021,stroke:#FF9800,stroke-width:2px,color:#fff
+    style P3B fill:#33253d,stroke:#9C27B0,stroke-width:2px,color:#fff
+    style P4 fill:#25283d,stroke:#3F51B5,stroke-width:2px,color:#fff
+    style P5 fill:#3d252b,stroke:#E91E63,stroke-width:2px,color:#fff
+    style P6 fill:#1f3633,stroke:#009688,stroke-width:2px,color:#fff
+    style P7 fill:#2d3621,stroke:#8BC34A,stroke-width:2px,color:#fff
 ```
 
 ---

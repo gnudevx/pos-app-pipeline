@@ -275,57 +275,63 @@ Layer trung gian giữa mọi agent response và pipeline. Xử lý:
 
 ---
 
-## 🔀 Sprint Execution Loop — Chi tiết
-
 ```mermaid
 flowchart TD
     START([Bắt đầu sprint]) --> NEXT
 
-    NEXT[Lấy task tiếp theo\ntheo execution_order] --> CHECK
+    NEXT[Lấy task tiếp theo<br/>theo execution_order] --> CHECK
 
-    CHECK{state_manager\ncan_execute?}
-    CHECK -- deps chưa passed\n→ BLOCKED --> WAIT[Chờ / skip\nthử task khác]
+    CHECK{state_manager<br/>can_execute?}
+
+    CHECK -- "deps chưa passed<br/>→ BLOCKED" --> WAIT[Chờ / skip<br/>thử task khác]
     WAIT --> NEXT
 
-    CHECK -- all deps passed\n→ READY --> BRANCH
+    CHECK -- "all deps passed<br/>→ READY" --> BRANCH
 
-    BRANCH[Git: tạo branch\nfeature/TASK-XX-desc\ntừ integration/current-sprint]
+    BRANCH[Git: tạo branch<br/>feature/TASK-XX-desc<br/>từ integration/current-sprint]
 
-    BRANCH --> SCAFFOLD[smart_scaffold\nverify files on disk\npy_compile + tsc pass]
+    BRANCH --> SCAFFOLD[smart_scaffold<br/>verify files on disk<br/>py_compile + tsc pass]
 
-    SCAFFOLD --> CONTEXT[structure_planner\nformat_graph_context_for_dev\ninject 6 neighbor files × 80 lines]
+    SCAFFOLD --> CONTEXT[structure_planner<br/>format_graph_context_for_dev<br/>inject 6 neighbor files × 80 lines]
 
-    CONTEXT --> DEV[dev-agent Gemini 2.5-flash\nfill SLOT markers\nparse_file_blocks output]
+    CONTEXT --> DEV[dev-agent Gemini 2.5-flash<br/>fill SLOT markers<br/>parse_file_blocks output]
 
-    DEV --> INJECT[slot_injector\ninject_all_slots\nmain.py accumulate\nApp.tsx accumulate\nroutes replace]
+    DEV --> INJECT[slot_injector<br/>inject_all_slots<br/>main.py accumulate<br/>App.tsx accumulate<br/>routes replace]
 
-    INJECT --> STATIC[run_static_analysis\npy_compile · tsc --noEmit\nflake8 · eslint]
+    INJECT --> STATIC[run_static_analysis<br/>py_compile · tsc --noEmit<br/>flake8 · eslint]
 
-    STATIC -- syntax error --> BUG1[classify: permanent error\ncreate bug report]
+    STATIC -- "syntax error" --> BUG1[classify: permanent error<br/>create bug report]
     BUG1 --> RETRY
 
-    STATIC -- ok --> TEST[tester-agent\npytest + jest\nparse_test_signal]
+    STATIC -- "ok" --> TEST[tester-agent<br/>pytest + jest<br/>parse_test_signal]
 
-    TEST -- TEST_PASS --> PASS[state: passed\nJira: Done\nGit merge → integration]
-    PASS --> INDEX[indexer.update\ncode_graph.json refresh]
+    TEST -- "TEST_PASS" --> PASS[state: passed<br/>Jira: Done<br/>Git merge → integration]
+
+    PASS --> INDEX[indexer.update<br/>code_graph.json refresh]
     INDEX --> NEXT
 
-    TEST -- TEST_FAIL\ntransient error --> RETRY
-    TEST -- TEST_FAIL\npermanent error --> BUG2[/docs/bugs/BUG-timestamp.md\nJira bug ticket]
+    TEST -- "TEST_FAIL<br/>transient error" --> RETRY
+
+    TEST -- "TEST_FAIL<br/>permanent error" --> BUG2[Bug report<br/>Jira bug ticket]
+
     BUG2 --> RETRY
 
-    RETRY{retry_count\n< 3?}
-    RETRY -- yes\n+bug context --> DEV
-    RETRY -- no\n→ ESCALATE --> ESC[🚨 Human Escalation\nstate: escalated]
+    RETRY{retry_count<br/>< 3?}
+
+    RETRY -- "yes + bug context" --> DEV
+
+    RETRY -- "no → ESCALATE" --> ESC[🚨 Human Escalation<br/>state: escalated]
+
     ESC --> NEXT
 
-    ALLDONE{Tất cả tasks\ntrong sprint done?}
-    NEXT --> ALLDONE
-    ALLDONE -- no --> CHECK
-    ALLDONE -- yes --> FINISH([✅ Sprint complete])
-```
+    ALLDONE{Tất cả tasks<br/>trong sprint done?}
 
----
+    NEXT --> ALLDONE
+
+    ALLDONE -- "no" --> CHECK
+
+    ALLDONE -- "yes" --> FINISH([✅ Sprint complete])
+```
 
 ## 🧩 Data Flow — Artifact Handoff
 

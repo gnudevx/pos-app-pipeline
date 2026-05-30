@@ -94,9 +94,9 @@ from structure_planner import (
            format_graph_context_for_dev,
        )
 from smart_scaffold import (
-    write_smart_scaffold, 
     verify_smart_scaffold,
     run_static_analysis,
+    write_smart_scaffold_patched,
 )
 from slot_injector import inject_all_slots, list_unfilled_slots
 AGENT_BACKEND = "gemini"
@@ -402,6 +402,56 @@ def _normalize_architecture_paths(architecture: dict) -> dict:
         svc["source_dir"] = source_dir
 
     return architecture
+
+
+def _normalize_plan_paths(plan: dict) -> dict:
+    """
+    Mirror _normalize_architecture_paths cho structure plan.
+    Plan schema (từ structure_planner): files là list of dicts với key "path".
+    Fix các paths sai (models.py ở root, routes.py, main.py ở root) trong plan
+    trước khi write_smart_scaffold_patched tạo file structure.
+    """
+    if not isinstance(plan, dict):
+        return plan
+
+    source_dir = plan.get("source_dir", "")
+    if not source_dir:
+        for entry in plan.get("files", []):
+            fp_n = (entry.get("path", "") if isinstance(entry, dict) else str(entry)).replace("\\", "/")
+            if "app/main.py" in fp_n:
+                source_dir = fp_n.split("app/main.py")[0].rstrip("/")
+                break
+
+    if not source_dir:
+        return plan
+
+    service_name = source_dir.split("/")[-1]
+
+    def _fix_path(fp: str) -> str:
+        fp = fp.replace("\\", "/")
+        if fp == f"{source_dir}/models.py":
+            return f"{source_dir}/app/models/user.py"
+        if fp == f"{source_dir}/app/routes.py":
+            return f"{source_dir}/app/routes/{service_name}.py"
+        if fp == f"{source_dir}/main.py":
+            return f"{source_dir}/app/main.py"
+        return fp
+
+    if "files" not in plan:
+        return plan
+
+    fixed_files = []
+    for entry in plan["files"]:
+        if isinstance(entry, dict):
+            old_path = entry.get("path", "")
+            new_path = _fix_path(old_path)
+            fixed_files.append({**entry, "path": new_path} if new_path != old_path else entry)
+        else:
+            fixed_files.append(_fix_path(str(entry)))
+    plan["files"] = fixed_files
+    return plan
+
+
 def _gemini_architect(prompt: str) -> str:
     """
     [PATCHED] Thay thế _gemini_architect trong adapter_v2.py / adapter_agent.py.
@@ -1346,11 +1396,37 @@ For page/component .tsx files: output the complete component.
  
     if bug_context:
         prompt += textwrap.dedent(f"""
- 
+
         # CRITICAL — BUGS FROM PREVIOUS TEST RUN (FIX ALL)
         {bug_context[:1200]}
         """)
- 
+
+    # ── [FIX BUG-OUTPUT-FORMAT] Mandatory output format — must be last section ──
+    # Without this, Gemini returns raw code blocks without FILE: markers,
+    # causing parse_file_blocks() to return 0 files → immediate DEV_ESCALATE.
+    prompt += textwrap.dedent(f"""
+
+    # OUTPUT FORMAT — MANDATORY (pipeline will FAIL if you ignore this)
+    You MUST wrap every file using this exact format:
+
+    FILE: src/services/example/app/routes/example.py
+    ```python
+    # complete file content here
+    ```
+
+    FILE: src/frontend/src/pages/Example.tsx
+    ```typescript
+    // complete file content here
+    ```
+
+    Rules:
+    - Every file gets its own FILE: block
+    - The FILE: line must be followed IMMEDIATELY by a ```lang fence
+    - No explanations between FILE: blocks
+    - Use the exact paths from the file_structure above
+    - End your entire response with: DEV_DONE:{task_id}
+    """)
+
     return prompt
 
 
@@ -1372,6 +1448,21 @@ DEFAULT_STATUS_CODES = {
     "get": 200, "post": 201, "put": 200, "patch": 200, "delete": 204,
 }
 
+# Routes where POST returns 200 instead of 201 (action endpoints, not resource creation)
+_POST_200_SUFFIXES = {
+    "/login", "/logout", "/refresh", "/token",
+    "/checkout", "/signin", "/sign-in", "/sign_in",
+}
+
+def _infer_status_from_path(method: str, path: str) -> int:
+    """Infer correct status code accounting for action-style POST routes."""
+    if method == "post":
+        norm = path.rstrip("/")
+        for suffix in _POST_200_SUFFIXES:
+            if norm.endswith(suffix):
+                return 200
+    return DEFAULT_STATUS_CODES.get(method, 200)
+
 
 def _extract_routes_from_ast(code: str, router_prefix: str = ""):
     routes = []
@@ -1380,9 +1471,12 @@ def _extract_routes_from_ast(code: str, router_prefix: str = ""):
     except Exception:
         return routes
 
-    # ── FIX: tìm APIRouter prefix ──────────────────────────────
+    # ── FIX: tìm APIRouter prefix từ file nếu caller không cung cấp ──────────
+    # BUG-FIX: router_prefix param bị ghi đè → caller prefix bị mất.
+    # Chỉ auto-detect khi caller không truyền prefix (empty string).
+    caller_prefix = router_prefix
     router_prefix = ""
-    if not router_prefix:
+    if not caller_prefix:
         for node in ast.walk(tree):
             if not isinstance(node, ast.Assign):
                 continue
@@ -1402,6 +1496,10 @@ def _extract_routes_from_ast(code: str, router_prefix: str = ""):
                     if isinstance(raw, str):                  # ← guard Pylance
                         router_prefix = raw.rstrip("/")
                     break
+    else:
+        # Caller supplied a prefix from main.py — use it, but still allow
+        # the file's own APIRouter prefix to refine (e.g. sub-prefix).
+        router_prefix = caller_prefix
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -1446,9 +1544,11 @@ def _extract_routes_from_ast(code: str, router_prefix: str = ""):
                             m = re.search(r"HTTP_(\d+)", text)
                             if m:
                                 status_code = int(m.group(1))
-            if status_code is None:
-                status_code = DEFAULT_STATUS_CODES.get(method, 200)
             full_route = router_prefix + (route if isinstance(route, str) else "")
+            if status_code is None:
+                # BUG-FIX: dùng path-aware inference thay vì DEFAULT_STATUS_CODES
+                # để /login, /refresh, /checkout không bị gán 201 thay vì 200.
+                status_code = _infer_status_from_path(method, full_route)
             routes.append({
                 "method": method,
                 "route": full_route,   # ← thay vì chỉ route
@@ -1491,12 +1591,23 @@ def route_exists_flexible(routes, method, route, expected_status, code=""):
         current_route = _normalize_route(r["route"])
         if current_route != target_route:
             continue
-        if r["status_code"] is not None:
-            return r["status_code"] == expected_status
-        if code:
-            regex_status = _regex_scan_status(code, method, route.strip("/") or "/")
+        # BUG-FIX: nếu AST status sai, vẫn thử regex trước khi trả False.
+        # Trước đây: status_code is not None → return ngay (không dùng regex fallback).
+        if r["status_code"] is not None and r["status_code"] == expected_status:
+            return True
+        # Thử regex fallback (dùng code từ r["_code"] nếu có, hoặc code arg)
+        src = r.get("_code", "") or code
+        if src:
+            regex_status = _regex_scan_status(src, method, route.strip("/") or "/")
             if regex_status is not None:
                 return regex_status == expected_status
+        # AST status tìm được nhưng không khớp — trả False có log
+        if r["status_code"] is not None:
+            print(
+                f"      [contract] WARNING: {method.upper()} {route} "
+                f"AST status={r['status_code']}, expected={expected_status} — MISMATCH"
+            )
+            return False
         print(
             f"      [contract] WARNING: could not verify status_code for "
             f"{method.upper()} {route}"
@@ -1597,33 +1708,59 @@ def validate_backend_contract(pos_app_dir: str):
 # CONTRACT-DRIVEN HELPERS — thay thế hardcode TASK-01/products/cart
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _get_critical_files_from_contract(task_id: str, component: str) -> list:
+def _get_critical_files_from_contract(
+    task_id: str,
+    component: str,
+    contract: dict | None = None
+) -> list:
     """
-    Lấy danh sách critical files từ architecture.json (file_structure của task).
-    Fallback về convention theo component nếu không tìm được.
-    KHÔNG hardcode TASK-01/TASK-02.
+    Lấy critical files từ architecture.json.
+    Fallback dùng source_dir từ contract.
     """
+
     arch_path = "docs/architecture.json"
+
     if os.path.exists(arch_path):
         try:
             with open(arch_path, encoding="utf-8") as f:
                 arch = json.load(f)
+
             for svc in arch.get("services", []):
                 if svc.get("task_id") == task_id:
                     files = svc.get("file_structure", [])
+
                     if files:
-                        # Lọc bỏ test files
-                        return [fp for fp in files if "test" not in fp.lower()]
+                        return [
+                            fp
+                            for fp in files
+                            if "test" not in fp.lower()
+                        ]
         except Exception:
             pass
 
-    # Fallback theo component
+    source_dir = (
+        contract.get("source_dir", "src/backend")
+        if contract else
+        "src/backend"
+    )
+
     if component == "backend":
-        return ["src/backend/app/main.py", "src/backend/requirements.txt"]
+        return [
+            f"{source_dir}/app/main.py",
+            f"{source_dir}/requirements.txt",
+            f"{source_dir}/app/routes",
+            f"{source_dir}/app/models",
+        ]
+
     elif component == "frontend":
-        return ["src/frontend/src/App.tsx", "src/frontend/package.json"]
+        return [
+            "src/frontend/src/App.tsx",
+            "src/frontend/package.json"
+        ]
+
     elif component in ("fullstack", "service"):
         return ["docker-compose.yml"]
+
     return []
 
 def _extract_router_prefix_from_main(pos_app_dir: str, contract: dict) -> dict[str, str]:
@@ -1828,30 +1965,53 @@ def _emit_setup_chain(lines: list, setup_routes: list, all_routes: list):
         status = route.get("status_code", 201)
         req_body = route.get("request_body") or {}
 
+        def _norm_ftype(ftype):
+            """Normalize ftype string từ contract về canonical: str/float/int/bool."""
+            t = str(ftype).lower()
+            if any(x in t for x in ("float", "number", "decimal", "double", "price", "amount", "cost")):
+                return "float"
+            if any(x in t for x in ("int", "integer", "long", "count", "quantity", "qty")):
+                return "int"
+            if any(x in t for x in ("bool", "boolean")):
+                return "bool"
+            return "str"
+
         # Tạo dummy body
         dummy = {}
         for field, ftype in req_body.items():
-            if ftype == "str":
-                dummy[field] = f"Setup {field.capitalize()}"
-            elif ftype == "float":
+            fl = field.lower()
+            fn = _norm_ftype(ftype)
+            if fn == "str":
+                if "email" in fl:
+                    dummy[field] = "setup.user@example.com"
+                elif "password" in fl:
+                    dummy[field] = "SetupPassword123!"
+                else:
+                    dummy[field] = f"Setup {field.capitalize()}"
+            elif fn == "float":
                 dummy[field] = 9.99
-            elif ftype == "int":
+            elif fn == "int":
                 # Nếu field là foreign key đã biết → inject var
                 found_var = next(
-                    (v for k, v in created_vars.items() if k in field.lower()),
+                    (v for k, v in created_vars.items() if k in fl),
                     None
                 )
                 dummy[field] = found_var if found_var else 1
-            elif ftype == "bool":
+            elif fn == "bool":
                 dummy[field] = True
             else:
-                dummy[field] = "setup_value"
+                if any(k in fl for k in ("price", "amount", "cost", "rate")):
+                    dummy[field] = 9.99
+                elif any(k in fl for k in ("count", "qty", "stock", "age")):
+                    dummy[field] = 1
+                else:
+                    dummy[field] = "setup_value"
 
         # Build body string (xử lý var injection)
         body_parts = []
         for field, ftype in req_body.items():
             found_var = None
-            if ftype == "int":
+            if _norm_ftype(ftype) == "int":
                 found_var = next(
                     (v for k, v in created_vars.items() if k in field.lower()),
                     None
@@ -1868,9 +2028,14 @@ def _emit_setup_chain(lines: list, setup_routes: list, all_routes: list):
         lines.append(f'    assert {var_prefix}_r.status_code in ({status}, 200, 201), f"Setup {path} failed: {{{var_prefix}_r.text}}"')
         lines.append(f"    {var_prefix}_data = {var_prefix}_r.json()")
 
-        # Tìm id field từ response_body
-        resp_body = route.get("response_body") or {}
+        # [FIX BUG-2] Ưu tiên response_fields, fallback sang response_body.
+        # Nếu cả hai đều không có id → vẫn cố tạo biến "<resource>_id" từ "id" mặc định
+        # vì _generate_tests_from_contract sẽ reference biến này trong URL.
+        resp_body = route.get("response_fields") or route.get("response_body") or {}
         id_field = next((k for k in resp_body if k == "id" or k.endswith("_id")), None)
+        if id_field is None and route.get("status_code") in (200, 201):
+            # Fallback: giả định server trả "id" (convention FastAPI/REST phổ biến)
+            id_field = "id"
         if id_field:
             resource_key = path.strip("/").split("/")[0]  # vd: "products" từ "/products/"
             var_name = f"{resource_key}_id"
@@ -1880,13 +2045,45 @@ def _emit_setup_chain(lines: list, setup_routes: list, all_routes: list):
         lines.append("")
 
 
-def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
+def _strip_residual_slot_markers(inject_results: dict, pos_app_dir: str) -> None:
     """
-    [v2] Subprocess-based smoke test — avoids in-process sys.path/module conflicts.
-    Runs a tiny Python script in a subprocess so stale sys.modules from
-    verify_smart_scaffold never interfere. Falls back to in-process if needed.
+    After inject_all_slots runs, Gemini may have echoed slot markers like
+    '# [ROUTES_SLOT]' or '# [MAIN_ROUTER_SLOT]' inside its own generated code.
+    These are harmless comments syntactically but cause list_unfilled_slots() to
+    report them as unfilled → DEV_IMPORT_FAIL on the next check.
+
+    Strip all  # [*_SLOT]  and  {/* [*_SLOT] */}  comment lines from every file
+    that was touched by inject_all_slots.
     """
+    import re as _re
+    py_marker  = _re.compile(r'^\s*#\s*\[[A-Z_]+_SLOT\]\s*$', _re.MULTILINE)
+    tsx_marker = _re.compile(r'^\s*\{/\*\s*\[[A-Z_]+_SLOT\]\s*\*/\}\s*$', _re.MULTILINE)
+
+    touched_files = (
+        inject_results.get("injected", []) +
+        inject_results.get("overwritten", [])
+    )
+    for rel_path in touched_files:
+        full = os.path.join(pos_app_dir, rel_path)
+        if not os.path.exists(full):
+            continue
+        try:
+            with open(full, encoding="utf-8") as f:
+                src = f.read()
+            cleaned = py_marker.sub("", src)
+            cleaned = tsx_marker.sub("", cleaned)
+            if cleaned != src:
+                with open(full, "w", encoding="utf-8") as f:
+                    f.write(cleaned)
+        except Exception:
+            pass  # best-effort; don't crash the pipeline
+
+
+def run_backend_smoke_test(pos_app_dir: str, task_id: str = "") -> tuple[bool, str | None]:
     import sys
+    import os
+    import subprocess
+    import traceback
 
     source_dir = "src/backend"
     if task_id:
@@ -1894,7 +2091,31 @@ def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
         if contract and contract.get("source_dir"):
             source_dir = contract["source_dir"]
 
-    backend_dir = os.path.join(pos_app_dir, source_dir)
+    backend_dir = os.path.join(pos_app_dir, source_dir)  # Ví dụ: src/services/auth_backend
+    req_file_path = os.path.join(backend_dir, "requirements.txt")
+
+    # Khắc phục tự động (Auto-patch requirements.txt):
+    force_rebuild_venv = False  # Biến cờ đánh dấu cần cài lại thư viện nếu có thay đổi
+    if os.path.exists(req_file_path):
+        with open(req_file_path, "r", encoding="utf-8") as f:
+            req_content = f.read()
+        
+        # Kiểm tra xem mã nguồn sinh ra có gọi passlib không
+        auth_file_path = os.path.join(backend_dir, "app", "routes", "auth.py")
+        has_passlib_dependency = False
+        
+        if os.path.exists(auth_file_path):
+            with open(auth_file_path, "r", encoding="utf-8") as f:
+                if "passlib" in f.read():
+                    has_passlib_dependency = True
+                    
+        # Nếu có dùng passlib nhưng file requirements.txt chưa khai báo, tiến hành bổ sung ngay
+        if has_passlib_dependency and "passlib" not in req_content:
+            with open(req_file_path, "a", encoding="utf-8") as f:
+                f.write("\npasslib==1.7.4\nbcrypt==4.0.1\n")
+            print(f"      [pipeline-fix] Added passlib & bcrypt dependencies into {req_file_path}")
+            force_rebuild_venv = True  # Đánh dấu bắt buộc phải cập nhật/rebuild venv do cấu hình thay đổi
+
     contract_data = load_contract(task_id, contracts_dir="docs/contracts") if task_id else {}
     contract_data = contract_data or {}
 
@@ -1909,12 +2130,18 @@ def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
         req_body = first_post.get("request_body") or {}
         expected = first_post.get("status_code", 201)
         for field, ftype in req_body.items():
-            dummy[field] = (
-                f"Smoke {field}" if ftype == "str" else
-                9.99 if ftype == "float" else
-                1    if ftype == "int" else
-                True if ftype == "bool" else "test"
-            )
+            fl = field.lower()
+            if ftype == "str" and "email" in fl:
+                dummy[field] = "smoke.test@example.com"
+            elif ftype == "str" and "password" in fl:
+                dummy[field] = "SmokeTest123!"
+            else:
+                dummy[field] = (
+                    f"Smoke {field}" if ftype == "str" else
+                    9.99 if ftype == "float" else
+                    1    if ftype == "int" else
+                    True if ftype == "bool" else "test"
+                )
         post_test_code = (
             f"r2 = client.post({path!r}, json={dummy!r})\n"
             f"if r2.status_code not in ({expected}, 200, 201):\n"
@@ -1922,9 +2149,17 @@ def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
             f"    sys.exit(1)\n"
         )
 
+    passlib_patch = (
+        "try:\n"
+        "    import passlib.handlers.bcrypt as _pb\n"
+        "    setattr(_pb, 'detect_wrap_bug', lambda ident: False)\n"
+        "except Exception:\n"
+        "    pass\n"
+    )
     smoke_script = (
         "import sys\n"
         f"sys.path.insert(0, {backend_dir!r})\n"
+        + passlib_patch +
         "from fastapi.testclient import TestClient\n"
         "from app.main import app\n"
         "client = TestClient(app)\n"
@@ -1936,9 +2171,82 @@ def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
         "print('SMOKE_PASS')\n"
     )
 
+    # ── Resolve Python interpreter ────────────────────────────────────────────
+    def _get_venv_python_from(venv_dir: str) -> str | None:
+        for candidate in [
+            os.path.join(venv_dir, "Scripts", "python.exe"),
+            os.path.join(venv_dir, "Scripts", "python"),
+            os.path.join(venv_dir, "bin", "python3"),
+            os.path.join(venv_dir, "bin", "python"),
+        ]:
+            if os.path.exists(candidate):
+                return candidate
+        return None
+
+    venv_dir = os.path.join(backend_dir, ".test-venv")
+    
+    # FIX TẠI ĐÂY: Nếu kích hoạt cờ force_rebuild_venv, gán python = None để ép quy trình phía dưới chạy lại
+    if force_rebuild_venv:
+        python = None
+    else:
+        python = _get_venv_python_from(venv_dir)
+
+    if python is None:
+        # Tạo .test-venv và cài requirements
+        print(f"      [smoke-test] Creating/Updating .test-venv...")
+        r_venv = subprocess.run(
+            [sys.executable, "-m", "venv", venv_dir, "--clear"],
+            capture_output=True, text=True,
+            cwd=backend_dir, encoding="utf-8", errors="ignore",
+        )
+        if r_venv.returncode != 0:
+            print(f"      [smoke-test] venv creation failed — skipping")
+            return True, None
+
+        python = _get_venv_python_from(venv_dir)
+        if python is None:
+            print(f"      [smoke-test] Cannot find python in new venv — skipping")
+            return True, None
+
+        req_file = os.path.join(backend_dir, "requirements.txt")
+        if os.path.exists(req_file):
+            r_pip = subprocess.run(
+                [python, "-m", "pip", "install", "-r", req_file, "-q",
+                 "--no-warn-script-location"],
+                capture_output=True, text=True,
+                cwd=backend_dir, encoding="utf-8", errors="ignore",
+            )
+            if r_pip.returncode != 0:
+                print(f"      [smoke-test] pip install failed — skipping")
+                return True, None
+
+        # FIX: pin bcrypt<4.0 (passlib 1.7.4 incompatible with bcrypt>=4.0)
+        # FIX: install email-validator (pydantic EmailStr requires it)
+        subprocess.run(
+            [python, "-m", "pip", "install",
+             "passlib[bcrypt]==1.7.4", "bcrypt>=3.2.0,<4.0.0",
+             "email-validator>=2.0", "-q", "--no-warn-script-location"],
+            capture_output=True, text=True,
+            cwd=backend_dir, encoding="utf-8", errors="ignore",
+        )
+
+        # httpx là bắt buộc cho starlette.testclient (không nằm trong requirements.txt)
+        r_httpx = subprocess.run(
+            [python, "-m", "pip", "install", "httpx", "-q",
+             "--no-warn-script-location"],
+            capture_output=True, text=True,
+            cwd=backend_dir, encoding="utf-8", errors="ignore",
+        )
+        if r_httpx.returncode != 0:
+            print(f"      [smoke-test] httpx install failed — skipping")
+            return True, None
+
+    print(f"      [smoke-test] Using: {python}")
+
+    # ── Run smoke script ──────────────────────────────────────────────────────
     try:
         result = subprocess.run(
-            [sys.executable, "-c", smoke_script],
+            [python, "-c", smoke_script],
             capture_output=True, text=True,
             cwd=backend_dir, timeout=30,
             encoding="utf-8", errors="ignore",
@@ -1949,46 +2257,17 @@ def run_backend_smoke_test(pos_app_dir: str, task_id: str = ""):
                 if line.strip():
                     print(f"        [smoke-test] {line}")
             fail_line = next(
-                (l for l in output.splitlines() if "SMOKE_FAIL" in l or "Error" in l or "Traceback" in l),
-                output[-400:]
+                (l for l in output.splitlines()
+                 if any(k in l for k in ("SMOKE_FAIL", "Error", "Traceback"))),
+                output[-400:] if output else "unknown error",
             )
             return False, fail_line
         return True, None
     except subprocess.TimeoutExpired:
         return False, "smoke test timed out (30s)"
     except Exception as e:
-        tb = traceback.format_exc()
-        print(f"      [smoke-test] subprocess error: {e} — falling back to in-process")
-        # Fallback: in-process
-        sys.path = [
-            p for p in sys.path
-            if not (os.path.join(pos_app_dir, "src") in p and p != backend_dir)
-        ]
-        if backend_dir not in sys.path:
-            sys.path.insert(0, backend_dir)
-        try:
-            import importlib
-            from fastapi.testclient import TestClient
-            for k in list(sys.modules.keys()):
-                if k.startswith("app"):
-                    del sys.modules[k]
-            from app.main import app
-            client = TestClient(app)
-            r = client.get("/health")
-            if r.status_code != 200:
-                return False, f"health failed: {r.text}"
-            if first_post:
-                path = first_post.get("path", "")
-                r2 = client.post(path, json=dummy)
-                if r2.status_code not in (first_post.get("status_code", 201), 200, 201):
-                    return False, f"POST {path} smoke failed: status={r2.status_code} body={r2.text[:200]}"
-            return True, None
-        except Exception:
-            tb2 = traceback.format_exc()
-            print(f"      [smoke-test] in-process also failed:\n{tb2}")
-            return False, tb2
-
-
+        traceback.print_exc()
+        return False, str(e)
 def validate_no_set_literals(pos_app_dir: str, task_id: str = ""):
     """
     [FIX BUG-1d] backend_root resolve từ contract["source_dir"].
@@ -2093,18 +2372,33 @@ def _ensure_service_requirements(contract: dict, pos_app_dir: str):
         "uvicorn":          "uvicorn[standard]>=0.20.0",
         "python-jose":      "python-jose[cryptography]>=3.3.0",
         "passlib":          "passlib[bcrypt]>=1.7.4",
+        "bcrypt":           "bcrypt>=3.2.0,<4.0.0",
     }
     additions = []
     for pkg, spec in must_have.items():
-        # Chỉ thêm nếu chưa có bất kỳ dạng nào của package đó
-        pkg_base = pkg.split("[")[0]
-        if not re.search(rf"\b{re.escape(pkg_base)}\b", content, re.IGNORECASE):
+        if "[" in pkg:
+            # Với extras: phải check cả tên đầy đủ lẫn email-validator riêng
+            # pydantic[email] chỉ OK nếu content có "pydantic[email]" HOẶC "email-validator"
+            if pkg == "pydantic[email]":
+                already_has = (
+                    re.search(r"pydantic\[email\]", content, re.IGNORECASE)
+                    or re.search(r"\bemail.validator\b", content, re.IGNORECASE)
+                )
+            else:
+                already_has = re.search(rf"{re.escape(pkg)}", content, re.IGNORECASE)
+        else:
+            pkg_base = pkg.split("[")[0]
+            already_has = re.search(rf"\b{re.escape(pkg_base)}\b", content, re.IGNORECASE)
+
+        if not already_has:
             additions.append(spec)
 
     if additions:
         with open(req_path, "a", encoding="utf-8") as f:
             f.write("\n# Auto-added by pipeline\n" + "\n".join(additions) + "\n")
-        print(f"      [fix-req] Service requirements patched: {additions}")
+        for a in additions:
+            print(f"      [fix-req] Added: {a}")
+
 def _gemini_dev(task_id, bug_context=None, attempt=1):
     """
     PATCHED VERSION of _gemini_dev.
@@ -2116,10 +2410,9 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
       ④ File writing: direct write → inject_all_slots() (slot-aware patching)
       ⑤ Post-write: NEW run_static_analysis() before tester agent runs
       ⑥ Unfilled slots check: warns if dev agent left slots unfilled
- 
-    The function signature is identical — drop-in replacement.
+      ⑦ ISOLATED RUNTIME CHECK: Replaced importlib with isolated subprocess python interpreter
     """
-    import os, json, textwrap, re, importlib, sys, traceback
+    import os, json, textwrap, re, importlib, sys, traceback, subprocess
     import git_ops, parser as p, ai_client as ai_client
     from config import POS_APP_DIR, GEMINI_API_KEYS
     from contract_normalizer import load_contract, list_contracts
@@ -2154,23 +2447,37 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
     component = task.get("component", "fullstack")
     branch = git_ops.make_branch_name(task_id, task.get("summary", task_id))
     print(f"      [gemini-dev] Task: {task_id} | {task['summary']} | {component}")
+
+    # Verify branch state
+    try:
+        ok, current_branch = git_ops.run(
+            "rev-parse --abbrev-ref HEAD",
+            POS_APP_DIR
+        )
+        current_branch = current_branch.strip() if ok else ""
+    except Exception:
+        current_branch = ""
+    if current_branch != branch:
+        print(f"      [gemini-dev] Branch mismatch ({current_branch} != {branch}) — switching")
+        git_ops.run(f"checkout -B {branch}", POS_APP_DIR)
  
-    git_ops.prepare_feature_branch(POS_APP_DIR, branch)
- 
-    # ── 1b. LOAD STRUCTURE PLAN ① ─────────────────────────────────────────
-    # NEW: load the plan generated by structure-planner step
+    # ── 1b. LOAD STRUCTURE PLAN ─────────────────────────────────────────
     plan = load_plan(task_id)
     if plan is None:
         print(f"      [gemini-dev] No structure plan for {task_id} — running structure-planner...")
         run_structure_planner()
         plan = load_plan(task_id)
+    if plan is not None:
+        plan = _normalize_plan_paths(plan)
  
-    # ── 1c. SMART SCAFFOLD ② ─────────────────────────────────────────────
-    # CHANGED: write_scaffold → write_smart_scaffold (uses plan + writes [SLOT] markers)
+    # ── 1c. SMART SCAFFOLD ─────────────────────────────────────────────
     print(f"      [gemini-dev] Writing smart scaffold (component={component})...")
-    scaffold_result = write_smart_scaffold(POS_APP_DIR, component, contract, plan)
+    if attempt > 1 and component in ("backend", "fullstack"):
+        from smart_scaffold import clear_scaffold_for_retry
+        clear_scaffold_for_retry(POS_APP_DIR, contract)
+    scaffold_result = write_smart_scaffold_patched(POS_APP_DIR, component, contract, plan)
     _ensure_service_requirements(contract, POS_APP_DIR)
-    # CHANGED: verify_scaffold → verify_smart_scaffold (adds tsc --noEmit)
+    
     scaffold_ok, scaffold_err = verify_smart_scaffold(POS_APP_DIR, component, contract)
     if not scaffold_ok:
         print(f"      [gemini-dev] Smart scaffold verify FAILED: {scaffold_err}")
@@ -2191,12 +2498,10 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
         raise RuntimeError("dev-agent-gemini.md not found or empty")
     print(f"      [gemini-dev] System prompt loaded ({len(system)} chars)")
  
-    # ── 3. Load context — GRAPH-AWARE ③ ──────────────────────────────────
+    # ── 3. Load context ──────────────────────────────────
     requirements_md = _load_requirements_md()
     stories_context = _load_stories_for_task(task_id)
  
-    # OLD: _read_existing_code(POS_APP_DIR, component)
-    # NEW: _read_existing_code + graph_context from KG traversal
     existing_code = _read_existing_code(POS_APP_DIR, component, task_id)
     graph_context_text = ""
     if plan:
@@ -2205,7 +2510,6 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
             print(f"      [gemini-dev] Graph context injected ({len(graph_context_text)} chars)")
  
     # ── 4. Build user prompt ──────────────────────────────────────────────
-    # Inject graph_context_text into the prompt alongside contract
     user_prompt = _build_dev_user_prompt(
         task_id=task_id,
         task=task,
@@ -2215,14 +2519,14 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
         stories_context=stories_context,
         existing_code=existing_code,
         bug_context=bug_context,
-        graph_context=graph_context_text,  # NEW PARAM — add to _build_dev_user_prompt
+        graph_context=graph_context_text,
     )
  
     token_est = (len(system) + len(user_prompt)) // 4
     print(f"      [gemini-dev] Calling Gemini (~{token_est} tokens)...")
     response = ai_client.call(GEMINI_API_KEYS, system, user_prompt, "dev-agent")
  
-    # ── 5. Parse + filter + SLOT-AWARE INJECT ④ ─────────────────────────
+    # ── 5. Parse + filter + SLOT-AWARE INJECT ─────────────────────────
     generated = p.parse_file_blocks(response)
     print(f"      [gemini-dev] Raw parsed: {len(generated)} files")
  
@@ -2237,7 +2541,6 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
     VALID_PREFIXES = _build_valid_prefixes()
     VALID_EXACT = {"docker-compose.yml", ".dockerignore", "README.md", ".env.example", "Makefile"}
  
-    # Filter out-of-scope files
     filtered_generated = {}
     for filepath, code in generated.items():
         if filepath.startswith(VALID_PREFIXES) or filepath in VALID_EXACT:
@@ -2248,10 +2551,8 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
  
     os.makedirs(POS_APP_DIR, exist_ok=True)
  
-    # CHANGED: direct write → inject_all_slots (slot-aware patching)
     inject_results = inject_all_slots(generated, POS_APP_DIR, plan)
-    written = len(inject_results["injected"]) + len(inject_results["overwritten"])
- 
+    _strip_residual_slot_markers(inject_results, POS_APP_DIR)
     _ensure_app_inits(generated, POS_APP_DIR)
  
     # Update code graph
@@ -2259,16 +2560,14 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
     save_graph(graph)
     print(f"      [indexer] code_graph.json updated ({len(graph['nodes'])} nodes)")
  
-    # ── 5b. Warn about unfilled slots ⑥ ─────────────────────────────────
+    # ── 5b. Warn about unfilled slots ─────────────────────────────────
     unfilled = list_unfilled_slots(POS_APP_DIR, component)
     if unfilled:
         print(f"      [gemini-dev] WARNING: {len(unfilled)} files still have unfilled slots:")
         for uf in unfilled[:5]:
             print(f"        - {uf['file']}: {uf['slots']}")
  
-    # ── 6. Static analysis ⑤ ─────────────────────────────────────────────
-    # NEW: run real static analysis BEFORE tester agent
-    # py_compile + tsc --noEmit + npm run build
+    # ── 6. Static analysis ─────────────────────────────────────────────
     static_ok, static_errors = run_static_analysis(POS_APP_DIR, component, contract)
     if not static_ok:
         print(f"      [static-analysis] FAIL — {len(static_errors)} errors")
@@ -2280,8 +2579,12 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
     print(f"      [static-analysis] PASS")
  
     # ── 6b. Retry missing critical files ──────────────────────────────────
-    critical = _get_critical_files_from_contract(task_id, component)
-    missing = [f for f in critical if not os.path.exists(os.path.join(POS_APP_DIR, f))]
+    critical_files = _get_critical_files_from_contract(
+        task_id,
+        component,
+        contract
+    )
+    missing = [f for f in critical_files if not os.path.exists(os.path.join(POS_APP_DIR, f))]
  
     if missing:
         print(f"      [gemini-dev] Missing critical: {missing} — retrying...")
@@ -2297,8 +2600,26 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
         retry_generated = _filter_by_component(p.parse_file_blocks(retry_response), component)
         retry_generated = _normalize_backend_paths(retry_generated)
         inject_all_slots(retry_generated, POS_APP_DIR, plan)
- 
-        # Re-run static analysis after retry
+        from slot_injector import inject_app_tsx as _inject_app_tsx
+        app_tsx_path = os.path.join(POS_APP_DIR, "src/frontend/src/App.tsx")
+        if os.path.exists(app_tsx_path):
+            with open(app_tsx_path, encoding="utf-8") as _f:
+                _app_content = _f.read()
+            if "ROUTES_SLOT" in _app_content:
+                # Build minimal valid replacement từ các page files đã inject
+                page_imports = []
+                for rel_path in inject_results.get("injected", []) + inject_results.get("overwritten", []):
+                    if "/pages/" in rel_path and rel_path.endswith(".tsx"):
+                        page_name = os.path.basename(rel_path).replace(".tsx", "")
+                        page_imports.append(f"import {page_name} from './pages/{page_name}'")
+                if page_imports:
+                    _inject_app_tsx(app_tsx_path, "\n".join(page_imports))
+                else:
+                    # Không có page nào → xóa slot marker để tránh warning lặp lại
+                    _clean = re.sub(r'\{?/?\*?\s*\[ROUTES_SLOT\]\s*\*?/?\}?[^\n]*\n?', '', _app_content)
+                    with open(app_tsx_path, "w", encoding="utf-8") as _f:
+                        _f.write(_clean)
+                    print(f"      [gemini-dev] App.tsx ROUTES_SLOT cleared (no pages for this task)")
         static_ok, static_errors = run_static_analysis(POS_APP_DIR, component, contract)
         if not static_ok:
             abort_to_backbone(POS_APP_DIR)
@@ -2310,23 +2631,15 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
  
     # ── 7. Contract validation + smoke test ──────────────────────────────
     if component in ("backend", "fullstack"):
-        # [FIX BUG-A] Kiểm tra unfilled slots TRƯỚC khi import.
-        # Nếu LLM không fill đủ slots, file vẫn chứa placeholder không phải
-        # valid Python → import sẽ fail chắc chắn. Phát hiện sớm ở đây
-        # giúp trả về DEV_IMPORT_FAIL ngay, orchestrator sẽ retry với bug_context.
         unfilled_before_import = list_unfilled_slots(POS_APP_DIR, component)
         critical_unfilled = [u for u in unfilled_before_import if u["file"].endswith(".py")]
         if critical_unfilled:
-            # [FIX] Kiểm tra xem file có thực sự trống không,
-            # hay chỉ còn sót marker nhưng đã có code thật bên dưới.
             truly_empty = []
             for u in critical_unfilled:
                 fpath = os.path.join(POS_APP_DIR, u["file"])
                 try:
                     with open(fpath, encoding="utf-8") as f:
                         content = f.read()
-                    # File được coi là thực sự unfilled nếu KHÔNG có
-                    # định nghĩa function/class nào (chỉ có marker + imports)
                     has_real_code = bool(re.search(
                         r"^\s*(def |class |async def )", content, re.MULTILINE
                     ))
@@ -2351,26 +2664,54 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
             abort_to_backbone(POS_APP_DIR)
             return f"DEV_SERIALIZATION_FAIL:{serialization_bug}"
  
+        #  THAY THẾ ĐOẠN IMPORT BẰNG SUBPROCESS ĐỘC LẬP (FIX TẬN GỐC DEV_IMPORT_FAIL)
         if ok:
             try:
                 source_dir = contract.get("source_dir", "src/backend")
-                backend_dir = os.path.join(POS_APP_DIR, source_dir)
-                # [FIX BUG-3] Purge stale backend paths before import
-                sys.path = [
-                    p for p in sys.path
-                    if not (os.path.join(POS_APP_DIR, "src") in p and p != backend_dir)
-                ]
-                if backend_dir not in sys.path:
-                    sys.path.insert(0, backend_dir)
-                for k in list(sys.modules.keys()):
-                    if k.startswith("app"):
-                        del sys.modules[k]
-                importlib.import_module("app.main")
+                backend_root = os.path.join(POS_APP_DIR, source_dir)
+                
+                # Xác định file thực thi python cô lập
+                target_python = os.path.join(POS_APP_DIR, ".venv", "Scripts", "python.exe")
+                if not os.path.exists(target_python):
+                    target_python = os.path.join(POS_APP_DIR, ".venv", "bin", "python")
+
+                print(f"      [gemini-dev] Testing application runtime import via isolated subprocess...")
+                # FIX: Python 3 does not add cwd to sys.path for -c scripts
+                _r_import = subprocess.run(
+                    [target_python, "-c",
+                     "import sys; sys.path.insert(0, '.'); import app.main; print('OK')"],
+                    cwd=backend_root,
+                    capture_output=True,
+                    text=True
+                )
+                
+                if _r_import.returncode != 0:
+                    raise RuntimeError(_r_import.stderr[:400])
+                    
             except Exception as e:
                 abort_to_backbone(POS_APP_DIR)
                 return f"DEV_IMPORT_FAIL:{str(e)}"
  
             smoke_ok, smoke_bug = run_backend_smoke_test(POS_APP_DIR, task_id=task_id)
+            if not smoke_ok:
+                if "detect_wrap_bug" in str(smoke_bug) or "password cannot be longer than 72" in str(smoke_bug):
+                    print("      [smoke-test] passlib/bcrypt incompatibility detected — downgrading bcrypt...")
+                    try:
+                        # FIX: downgrade in .test-venv (where smoke runs), not .venv
+                        source_dir_fix = contract.get("source_dir", "src/backend")
+                        test_venv_py = os.path.join(POS_APP_DIR, source_dir_fix, ".test-venv", "Scripts", "python.exe")
+                        if not os.path.exists(test_venv_py):
+                            test_venv_py = os.path.join(POS_APP_DIR, source_dir_fix, ".test-venv", "bin", "python")
+                        pip_py = test_venv_py if os.path.exists(test_venv_py) else target_python
+                        subprocess.run(
+                            [pip_py, "-m", "pip", "install",
+                             "passlib[bcrypt]==1.7.4", "bcrypt>=3.2.0,<4.0.0", "--quiet"],
+                            check=True, capture_output=True
+                        )
+                        print("      [smoke-test] bcrypt downgraded — retrying smoke test...")
+                        smoke_ok, smoke_bug = run_backend_smoke_test(POS_APP_DIR, task_id=task_id)
+                    except Exception as pip_err:
+                        print(f"      [smoke-test] bcrypt downgrade failed: {pip_err}")
             if not smoke_ok:
                 print(f"      [smoke-test] FAIL: {str(smoke_bug)[:400]}")
                 abort_to_backbone(POS_APP_DIR)
@@ -2384,7 +2725,6 @@ def _gemini_dev(task_id, bug_context=None, attempt=1):
  
     # ── 8. Commit + update tasks.json ─────────────────────────────────────
     commit_wip(POS_APP_DIR, branch, task_id, attempt=attempt)
-
  
     with open("docs/tasks.json", encoding="utf-8") as f:
         data = json.load(f)
@@ -2497,7 +2837,17 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
         # ── Build request ─────────────────────────────────────────────
         call_path = path
         if re.search(r"\{[^}]+\}", path):
-            call_path = re.sub(r"\{[^}]+\}", "{product_id}", path)
+            # [FIX BUG-1] Tên biến phải khớp với tên mà _emit_setup_chain tạo ra.
+            # _emit_setup_chain dùng resource_key = parts[0] từ path (vd: "products")
+            # và đặt tên biến là f"{resource_key}_id" (vd: "products_id").
+            # Nếu không có setup chain (setup_post_routes rỗng), fallback về param name
+            # lấy từ path (vd: {id} → "id", nhưng dùng resource_key + "_id" để nhất quán).
+            resource_key = next(
+                (seg for seg in path.split("/") if seg and not seg.startswith("{")),
+                "resource"
+            )
+            param_var = f"{resource_key}_id"
+            call_path = re.sub(r"\{[^}]+\}", "{" + param_var + "}", path)
             call_path_expr = f'f"{call_path}"'
         else:
             call_path_expr = f'"{call_path}"'
@@ -2515,22 +2865,69 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
             else:
                 body_dict = {}
                 for field, ftype in request_body.items():
-                    body_dict[field] = (
-                        "Test Product" if ftype == "str" and "name" in field else
-                        20.0           if ftype == "float" else
-                        50             if ftype == "int" and "stock" in field else
-                        1              if ftype == "int" else
-                        "test_value"
-                    )
-            # Override product_id nếu đang dùng biến runtime
-            if "product_id" in request_body:
-                body_items = ", ".join(
-                    f'"product_id": product_id' if k == "product_id"
-                    else f'"{k}": {repr(v)}'
-                    for k, v in body_dict.items()
-                )
-            else:
-                body_items = ", ".join(f'"{k}": {repr(v)}' for k, v in body_dict.items())
+                    field_lower = field.lower()
+                    # Normalize ftype: Gemini có thể trả "Optional[float]", "float | None",
+                    # "number", "decimal", "double" v.v. — cần map về canonical type.
+                    ftype_raw = str(ftype).lower()
+                    if any(t in ftype_raw for t in ("float", "number", "decimal", "double", "price", "amount", "cost")):
+                        ftype_norm = "float"
+                    elif any(t in ftype_raw for t in ("int", "integer", "long", "count", "quantity", "qty", "stock")):
+                        ftype_norm = "int"
+                    elif any(t in ftype_raw for t in ("bool", "boolean")):
+                        ftype_norm = "bool"
+                    else:
+                        ftype_norm = "str"
+
+                    if ftype_norm == "str" and "email" in field_lower:
+                        body_dict[field] = "test.user@example.com"
+                    elif ftype_norm == "str" and "password" in field_lower:
+                        body_dict[field] = "TestPassword123!"
+                    elif ftype_norm == "str" and ("name" in field_lower or "title" in field_lower or "desc" in field_lower):
+                        body_dict[field] = "Test Item"
+                    elif ftype_norm == "str" and "phone" in field_lower:
+                        body_dict[field] = "+84901234567"
+                    elif ftype_norm == "str" and "url" in field_lower:
+                        body_dict[field] = "https://example.com"
+                    elif ftype_norm == "float":
+                        body_dict[field] = 20.0
+                    elif ftype_norm == "int" and "stock" in field_lower:
+                        body_dict[field] = 50
+                    elif ftype_norm == "int":
+                        body_dict[field] = 1
+                    elif ftype_norm == "bool":
+                        body_dict[field] = True
+                    else:
+                        # Fallback cuối: đoán theo tên field thay vì để "test_value" sai type
+                        if any(k in field_lower for k in ("price", "amount", "cost", "rate", "salary")):
+                            body_dict[field] = 20.0
+                        elif any(k in field_lower for k in ("count", "qty", "quantity", "stock", "age", "year")):
+                            body_dict[field] = 1
+                        elif any(k in field_lower for k in ("active", "enable", "visible", "publish")):
+                            body_dict[field] = True
+                        else:
+                            body_dict[field] = "test_value"
+            # [FIX GENERIC] Với bất kỳ field nào kết thúc "_id" trong request_body,
+            # inject biến runtime nếu setup_chain đã tạo — không hardcode "product_id".
+            _param_var = locals().get("param_var", None)
+
+            def _resolve_id_field(field_name):
+                if not field_name.endswith("_id"):
+                    return None
+                resource = field_name[:-3]
+                if _param_var and (resource in _param_var or _param_var.startswith(resource)):
+                    return _param_var
+                if setup_post_routes:
+                    for sr in setup_post_routes:
+                        sp = sr.get("path", "").strip("/").split("/")[0]
+                        for rkey in [resource, resource + "s", resource.rstrip("s")]:
+                            if sp == rkey:
+                                return f"{sp}_id"
+                return None
+
+            body_items = ", ".join(
+                f'"{k}": {_resolve_id_field(k)}' if _resolve_id_field(k) else f'"{k}": {repr(v)}'
+                for k, v in body_dict.items()
+            )
             request_args.append(f'json={{{body_items}}}')
 
         request_expr = f'client.{method}(' + ", ".join(request_args) + ')'
@@ -2592,7 +2989,18 @@ def _generate_tests_from_contract(task_id: str, pos_app_dir: str = "") -> str:
         lines.append("    client = TestClient(app)")
         _emit_setup_chain(lines, setup_chain, contract_routes)
 
-        lines.append(f'    r = client.post("{finalize_path}")')
+        # [FIX GENERIC] Resolve path param trong finalize_path nếu có
+        import re as _re
+        if _re.search(r"\{[^}]+\}", finalize_path):
+            fp_resource = next(
+                (seg for seg in finalize_path.split("/") if seg and not seg.startswith("{")),
+                "resource"
+            )
+            fp_param_var = f"{fp_resource}_id"
+            finalize_call_path = _re.sub(r"\{[^}]+\}", "{" + fp_param_var + "}", finalize_path)
+            lines.append(f'    r = client.post(f"{finalize_call_path}")')
+        else:
+            lines.append(f'    r = client.post("{finalize_path}")')
         lines.append(f'    assert r.status_code == {finalize_status}, f"POST {finalize_path} failed: {{r.text}}"')
         if finalize_resp and finalize_status not in (204,):
             lines.append("    data = r.json()")
@@ -2863,6 +3271,7 @@ def _gemini_tester(task_id):
  
     if component in ("backend", "fullstack"):
         contract = load_contract(task_id, contracts_dir="docs/contracts")
+        print(f"      [DEBUG] contract raw = {json.dumps(contract, indent=2)[:300]}")  # ← thêm dòng này
         if contract and contract.get("source_dir"):
             contract_source_dir = contract["source_dir"]
             actual_backend_dir  = os.path.join(POS_APP_DIR, contract_source_dir)

@@ -2,16 +2,118 @@
   "schema_version": "2.0",
   "task_id": "TASK-03",
   "domain": "",
-  "component": "frontend",
+  "component": "backend",
   "layer": "",
-  "summary": "Auth Frontend",
-  "source_dir": "src/frontend",
-  "routes_dir": "src/frontend/src",
+  "summary": "Product Catalog Backend",
+  "source_dir": "src/services/product_catalog_backend",
+  "routes_dir": "src/services/product_catalog_backend/app/routes",
   "file_structure": [
-    "src/frontend/src/pages/Login.tsx",
-    "src/frontend/src/pages/Signup.tsx",
-    "src/frontend/src/api/auth.ts"
+    "src/services/product_catalog_backend/app/main.py",
+    "src/services/product_catalog_backend/app/routes/products.py",
+    "src/services/product_catalog_backend/app/models/product.py",
+    "src/services/product_catalog_backend/requirements.txt"
   ],
-  "routes": [],
+  "routes": [
+    {
+      "method": "get",
+      "path": "/products",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    },
+    {
+      "method": "get",
+      "path": "/products/{product_id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/products",
+      "status_code": 201,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "initial_stock": "int"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 409,
+          "when": "product with name already exists"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/products/{product_id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "name": "str",
+        "description": "str",
+        "price": "float"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/products/{product_id}",
+      "status_code": 204,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    }
+  ],
   "artifacts": []
 }

@@ -4,11 +4,12 @@
   "domain": "",
   "component": "frontend",
   "layer": "",
-  "summary": "Shopping Cart Frontend",
+  "summary": "Shopping Cart UI",
   "source_dir": "src/frontend",
   "routes_dir": "src/frontend/src",
   "file_structure": [
-    "src/frontend/src/components/Cart.tsx",
+    "src/frontend/src/pages/CartView.tsx",
+    "src/frontend/src/components/CartItemCard.tsx",
     "src/frontend/src/api/cart.ts"
   ],
   "routes": [],

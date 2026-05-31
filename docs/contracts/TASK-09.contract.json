@@ -4,14 +4,15 @@
   "domain": "",
   "component": "backend",
   "layer": "",
-  "summary": "Checkout Backend",
-  "source_dir": "src/services/checkout",
-  "routes_dir": "src/services/checkout/app/routes",
+  "summary": "Checkout & Order Processing Backend",
+  "source_dir": "src/services/checkout_order_processing_backend",
+  "routes_dir": "src/services/checkout_order_processing_backend/app/routes",
   "file_structure": [
-    "src/services/checkout/main.py",
-    "src/services/checkout/routes.py",
-    "src/services/checkout/models.py",
-    "src/services/checkout/requirements.txt"
+    "src/services/checkout_order_processing_backend/app/main.py",
+    "src/services/checkout_order_processing_backend/app/routes/checkout.py",
+    "src/services/checkout_order_processing_backend/app/models/order.py",
+    "src/services/checkout_order_processing_backend/app/models/receipt.py",
+    "src/services/checkout_order_processing_backend/requirements.txt"
   ],
   "routes": [
     {
@@ -21,18 +22,21 @@
       "auth_required": false,
       "description": "",
       "request_body": {
-        "cart_id": "str",
-        "payment_info": "dict"
+        "idempotency_key": "str"
       },
       "response_example": {},
       "errors": [
         {
           "status_code": 400,
-          "when": "invalid cart or payment info"
+          "when": "cart is empty"
+        },
+        {
+          "status_code": 400,
+          "when": "insufficient stock for one or more items"
         },
         {
           "status_code": 409,
-          "when": "insufficient stock"
+          "when": "duplicate request with same idempotency key"
         }
       ],
       "rules": [],

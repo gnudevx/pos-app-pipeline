@@ -4,12 +4,12 @@
   "domain": "",
   "component": "frontend",
   "layer": "",
-  "summary": "Checkout Frontend",
+  "summary": "Checkout & Order Processing UI",
   "source_dir": "src/frontend",
   "routes_dir": "src/frontend/src",
   "file_structure": [
-    "src/frontend/src/pages/Checkout.tsx",
-    "src/frontend/src/pages/OrderConfirmation.tsx",
+    "src/frontend/src/pages/CheckoutPage.tsx",
+    "src/frontend/src/pages/OrderConfirmationPage.tsx",
     "src/frontend/src/api/checkout.ts"
   ],
   "routes": [],

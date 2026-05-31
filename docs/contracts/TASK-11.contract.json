@@ -4,14 +4,15 @@
   "domain": "",
   "component": "backend",
   "layer": "",
-  "summary": "Order History Backend",
-  "source_dir": "src/services/order_history",
-  "routes_dir": "src/services/order_history/app/routes",
+  "summary": "Order History & Receipts Backend",
+  "source_dir": "src/services/order_history_receipts_backend",
+  "routes_dir": "src/services/order_history_receipts_backend/app/routes",
   "file_structure": [
-    "src/services/order_history/main.py",
-    "src/services/order_history/routes.py",
-    "src/services/order_history/models.py",
-    "src/services/order_history/requirements.txt"
+    "src/services/order_history_receipts_backend/app/main.py",
+    "src/services/order_history_receipts_backend/app/routes/orders.py",
+    "src/services/order_history_receipts_backend/app/models/order.py",
+    "src/services/order_history_receipts_backend/app/models/receipt.py",
+    "src/services/order_history_receipts_backend/requirements.txt"
   ],
   "routes": [
     {
@@ -29,7 +30,7 @@
     },
     {
       "method": "get",
-      "path": "/orders/{id}/receipt",
+      "path": "/orders/{order_id}",
       "status_code": 200,
       "auth_required": false,
       "description": "",
@@ -43,7 +44,29 @@
       ],
       "rules": [],
       "depends_on": [],
-      "response_fields": {}
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/receipts/{receipt_id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "receipt not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
     }
   ],
   "artifacts": []

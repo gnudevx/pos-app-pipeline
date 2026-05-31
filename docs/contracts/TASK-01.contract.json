@@ -5,13 +5,13 @@
   "component": "backend",
   "layer": "",
   "summary": "Auth Backend",
-  "source_dir": "src/services/auth",
-  "routes_dir": "src/services/auth/app/routes",
+  "source_dir": "src/services/auth_backend",
+  "routes_dir": "src/services/auth_backend/app/routes",
   "file_structure": [
-    "src/services/auth/main.py",
-    "src/services/auth/routes.py",
-    "src/services/auth/models.py",
-    "src/services/auth/requirements.txt"
+    "src/services/auth_backend/app/main.py",
+    "src/services/auth_backend/app/routes/auth.py",
+    "src/services/auth_backend/app/models/user.py",
+    "src/services/auth_backend/requirements.txt"
   ],
   "routes": [
     {
@@ -59,6 +59,28 @@
       "response_fields": {
         "access_token": "str",
         "token_type": "str"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/auth/refresh",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "refresh_token": "str"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 401,
+          "when": "invalid refresh token"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
       }
     }
   ],

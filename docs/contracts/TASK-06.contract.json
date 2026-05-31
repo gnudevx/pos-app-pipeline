@@ -2,81 +2,16 @@
   "schema_version": "2.0",
   "task_id": "TASK-06",
   "domain": "",
-  "component": "backend",
+  "component": "frontend",
   "layer": "",
-  "summary": "Shopping Cart Backend",
-  "source_dir": "src/services/shopping_cart",
-  "routes_dir": "src/services/shopping_cart/app/routes",
+  "summary": "Inventory Management UI",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
   "file_structure": [
-    "src/services/shopping_cart/main.py",
-    "src/services/shopping_cart/routes.py",
-    "src/services/shopping_cart/models.py",
-    "src/services/shopping_cart/requirements.txt"
+    "src/frontend/src/pages/InventoryList.tsx",
+    "src/frontend/src/components/StockAdjustmentForm.tsx",
+    "src/frontend/src/api/inventory.ts"
   ],
-  "routes": [
-    {
-      "method": "post",
-      "path": "/cart/add",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {
-        "product_id": "int",
-        "quantity": "int"
-      },
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "product not found"
-        },
-        {
-          "status_code": 400,
-          "when": "invalid quantity or insufficient stock"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
-      }
-    },
-    {
-      "method": "delete",
-      "path": "/cart/remove/{item_id}",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "item not found in cart"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {}
-    },
-    {
-      "method": "get",
-      "path": "/cart",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "cart not found for session/user"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {}
-    }
-  ],
+  "routes": [],
   "artifacts": []
 }

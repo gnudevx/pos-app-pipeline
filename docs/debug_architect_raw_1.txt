@@ -12,12 +12,13 @@
       "name": "Auth Backend",
       "component": "backend",
       "entity_refs": ["ENT-01"],
-      "description": "Handles user registration, login, and session management using JWT.",
+      "description": "JWT authentication: signup, login, token refresh. Audit logs every write.",
+      "constraints": ["audit_log"],
+      "storage_type": "in_memory",
       "file_structure": [
         "src/services/auth_backend/app/main.py",
         "src/services/auth_backend/app/routes/auth.py",
         "src/services/auth_backend/app/models/user.py",
-        "src/services/auth_backend/app/dependencies.py",
         "src/services/auth_backend/requirements.txt"
       ],
       "api_routes": [
@@ -25,79 +26,61 @@
           "method": "POST",
           "path": "/auth/signup",
           "status_code": 201,
-          "request_body": {
-            "email": "str",
-            "password": "str"
-          },
-          "response_body": {
-            "id": "int",
-            "email": "str",
-            "token": "str"
-          },
-          "errors": [
-            { "status_code": 409, "when": "email already exists" }
-          ]
+          "request_body": { "email": "str", "password": "str" },
+          "response_body": { "id": "int", "email": "str", "token": "str" },
+          "errors": [{ "status_code": 409, "when": "email already exists" }]
         },
         {
           "method": "POST",
           "path": "/auth/login",
           "status_code": 200,
-          "request_body": {
-            "email": "str",
-            "password": "str"
-          },
-          "response_body": {
-            "token": "str",
-            "user_id": "int"
-          },
-          "errors": [
-            { "status_code": 401, "when": "wrong credentials" }
-          ]
+          "request_body": { "email": "str", "password": "str" },
+          "response_body": { "token": "str", "user_id": "int" },
+          "errors": [{ "status_code": 401, "when": "wrong credentials" }]
         },
         {
           "method": "POST",
           "path": "/auth/refresh",
           "status_code": 200,
-          "request_body": {
-            "token": "str"
-          },
-          "response_body": {
-            "token": "str",
-            "user_id": "int"
-          },
-          "errors": [
-            { "status_code": 401, "when": "invalid or expired token" }
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/auth/me",
-          "status_code": 200,
           "request_body": {},
-          "response_body": {
-            "id": "int",
-            "email": "str"
-          },
-          "errors": [
-            { "status_code": 401, "when": "unauthenticated" }
-          ]
+          "response_body": { "token": "str" },
+          "errors": [{ "status_code": 401, "when": "invalid token" }]
         }
       ],
-      "shared_types": ["User", "AuthToken"],
+      "cross_service_calls": [],
+      "shared_types": ["User"],
       "depends_on": []
     },
     {
-      "name": "Product & Inventory Backend",
-      "component": "backend",
-      "entity_refs": ["ENT-03", "ENT-05"],
-      "description": "Manages product catalog (CRUD) and inventory stock levels.",
+      "name": "Auth Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-02"],
+      "description": "Login and signup pages, JWT token storage, auth state",
+      "constraints": [],
+      "storage_type": null,
       "file_structure": [
-        "src/services/product_inventory_backend/app/main.py",
-        "src/services/product_inventory_backend/app/routes/products.py",
-        "src/services/product_inventory_backend/app/routes/inventory.py",
-        "src/services/product_inventory_backend/app/models/product.py",
-        "src/services/product_inventory_backend/app/models/inventory.py",
-        "src/services/product_inventory_backend/requirements.txt"
+        "src/frontend/src/pages/Login.tsx",
+        "src/frontend/src/pages/Signup.tsx",
+        "src/frontend/src/api/auth.ts",
+        "src/frontend/src/store/authStore.ts"
+      ],
+      "api_routes": [],
+      "cross_service_calls": [],
+      "shared_types": ["User"],
+      "depends_on": ["Auth Backend"]
+    },
+    {
+      "name": "Product Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-03"],
+      "description": "Manages product data (name, price, stock). GET is public; POST/PUT/DELETE require Bearer token.",
+      "constraints": ["requires_jwt"],
+      "storage_type": "in_memory",
+      "file_structure": [
+        "src/services/product_backend/app/main.py",
+        "src/services/product_backend/app/routes/products.py",
+        "src/services/product_backend/app/models/product.py",
+        "src/services/product_backend/requirements.txt"
       ],
       "api_routes": [
         {
@@ -105,16 +88,7 @@
           "path": "/products",
           "status_code": 200,
           "request_body": {},
-          "response_body": {
-            "items": [
-              {
-                "id": "int",
-                "name": "str",
-                "description": "str",
-                "price": "float"
-              }
-            ]
-          },
+          "response_body": { "items": "list[Product]" },
           "errors": []
         },
         {
@@ -122,54 +96,24 @@
           "path": "/products/{id}",
           "status_code": 200,
           "request_body": {},
-          "response_body": {
-            "id": "int",
-            "name": "str",
-            "description": "str",
-            "price": "float"
-          },
-          "errors": [
-            { "status_code": 404, "when": "product not found" }
-          ]
+          "response_body": "Product",
+          "errors": [{ "status_code": 404, "when": "product not found" }]
         },
         {
           "method": "POST",
           "path": "/products",
           "status_code": 201,
-          "request_body": {
-            "name": "str",
-            "description": "str",
-            "price": "float"
-          },
-          "response_body": {
-            "id": "int",
-            "name": "str",
-            "description": "str",
-            "price": "float"
-          },
-          "errors": [
-            { "status_code": 400, "when": "invalid product data" }
-          ]
+          "request_body": { "name": "str", "price": "float", "stock": "int" },
+          "response_body": "Product",
+          "errors": [{ "status_code": 409, "when": "product with name already exists" }]
         },
         {
           "method": "PUT",
           "path": "/products/{id}",
           "status_code": 200,
-          "request_body": {
-            "name": "str",
-            "description": "str",
-            "price": "float"
-          },
-          "response_body": {
-            "id": "int",
-            "name": "str",
-            "description": "str",
-            "price": "float"
-          },
-          "errors": [
-            { "status_code": 404, "when": "product not found" },
-            { "status_code": 400, "when": "invalid product data" }
-          ]
+          "request_body": { "name": "str", "price": "float", "stock": "int" },
+          "response_body": "Product",
+          "errors": [{ "status_code": 404, "when": "product not found" }]
         },
         {
           "method": "DELETE",
@@ -177,357 +121,361 @@
           "status_code": 204,
           "request_body": {},
           "response_body": {},
-          "errors": [
-            { "status_code": 404, "when": "product not found" }
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/inventory/{product_id}",
-          "status_code": 200,
-          "request_body": {},
-          "response_body": {
-            "product_id": "int",
-            "stock_level": "int"
-          },
-          "errors": [
-            { "status_code": 404, "when": "product not found" }
-          ]
-        },
-        {
-          "method": "PUT",
-          "path": "/inventory/{product_id}",
-          "status_code": 200,
-          "request_body": {
-            "stock_level": "int"
-          },
-          "response_body": {
-            "product_id": "int",
-            "stock_level": "int"
-          },
-          "errors": [
-            { "status_code": 404, "when": "product not found" },
-            { "status_code": 400, "when": "invalid stock level" }
-          ]
+          "errors": [{ "status_code": 404, "when": "product not found" }]
         }
       ],
-      "shared_types": ["Product", "Inventory"],
-      "depends_on": []
+      "cross_service_calls": [],
+      "shared_types": ["Product"],
+      "depends_on": ["Auth Backend"]
     },
     {
-      "name": "Sales & Orders Backend",
-      "component": "backend",
-      "entity_refs": ["ENT-07", "ENT-09", "ENT-11"],
-      "description": "Manages shopping cart, processes checkout, and stores order history.",
+      "name": "Product Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-04"],
+      "description": "Displays product list with search/filter, and forms for adding/editing products.",
+      "constraints": [],
+      "storage_type": null,
       "file_structure": [
-        "src/services/sales_orders_backend/app/main.py",
-        "src/services/sales_orders_backend/app/routes/cart.py",
-        "src/services/sales_orders_backend/app/routes/checkout.py",
-        "src/services/sales_orders_backend/app/routes/orders.py",
-        "src/services/sales_orders_backend/app/models/cart.py",
-        "src/services/sales_orders_backend/app/models/order.py",
-        "src/services/sales_orders_backend/app/dependencies.py",
-        "src/services/sales_orders_backend/requirements.txt"
+        "src/frontend/src/pages/ProductList.tsx",
+        "src/frontend/src/pages/ProductDetail.tsx",
+        "src/frontend/src/pages/ProductForm.tsx",
+        "src/frontend/src/api/productApi.ts"
+      ],
+      "api_routes": [],
+      "cross_service_calls": [],
+      "shared_types": ["Product"],
+      "depends_on": ["Product Backend"]
+    },
+    {
+      "name": "Cart Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-05"],
+      "description": "Manages items in a user's current shopping cart. Requires JWT for all routes.",
+      "constraints": ["requires_jwt"],
+      "storage_type": "in_memory",
+      "file_structure": [
+        "src/services/cart_backend/app/main.py",
+        "src/services/cart_backend/app/routes/cart.py",
+        "src/services/cart_backend/app/models/cart.py",
+        "src/services/cart_backend/requirements.txt"
       ],
       "api_routes": [
         {
           "method": "POST",
           "path": "/cart/add",
           "status_code": 201,
-          "request_body": {
-            "user_id": "int",
-            "product_id": "int",
-            "quantity": "int"
-          },
-          "response_body": {
-            "item_id": "int",
-            "product_id": "int",
-            "quantity": "int",
-            "price": "float"
-          },
+          "request_body": { "product_id": "int", "quantity": "int" },
+          "response_body": "CartItem",
           "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
             { "status_code": 404, "when": "product not found" },
-            { "status_code": 400, "when": "invalid quantity or insufficient stock" }
+            { "status_code": 400, "when": "invalid quantity" }
           ]
         },
         {
           "method": "PUT",
           "path": "/cart/update/{item_id}",
           "status_code": 200,
-          "request_body": {
-            "user_id": "int",
-            "quantity": "int"
-          },
-          "response_body": {
-            "item_id": "int",
-            "product_id": "int",
-            "quantity": "int",
-            "price": "float"
-          },
+          "request_body": { "quantity": "int" },
+          "response_body": "CartItem",
           "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
             { "status_code": 404, "when": "cart item not found" },
-            { "status_code": 400, "when": "invalid quantity or insufficient stock" }
+            { "status_code": 400, "when": "invalid quantity" }
           ]
         },
         {
           "method": "DELETE",
           "path": "/cart/remove/{item_id}",
           "status_code": 204,
-          "request_body": {
-            "user_id": "int"
-          },
+          "request_body": {},
           "response_body": {},
-          "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
-            { "status_code": 404, "when": "cart item not found" }
-          ]
+          "errors": [{ "status_code": 404, "when": "cart item not found" }]
         },
         {
           "method": "GET",
           "path": "/cart",
           "status_code": 200,
-          "request_body": {
-            "user_id": "int"
-          },
-          "response_body": {
-            "id": "int",
-            "user_id": "int",
-            "items": [
-              {
-                "item_id": "int",
-                "product_id": "int",
-                "quantity": "int",
-                "price": "float"
-              }
-            ],
-            "total_price": "float"
-          },
-          "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
-            { "status_code": 404, "when": "cart not found for user" }
-          ]
+          "request_body": {},
+          "response_body": { "items": "list[CartItem]" },
+          "errors": []
         },
         {
-          "method": "POST",
-          "path": "/checkout",
-          "status_code": 201,
-          "request_body": {
-            "user_id": "int",
-            "payment_info": "dict"
-          },
-          "response_body": {
-            "id": "int",
-            "user_id": "int",
-            "items": [
-              {
-                "item_id": "int",
-                "product_id": "int",
-                "quantity": "int",
-                "price": "float"
-              }
-            ],
-            "total_price": "float",
-            "status": "str",
-            "order_date": "str"
-          },
-          "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
-            { "status_code": 404, "when": "cart not found or empty" },
-            { "status_code": 400, "when": "payment failed or insufficient stock" }
-          ]
+          "method": "DELETE",
+          "path": "/cart/clear",
+          "status_code": 204,
+          "request_body": {},
+          "response_body": {},
+          "errors": []
+        }
+      ],
+      "cross_service_calls": [],
+      "shared_types": ["CartItem"],
+      "depends_on": ["Auth Backend"]
+    },
+    {
+      "name": "Cart Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-06"],
+      "description": "Displays current cart items, allows quantity adjustments, item removal, and clearing the cart.",
+      "constraints": [],
+      "storage_type": null,
+      "file_structure": [
+        "src/frontend/src/pages/CartPage.tsx",
+        "src/frontend/src/components/CartItem.tsx",
+        "src/frontend/src/api/cartApi.ts"
+      ],
+      "api_routes": [],
+      "cross_service_calls": [],
+      "shared_types": ["CartItem"],
+      "depends_on": ["Cart Backend"]
+    },
+    {
+      "name": "Inventory Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-11"],
+      "description": "Tracks and allows manual adjustment of product stock levels. Requires JWT and audit logs.",
+      "constraints": ["requires_jwt", "audit_log"],
+      "storage_type": "in_memory",
+      "file_structure": [
+        "src/services/inventory_backend/app/main.py",
+        "src/services/inventory_backend/app/routes/inventory.py",
+        "src/services/inventory_backend/app/models/inventory.py",
+        "src/services/inventory_backend/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "GET",
+          "path": "/inventory",
+          "status_code": 200,
+          "request_body": {},
+          "response_body": { "items": "list[InventoryItem]" },
+          "errors": []
         },
+        {
+          "method": "PUT",
+          "path": "/inventory/{product_id}/adjust",
+          "status_code": 200,
+          "request_body": { "quantity_change": "int" },
+          "response_body": "InventoryItem",
+          "errors": [
+            { "status_code": 404, "when": "product not found" },
+            { "status_code": 400, "when": "invalid quantity change or insufficient stock" }
+          ]
+        }
+      ],
+      "cross_service_calls": [
+        {
+          "target": "Product Backend",
+          "path": "/products/{product_id}",
+          "timeout_ms": 1000,
+          "on_failure": "error"
+        }
+      ],
+      "shared_types": ["InventoryItem"],
+      "depends_on": ["Auth Backend", "Product Backend"]
+    },
+    {
+      "name": "Inventory Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-12"],
+      "description": "Interface for viewing current stock levels and manually adjusting product stock.",
+      "constraints": [],
+      "storage_type": null,
+      "file_structure": [
+        "src/frontend/src/pages/InventoryPage.tsx",
+        "src/frontend/src/api/inventoryApi.ts"
+      ],
+      "api_routes": [],
+      "cross_service_calls": [],
+      "shared_types": ["InventoryItem"],
+      "depends_on": ["Inventory Backend"]
+    },
+    {
+      "name": "Order History Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-09"],
+      "description": "Stores and retrieves past sales orders and their associated receipts. Requires JWT.",
+      "constraints": ["requires_jwt"],
+      "storage_type": "in_memory",
+      "file_structure": [
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py",
+        "src/services/order_history_backend/requirements.txt"
+      ],
+      "api_routes": [
         {
           "method": "GET",
           "path": "/orders",
           "status_code": 200,
-          "request_body": {
-            "user_id": "int"
-          },
-          "response_body": {
-            "items": [
-              {
-                "id": "int",
-                "user_id": "int",
-                "total_price": "float",
-                "status": "str",
-                "order_date": "str"
-              }
-            ]
-          },
-          "errors": [
-            { "status_code": 401, "when": "unauthenticated" }
-          ]
+          "request_body": {},
+          "response_body": { "items": "list[Order]" },
+          "errors": []
         },
         {
           "method": "GET",
           "path": "/orders/{id}",
           "status_code": 200,
-          "request_body": {
-            "user_id": "int"
-          },
-          "response_body": {
-            "id": "int",
-            "user_id": "int",
-            "items": [
-              {
-                "item_id": "int",
-                "product_id": "int",
-                "quantity": "int",
-                "price": "float"
-              }
-            ],
-            "total_price": "float",
-            "status": "str",
-            "order_date": "str"
-          },
-          "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
-            { "status_code": 404, "when": "order not found or not owned by user" }
-          ]
+          "request_body": {},
+          "response_body": "Order",
+          "errors": [{ "status_code": 404, "when": "order not found" }]
         },
         {
-          "method": "GET",
-          "path": "/orders/{id}/receipt",
-          "status_code": 200,
-          "request_body": {
-            "user_id": "int"
-          },
-          "response_body": {
-            "order_id": "int",
-            "receipt_content": "str"
-          },
+          "method": "POST",
+          "path": "/orders",
+          "status_code": 201,
+          "request_body": "Order",
+          "response_body": "Order",
+          "errors": []
+        }
+      ],
+      "cross_service_calls": [],
+      "shared_types": ["Order", "OrderItem"],
+      "depends_on": ["Auth Backend"]
+    },
+    {
+      "name": "Order History Frontend",
+      "component": "frontend",
+      "entity_refs": ["ENT-10"],
+      "description": "Displays a list of past orders and individual receipt details.",
+      "constraints": [],
+      "storage_type": null,
+      "file_structure": [
+        "src/frontend/src/pages/OrderHistoryPage.tsx",
+        "src/frontend/src/pages/OrderDetailPage.tsx",
+        "src/frontend/src/api/orderHistoryApi.ts"
+      ],
+      "api_routes": [],
+      "cross_service_calls": [],
+      "shared_types": ["Order", "OrderItem"],
+      "depends_on": ["Order History Backend"]
+    },
+    {
+      "name": "Checkout Backend",
+      "component": "backend",
+      "entity_refs": ["ENT-07"],
+      "description": "Processes the cart into an order, deducts inventory, and generates a receipt. Requires JWT, audit logs, atomic transactions, and idempotency keys.",
+      "constraints": ["requires_jwt", "audit_log", "atomic_transaction", "idempotency_key"],
+      "storage_type": "in_memory",
+      "file_structure": [
+        "src/services/checkout_backend/app/main.py",
+        "src/services/checkout_backend/app/routes/checkout.py",
+        "src/services/checkout_backend/app/models/order.py",
+        "src/services/checkout_backend/requirements.txt"
+      ],
+      "api_routes": [
+        {
+          "method": "POST",
+          "path": "/checkout",
+          "status_code": 201,
+          "request_body": { "payment_info": "dict" },
+          "response_body": "Order",
           "errors": [
-            { "status_code": 401, "when": "unauthenticated" },
-            { "status_code": 404, "when": "receipt not found or order not owned by user" }
+            { "status_code": 400, "when": "payment failed or insufficient stock" },
+            { "status_code": 404, "when": "cart is empty" }
           ]
         }
       ],
-      "shared_types": ["CartItem", "Cart", "Order", "Receipt"],
-      "depends_on": ["Auth Backend", "Product & Inventory Backend"]
+      "cross_service_calls": [
+        {
+          "target": "Cart Backend",
+          "path": "/cart",
+          "timeout_ms": 2000,
+          "on_failure": "error"
+        },
+        {
+          "target": "Inventory Backend",
+          "path": "/inventory/{product_id}/adjust",
+          "timeout_ms": 2000,
+          "on_failure": "compensate"
+        },
+        {
+          "target": "Order History Backend",
+          "path": "/orders",
+          "timeout_ms": 2000,
+          "on_failure": "error"
+        },
+        {
+          "target": "Cart Backend",
+          "path": "/cart/clear",
+          "timeout_ms": 2000,
+          "on_failure": "error"
+        }
+      ],
+      "shared_types": ["Order", "OrderItem"],
+      "depends_on": ["Auth Backend", "Cart Backend", "Inventory Backend", "Order History Backend"]
     },
     {
-      "name": "Frontend Application",
+      "name": "Checkout Frontend",
       "component": "frontend",
-      "entity_refs": ["ENT-02", "ENT-04", "ENT-06", "ENT-08", "ENT-10", "ENT-12"],
-      "description": "Single-page application for user authentication, product catalog, inventory, shopping cart, checkout, and order history.",
+      "entity_refs": ["ENT-08"],
+      "description": "Provides the interface to review the cart and finalize a purchase.",
+      "constraints": [],
+      "storage_type": null,
       "file_structure": [
-        "src/frontend/src/App.tsx",
-        "src/frontend/src/main.tsx",
-        "src/frontend/src/pages/Auth/Login.tsx",
-        "src/frontend/src/pages/Auth/Signup.tsx",
-        "src/frontend/src/pages/Products/ProductList.tsx",
-        "src/frontend/src/pages/Products/ProductDetail.tsx",
-        "src/frontend/src/pages/Products/ProductForm.tsx",
-        "src/frontend/src/pages/Inventory/InventoryList.tsx",
-        "src/frontend/src/pages/Inventory/InventoryAdjust.tsx",
-        "src/frontend/src/pages/Cart/ShoppingCart.tsx",
-        "src/frontend/src/pages/Checkout/CheckoutFlow.tsx",
-        "src/frontend/src/pages/Orders/OrderHistory.tsx",
-        "src/frontend/src/pages/Orders/OrderDetail.tsx",
-        "src/frontend/src/api/auth.ts",
-        "src/frontend/src/api/products.ts",
-        "src/frontend/src/api/inventory.ts",
-        "src/frontend/src/api/cart.ts",
-        "src/frontend/src/api/checkout.ts",
-        "src/frontend/src/api/orders.ts",
-        "src/frontend/src/store/authStore.ts",
-        "src/frontend/package.json"
+        "src/frontend/src/pages/CheckoutPage.tsx",
+        "src/frontend/src/api/checkoutApi.ts"
       ],
       "api_routes": [],
-      "shared_types": ["User", "AuthToken", "Product", "Inventory", "CartItem", "Cart", "Order", "Receipt"],
-      "depends_on": ["Auth Backend", "Product & Inventory Backend", "Sales & Orders Backend"]
+      "cross_service_calls": [],
+      "shared_types": ["Order", "OrderItem"],
+      "depends_on": ["Cart Backend", "Checkout Backend"]
     }
   ],
   "shared_types": [
     {
       "name": "User",
-      "fields": {
-        "id": "int",
-        "email": "str"
-      },
+      "fields": { "id": "int", "email": "str" },
       "defined_in": "Auth Backend",
-      "used_by": ["Auth Backend", "Sales & Orders Backend", "Frontend Application"]
-    },
-    {
-      "name": "AuthToken",
-      "fields": {
-        "token": "str",
-        "user_id": "int"
-      },
-      "defined_in": "Auth Backend",
-      "used_by": ["Auth Backend", "Frontend Application"]
+      "used_by": ["Auth Frontend"]
     },
     {
       "name": "Product",
-      "fields": {
-        "id": "int",
-        "name": "str",
-        "description": "str",
-        "price": "float"
-      },
-      "defined_in": "Product & Inventory Backend",
-      "used_by": ["Product & Inventory Backend", "Sales & Orders Backend", "Frontend Application"]
-    },
-    {
-      "name": "Inventory",
-      "fields": {
-        "product_id": "int",
-        "stock_level": "int"
-      },
-      "defined_in": "Product & Inventory Backend",
-      "used_by": ["Product & Inventory Backend", "Sales & Orders Backend", "Frontend Application"]
+      "fields": { "id": "int", "name": "str", "price": "float", "stock": "int" },
+      "defined_in": "Product Backend",
+      "used_by": ["Product Frontend", "Cart Backend", "Inventory Backend", "Checkout Backend", "Order History Backend"]
     },
     {
       "name": "CartItem",
-      "fields": {
-        "item_id": "int",
-        "product_id": "int",
-        "quantity": "int",
-        "price": "float"
-      },
-      "defined_in": "Sales & Orders Backend",
-      "used_by": ["Sales & Orders Backend", "Frontend Application"]
+      "fields": { "id": "int", "product_id": "int", "quantity": "int", "price": "float" },
+      "defined_in": "Cart Backend",
+      "used_by": ["Cart Frontend", "Checkout Backend"]
     },
     {
-      "name": "Cart",
-      "fields": {
-        "id": "int",
-        "user_id": "int",
-        "items": "list[CartItem]",
-        "total_price": "float"
-      },
-      "defined_in": "Sales & Orders Backend",
-      "used_by": ["Sales & Orders Backend", "Frontend Application"]
+      "name": "OrderItem",
+      "fields": { "product_id": "int", "quantity": "int", "price": "float" },
+      "defined_in": "Checkout Backend",
+      "used_by": ["Order History Backend", "Order History Frontend"]
     },
     {
       "name": "Order",
-      "fields": {
-        "id": "int",
-        "user_id": "int",
-        "items": "list[CartItem]",
-        "total_price": "float",
-        "status": "str",
-        "order_date": "str"
-      },
-      "defined_in": "Sales & Orders Backend",
-      "used_by": ["Sales & Orders Backend", "Frontend Application"]
+      "fields": { "id": "int", "user_id": "int", "items": "list[OrderItem]", "total_amount": "float", "status": "str", "created_at": "datetime" },
+      "defined_in": "Checkout Backend",
+      "used_by": ["Order History Backend", "Order History Frontend", "Checkout Frontend"]
     },
     {
-      "name": "Receipt",
-      "fields": {
-        "order_id": "int",
-        "receipt_content": "str"
-      },
-      "defined_in": "Sales & Orders Backend",
-      "used_by": ["Sales & Orders Backend", "Frontend Application"]
+      "name": "InventoryItem",
+      "fields": { "product_id": "int", "stock_level": "int" },
+      "defined_in": "Inventory Backend",
+      "used_by": ["Inventory Frontend", "Checkout Backend"]
     }
   ],
   "deployment": {
     "name": "Deployment & Testing",
     "includes": ["docker-compose.yml", "Dockerfiles", "pytest tests", "Jest tests"],
-    "depends_on": ["Auth Backend", "Product & Inventory Backend", "Sales & Orders Backend", "Frontend Application"]
+    "depends_on": [
+      "Auth Backend",
+      "Auth Frontend",
+      "Product Backend",
+      "Product Frontend",
+      "Cart Backend",
+      "Cart Frontend",
+      "Inventory Backend",
+      "Inventory Frontend",
+      "Order History Backend",
+      "Order History Frontend",
+      "Checkout Backend",
+      "Checkout Frontend"
+    ]
   }
 }
 ARCHITECT_DONE

@@ -1,27 +1,27 @@
 # PRD
 
 ## Problem
-Small retail shops lack an efficient, integrated system to manage their product catalog, process sales transactions, track inventory in real-time, and generate receipts. This leads to manual errors, slow checkout processes, and inaccurate stock counts, impacting customer satisfaction and operational efficiency.
+Small retail shops lack an efficient, integrated point-of-sale system to manage their product catalog, process sales transactions, track inventory, and provide receipts. Existing manual processes or disparate systems lead to errors, slow checkout times, and poor inventory visibility, ultimately impacting customer satisfaction and operational efficiency.
 
 ## Feature entities
-- **User Authentication Backend**: Handles user registration, login, and session management.
-- **Auth UI**: Provides user interface for login and signup.
-- **Product Catalog Backend**: Manages product data (name, price, description).
-- **Product Catalog UI**: Displays products and allows for their creation/editing.
-- **Inventory Management Backend**: Tracks and updates product stock levels.
-- **Inventory Management UI**: Provides interface to view and adjust product stock.
-- **Shopping Cart Backend**: Manages items added to a customer's current transaction.
-- **Shopping Cart UI**: Displays the current cart and allows item manipulation.
-- **Checkout Backend**: Processes sales, deducts inventory, and finalizes transactions.
-- **Checkout UI**: Guides the user through the payment and order confirmation process.
-- **Order History Backend**: Stores and retrieves records of past sales and receipts.
-- **Order History UI**: Displays a list of past orders and allows viewing of individual receipts.
+- **User authentication backend**: Handles user signup, login, and session management using JWT.
+- **Auth UI frontend**: Provides user interface for authentication (login/signup forms).
+- **Product catalog management backend**: Manages product data (name, price, stock) with CRUD operations.
+- **Product catalog UI frontend**: Displays product list, search, and forms for adding/editing products.
+- **Shopping cart management backend**: Manages items in a user's current shopping cart (add, remove, update quantity, clear).
+- **Shopping cart UI frontend**: Displays current cart items, allows quantity adjustments, and removal.
+- **Checkout & order processing backend**: Processes the cart into an order, deducts inventory, and generates a receipt.
+- **Checkout UI frontend**: Provides the interface to finalize a purchase from the cart.
+- **Order history & receipt management backend**: Stores and retrieves past sales orders and their associated receipts.
+- **Order history UI frontend**: Displays a list of past orders and individual receipt details.
+- **Inventory stock management backend**: Tracks and allows manual adjustment of product stock levels.
+- **Inventory stock UI frontend**: Interface for viewing current stock levels and manually adjusting product stock.
 
 ## MVP scope
-The MVP will include core functionalities for user authentication, comprehensive product and inventory management, a complete sales transaction flow from cart to checkout, and the ability to view past order history and receipts.
+The MVP will include full functionality for user authentication, comprehensive product catalog management, a robust shopping cart system, a complete checkout flow with receipt generation, and the ability for authorized users to view and manage inventory and past sales orders. This covers the essential operations for a small retail shop to efficiently manage sales and stock.
 
 ## Non-functional requirements
-- Performance: API responses for critical paths (e.g., product lookup, cart operations, checkout) must be under 200ms. Frontend rendering should be smooth and responsive.
-- Scalability: The system should be able to handle up to 100 concurrent users and process 500 transactions per hour without degradation in performance.
-- Testing: Comprehensive unit and integration tests with at least 80% code coverage for both frontend and backend. End-to-end tests for critical user flows.
-- Deployment: Automated CI/CD pipelines for seamless deployment to Vercel (web), Railway (API), and Expo EAS (mobile).
+- Performance: Checkout process must complete within 3 seconds. Product search and display must be near-instantaneous (<500ms).
+- Scalability: The system should support up to 10 concurrent users per store and handle up to 1000 transactions per day per store without degradation.
+- Testing: All critical backend logic and frontend components must have unit test coverage >= 80%. End-to-end tests for core workflows (login, add to cart, checkout) are required.
+- Deployment: Automated CI/CD pipelines for web and mobile platforms. Zero-downtime deployments for backend services.

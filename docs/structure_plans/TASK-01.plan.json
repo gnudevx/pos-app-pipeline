@@ -2,10 +2,10 @@
   "schema_version": "1",
   "task_id": "TASK-01",
   "component": "backend",
-  "source_dir": "src/services/auth",
+  "source_dir": "src/services/auth_backend",
   "files": [
     {
-      "path": "src/services/auth/main.py",
+      "path": "src/services/auth_backend/app/main.py",
       "role": "service",
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-01",
@@ -13,15 +13,17 @@
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/auth/routes.py",
-      "role": "service",
-      "slot": "SERVICE_SLOT",
+      "path": "src/services/auth_backend/app/routes/auth.py",
+      "role": "routes",
+      "slot": "ROUTES_SLOT",
       "owned_by": "TASK-01",
-      "imports_from": [],
+      "imports_from": [
+        "src/services/auth_backend/app/models/user.py"
+      ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/auth/models.py",
+      "path": "src/services/auth_backend/app/models/user.py",
       "role": "model",
       "slot": "MODEL_SLOT",
       "owned_by": "TASK-01",
@@ -29,7 +31,7 @@
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/auth/requirements.txt",
+      "path": "src/services/auth_backend/requirements.txt",
       "role": "config",
       "slot": null,
       "owned_by": "TASK-01",
@@ -84,176 +86,47 @@
         "access_token": "str",
         "token_type": "str"
       }
+    },
+    {
+      "method": "post",
+      "path": "/auth/refresh",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {
+        "refresh_token": "str"
+      },
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 401,
+          "when": "invalid refresh token"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
     }
   ],
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-07",
-        "name": "Shopping Cart Backend",
-        "component": "backend",
-        "domain_tags": [
-          "auth",
-          "payment",
-          "product"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-11",
-        "name": "Order History Backend",
-        "component": "backend",
-        "domain_tags": [
-          "payment",
-          "analytics",
-          "deployment"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-12",
-        "name": "Order History UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "payment",
-          "analytics"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-08",
-        "name": "Shopping Cart UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "payment",
-          "product"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-09",
-        "name": "Checkout Backend",
-        "component": "backend",
-        "domain_tags": [
-          "payment",
-          "product"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-06",
-        "name": "Inventory Management UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "product",
-          "admin"
-        ],
-        "ownership": "system"
-      },
-      {
         "id": "ENT-02",
-        "name": "Auth UI",
+        "name": "User Authentication UI",
         "component": "frontend",
-        "domain_tags": [
-          "auth",
-          "user",
-          "file",
-          "admin",
-          "analytics"
-        ],
+        "domain_tags": [],
         "ownership": "system"
-      },
-      {
-        "id": "ENT-10",
-        "name": "Checkout UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "payment"
-        ],
-        "ownership": "user-scoped"
       }
     ],
     "edges": [
       {
         "from": "ENT-02",
         "to": "ENT-01",
-        "type": "depends_on",
+        "relationship_type": "api_call",
         "confidence": 1.0,
-        "reason": "Declared in entities.json"
-      },
-      {
-        "from": "ENT-06",
-        "to": "ENT-01",
-        "type": "depends_on",
-        "confidence": 0.8,
-        "reason": "Frontend likely consumes backend API (shared concepts: ['management', 'user'])"
-      },
-      {
-        "from": "ENT-08",
-        "to": "ENT-01",
-        "type": "depends_on",
-        "confidence": 0.8,
-        "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
-      },
-      {
-        "from": "ENT-10",
-        "to": "ENT-01",
-        "type": "depends_on",
-        "confidence": 0.8,
-        "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
-      },
-      {
-        "from": "ENT-12",
-        "to": "ENT-01",
-        "type": "depends_on",
-        "confidence": 0.8,
-        "reason": "Frontend likely consumes backend API (shared concepts: ['user'])"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-07",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Shopping Cart Backend"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-08",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Shopping Cart UI"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-09",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Checkout Backend"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-10",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Checkout UI"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-12",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Order History UI"
+        "source": "declared"
       }
     ],
     "neighbor_files": []

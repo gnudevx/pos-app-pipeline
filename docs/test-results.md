@@ -1540,3 +1540,386 @@ No frontend source files yet — SKIP
 Skipped — component=frontend
 No frontend source files yet — SKIP
 ```
+
+---
+## TASK-01 (backend) — 2026-05-27T09:29:06.403132
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c FAILED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba FAILED                    [100%]
+
+================================== FAILURES =
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-28T14:51:22.809962
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-28T14:52:29.599136
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 40%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 60%]
+tests/test_api.py::test_put_products_param_2e1
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-28T15:25:29.134795
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== 3 passed in 1.
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-28T15:26:30.007961
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 40%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 60%]
+tests/test_api.py::test_put_products_param_2e1
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-28T15:40:38.730759
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== 3 passed in 1.
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-28T15:41:37.240866
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 6 items
+
+tests/test_api.py::test_health PASSED                                    [ 16%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 33%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 50%]
+tests/test_api.py::test_get_products_param_6be
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T02:09:07.318552
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-30T02:10:24.646324
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 40%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 60%]
+tests/test_api.py::test_put_products_param_2e1
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T02:47:57.703234
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-30T02:49:14.882875
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 40%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 60%]
+tests/test_api.py::test_get_products_param_613
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T11:08:48.077837
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-30T11:10:09.176926
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 6 items
+
+tests/test_api.py::test_health PASSED                                    [ 16%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 33%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 50%]
+tests/test_api.py::test_get_products_param_6be
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T11:29:59.769807
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_put_inventory_param_stock_e4ec27 FAILED          [ 40%]
+tests/test_api.py::test_post_inventory_deduct_fa230c PASSED              [ 60%]
+tests/test_api.py::test_get_inventory_param_4b
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T12:38:36.347769
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 0 items / 1 error
+
+=================================== ERRORS ====================================
+_____________________ ERROR collecting tests/test_api.py ______________________
+ImportError while importing test module 'D:\Intern\pos-app-test_v2\src\services\auth_backend\tests\test_api.py'.
+Hin
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T13:07:43.548469
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-30T13:08:57.034363
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 40%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 60%]
+tests/test_api.py::test_get_products_param_613
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T13:20:23.387186
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-30T13:21:26.162078
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 40%]
+tests/test_api.py::test_post_products_48842b PASSED                      [ 60%]
+tests/test_api.py::test_put_products_param_2e1
+Skipped — component=backend
+```
+
+---
+## TASK-03 (backend) — 2026-05-30T13:22:51.389224
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_get_orders_1c3eed PASSED                         [ 66%]
+tests/test_api.py::test_get_orders_param_receipt_2a487c FAILED           [100%]
+
+================================== FAILURES =
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T13:30:43.836283
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 5 items
+
+tests/test_api.py::test_health PASSED                                    [ 20%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 40%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 60%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-05-30T13:39:20.916729
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 3 items
+
+tests/test_api.py::test_health PASSED                                    [ 33%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 66%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [100%]
+
+============================== warnings summa
+Skipped — component=backend
+```
+
+---
+## TASK-02 (backend) — 2026-05-30T13:40:46.630264
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 0 items / 1 error
+
+=================================== ERRORS ====================================
+_____________________ ERROR collecting tests/test_api.py ______________________
+
+    import pytest
+    from fastapi.testclient import TestClient
+>   from app.main import app
+
+tests\test_api.py:3: 
+Skipped — component=backend
+```

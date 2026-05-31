@@ -2,53 +2,87 @@
   "schema_version": "1",
   "task_id": "TASK-11",
   "component": "backend",
-  "source_dir": "src/services/order_history",
+  "source_dir": "src/services/order_history_receipts_backend",
   "files": [
     {
-      "path": "src/services/order_history/main.py",
+      "path": "src/services/order_history_receipts_backend/app/main.py",
       "role": "service",
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-11",
       "imports_from": [
-        "src/services/checkout/main.py",
-        "src/services/checkout/routes.py",
-        "src/services/checkout/models.py"
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/checkout_order_processing_backend/app/main.py",
+        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
+        "src/services/checkout_order_processing_backend/app/models/order.py",
+        "src/services/checkout_order_processing_backend/app/models/receipt.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/order_history/routes.py",
-      "role": "service",
-      "slot": "SERVICE_SLOT",
+      "path": "src/services/order_history_receipts_backend/app/routes/orders.py",
+      "role": "routes",
+      "slot": "ROUTES_SLOT",
       "owned_by": "TASK-11",
       "imports_from": [
-        "src/services/checkout/main.py",
-        "src/services/checkout/routes.py",
-        "src/services/checkout/models.py"
+        "src/services/order_history_receipts_backend/app/models/order.py",
+        "src/services/order_history_receipts_backend/app/models/receipt.py",
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/checkout_order_processing_backend/app/main.py",
+        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
+        "src/services/checkout_order_processing_backend/app/models/order.py",
+        "src/services/checkout_order_processing_backend/app/models/receipt.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/order_history/models.py",
+      "path": "src/services/order_history_receipts_backend/app/models/order.py",
       "role": "model",
       "slot": "MODEL_SLOT",
       "owned_by": "TASK-11",
       "imports_from": [
-        "src/services/checkout/main.py",
-        "src/services/checkout/routes.py",
-        "src/services/checkout/models.py"
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/checkout_order_processing_backend/app/main.py",
+        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
+        "src/services/checkout_order_processing_backend/app/models/order.py",
+        "src/services/checkout_order_processing_backend/app/models/receipt.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/order_history/requirements.txt",
+      "path": "src/services/order_history_receipts_backend/app/models/receipt.py",
+      "role": "model",
+      "slot": "MODEL_SLOT",
+      "owned_by": "TASK-11",
+      "imports_from": [
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/checkout_order_processing_backend/app/main.py",
+        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
+        "src/services/checkout_order_processing_backend/app/models/order.py",
+        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/order_history_receipts_backend/requirements.txt",
       "role": "config",
       "slot": null,
       "owned_by": "TASK-11",
       "imports_from": [
-        "src/services/checkout/main.py",
-        "src/services/checkout/routes.py",
-        "src/services/checkout/models.py"
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/services/checkout_order_processing_backend/app/main.py",
+        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
+        "src/services/checkout_order_processing_backend/app/models/order.py",
+        "src/services/checkout_order_processing_backend/app/models/receipt.py"
       ],
       "must_exist_before_slot_fill": true
     }
@@ -69,7 +103,7 @@
     },
     {
       "method": "get",
-      "path": "/orders/{id}/receipt",
+      "path": "/orders/{order_id}",
       "status_code": 200,
       "auth_required": false,
       "description": "",
@@ -83,259 +117,62 @@
       ],
       "rules": [],
       "depends_on": [],
-      "response_fields": {}
+      "response_fields": {
+        "id": "int"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/receipts/{receipt_id}",
+      "status_code": 200,
+      "auth_required": false,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "receipt not found"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int"
+      }
     }
   ],
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-07",
-        "name": "Shopping Cart Backend",
-        "component": "backend",
-        "domain_tags": [
-          "auth",
-          "payment",
-          "product"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-05",
-        "name": "Inventory Management Backend",
-        "component": "backend",
-        "domain_tags": [
-          "product",
-          "admin"
-        ],
-        "ownership": "system"
-      },
-      {
         "id": "ENT-12",
-        "name": "Order History UI",
+        "name": "Order History & Receipts UI",
         "component": "frontend",
-        "domain_tags": [
-          "user",
-          "payment",
-          "analytics"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-08",
-        "name": "Shopping Cart UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "payment",
-          "product"
-        ],
+        "domain_tags": [],
         "ownership": "user-scoped"
       },
       {
         "id": "ENT-09",
-        "name": "Checkout Backend",
+        "name": "Checkout & Order Processing Backend",
         "component": "backend",
-        "domain_tags": [
-          "payment",
-          "product"
-        ],
+        "domain_tags": [],
         "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-06",
-        "name": "Inventory Management UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "product",
-          "admin"
-        ],
-        "ownership": "system"
-      },
-      {
-        "id": "ENT-02",
-        "name": "Auth UI",
-        "component": "frontend",
-        "domain_tags": [
-          "auth",
-          "user",
-          "file",
-          "admin",
-          "analytics"
-        ],
-        "ownership": "system"
-      },
-      {
-        "id": "ENT-03",
-        "name": "Product Catalog Backend",
-        "component": "backend",
-        "domain_tags": [
-          "payment",
-          "product",
-          "analytics"
-        ],
-        "ownership": "global"
-      },
-      {
-        "id": "ENT-01",
-        "name": "User Authentication Backend",
-        "component": "backend",
-        "domain_tags": [
-          "auth",
-          "user",
-          "admin",
-          "analytics"
-        ],
-        "ownership": "system"
-      },
-      {
-        "id": "ENT-10",
-        "name": "Checkout UI",
-        "component": "frontend",
-        "domain_tags": [
-          "user",
-          "payment"
-        ],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-04",
-        "name": "Product Catalog UI",
-        "component": "frontend",
-        "domain_tags": [
-          "product",
-          "ai_ml",
-          "analytics"
-        ],
-        "ownership": "global"
       }
     ],
     "edges": [
       {
         "from": "ENT-11",
         "to": "ENT-09",
-        "type": "depends_on",
+        "relationship_type": "service_call",
         "confidence": 1.0,
-        "reason": "Declared in entities.json"
+        "source": "declared"
       },
       {
         "from": "ENT-12",
         "to": "ENT-11",
-        "type": "depends_on",
+        "relationship_type": "api_call",
         "confidence": 1.0,
-        "reason": "Declared in entities.json"
-      },
-      {
-        "from": "ENT-10",
-        "to": "ENT-11",
-        "type": "depends_on",
-        "confidence": 0.8,
-        "reason": "Frontend likely consumes backend API (shared concepts: ['order'])"
-      },
-      {
-        "from": "ENT-01",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: User Authentication Backend likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-02",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Auth UI likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-06",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Inventory Management UI likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-08",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Shopping Cart UI likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-10",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Checkout UI likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-12",
-        "to": "ENT-11",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History UI likely owns Order History Backend"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-03",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Product Catalog Backend"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-04",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Product Catalog UI"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-05",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Inventory Management Backend"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-06",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Inventory Management UI"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-07",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Shopping Cart Backend"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-08",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Shopping Cart UI"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-10",
-        "type": "owns",
-        "confidence": 0.7,
-        "reason": "Heuristic: Order History Backend likely owns Checkout UI"
-      },
-      {
-        "from": "ENT-09",
-        "to": "ENT-11",
-        "type": "triggers",
-        "confidence": 0.65,
-        "reason": "Heuristic: Checkout Backend likely triggers Order History Backend"
-      },
-      {
-        "from": "ENT-10",
-        "to": "ENT-11",
-        "type": "triggers",
-        "confidence": 0.65,
-        "reason": "Heuristic: Checkout UI likely triggers Order History Backend"
+        "source": "declared"
       }
     ],
     "neighbor_files": []

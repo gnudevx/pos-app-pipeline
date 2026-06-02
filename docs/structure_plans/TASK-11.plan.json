@@ -2,10 +2,10 @@
   "schema_version": "1",
   "task_id": "TASK-11",
   "component": "backend",
-  "source_dir": "src/services/order_history_receipts_backend",
+  "source_dir": "src/services/order_history_backend",
   "files": [
     {
-      "path": "src/services/order_history_receipts_backend/app/main.py",
+      "path": "src/services/order_history_backend/app/main.py",
       "role": "service",
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-11",
@@ -13,33 +13,26 @@
         "src/services/auth_backend/app/main.py",
         "src/services/auth_backend/app/routes/auth.py",
         "src/services/auth_backend/app/models/user.py",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+        "src/frontend/src/api/cart.ts"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/order_history_receipts_backend/app/routes/orders.py",
+      "path": "src/services/order_history_backend/app/routes/orders.py",
       "role": "routes",
       "slot": "ROUTES_SLOT",
       "owned_by": "TASK-11",
       "imports_from": [
-        "src/services/order_history_receipts_backend/app/models/order.py",
-        "src/services/order_history_receipts_backend/app/models/receipt.py",
+        "src/services/order_history_backend/app/models/order.py",
         "src/services/auth_backend/app/main.py",
         "src/services/auth_backend/app/routes/auth.py",
         "src/services/auth_backend/app/models/user.py",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+        "src/frontend/src/api/cart.ts"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/order_history_receipts_backend/app/models/order.py",
+      "path": "src/services/order_history_backend/app/models/order.py",
       "role": "model",
       "slot": "MODEL_SLOT",
       "owned_by": "TASK-11",
@@ -47,31 +40,12 @@
         "src/services/auth_backend/app/main.py",
         "src/services/auth_backend/app/routes/auth.py",
         "src/services/auth_backend/app/models/user.py",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+        "src/frontend/src/api/cart.ts"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/order_history_receipts_backend/app/models/receipt.py",
-      "role": "model",
-      "slot": "MODEL_SLOT",
-      "owned_by": "TASK-11",
-      "imports_from": [
-        "src/services/auth_backend/app/main.py",
-        "src/services/auth_backend/app/routes/auth.py",
-        "src/services/auth_backend/app/models/user.py",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
-      ],
-      "must_exist_before_slot_fill": true
-    },
-    {
-      "path": "src/services/order_history_receipts_backend/requirements.txt",
+      "path": "src/services/order_history_backend/requirements.txt",
       "role": "config",
       "slot": null,
       "owned_by": "TASK-11",
@@ -79,10 +53,7 @@
         "src/services/auth_backend/app/main.py",
         "src/services/auth_backend/app/routes/auth.py",
         "src/services/auth_backend/app/models/user.py",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+        "src/frontend/src/api/cart.ts"
       ],
       "must_exist_before_slot_fill": true
     }
@@ -92,23 +63,55 @@
       "method": "get",
       "path": "/orders",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {},
-      "response_example": {},
+      "response_example": {
+        "items": [
+          {
+            "id": "int",
+            "user_id": "int",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int",
+                "price_at_purchase": "float"
+              }
+            ],
+            "total_price": "float",
+            "status": "str",
+            "created_at": "str"
+          }
+        ]
+      },
       "errors": [],
       "rules": [],
       "depends_on": [],
-      "response_fields": {}
+      "response_fields": {
+        "items": "list"
+      }
     },
     {
       "method": "get",
-      "path": "/orders/{order_id}",
+      "path": "/orders/{id}",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {},
-      "response_example": {},
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int",
+            "price_at_purchase": "float"
+          }
+        ],
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      },
       "errors": [
         {
           "status_code": 404,
@@ -118,58 +121,43 @@
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
-      }
-    },
-    {
-      "method": "get",
-      "path": "/receipts/{receipt_id}",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "receipt not found"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
+        "id": "int",
+        "user_id": "int",
+        "items": "list",
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
       }
     }
   ],
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-12",
-        "name": "Order History & Receipts UI",
-        "component": "frontend",
+        "id": "ENT-07",
+        "name": "Checkout & order processing backend",
+        "component": "backend",
         "domain_tags": [],
         "ownership": "user-scoped"
       },
       {
-        "id": "ENT-09",
-        "name": "Checkout & Order Processing Backend",
-        "component": "backend",
+        "id": "ENT-10",
+        "name": "Order history UI",
+        "component": "frontend",
         "domain_tags": [],
         "ownership": "user-scoped"
       }
     ],
     "edges": [
       {
-        "from": "ENT-11",
-        "to": "ENT-09",
+        "from": "ENT-09",
+        "to": "ENT-07",
         "relationship_type": "service_call",
         "confidence": 1.0,
         "source": "declared"
       },
       {
-        "from": "ENT-12",
-        "to": "ENT-11",
+        "from": "ENT-10",
+        "to": "ENT-09",
         "relationship_type": "api_call",
         "confidence": 1.0,
         "source": "declared"
@@ -178,6 +166,6 @@
     "neighbor_files": []
   },
   "entity_refs": [
-    "ENT-11"
+    "ENT-09"
   ]
 }

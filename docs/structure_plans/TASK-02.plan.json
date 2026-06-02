@@ -63,7 +63,7 @@
     "neighbors": [
       {
         "id": "ENT-01",
-        "name": "User Authentication Backend",
+        "name": "User authentication backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "system"

@@ -2,10 +2,10 @@
   "schema_version": "1",
   "task_id": "TASK-04",
   "component": "backend",
-  "source_dir": "src/services/inventory_management_backend",
+  "source_dir": "src/services/shopping_cart_backend",
   "files": [
     {
-      "path": "src/services/inventory_management_backend/app/main.py",
+      "path": "src/services/shopping_cart_backend/app/main.py",
       "role": "service",
       "slot": "SERVICE_SLOT",
       "owned_by": "TASK-04",
@@ -17,12 +17,12 @@
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/inventory_management_backend/app/routes/inventory.py",
+      "path": "src/services/shopping_cart_backend/app/routes/cart.py",
       "role": "routes",
       "slot": "ROUTES_SLOT",
       "owned_by": "TASK-04",
       "imports_from": [
-        "src/services/inventory_management_backend/app/models/inventory.py",
+        "src/services/shopping_cart_backend/app/models/cart.py",
         "src/services/auth_backend/app/main.py",
         "src/services/auth_backend/app/routes/auth.py",
         "src/services/auth_backend/app/models/user.py"
@@ -30,7 +30,7 @@
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/inventory_management_backend/app/models/inventory.py",
+      "path": "src/services/shopping_cart_backend/app/models/cart.py",
       "role": "model",
       "slot": "MODEL_SLOT",
       "owned_by": "TASK-04",
@@ -42,7 +42,7 @@
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/inventory_management_backend/requirements.txt",
+      "path": "src/services/shopping_cart_backend/requirements.txt",
       "role": "config",
       "slot": null,
       "owned_by": "TASK-04",
@@ -56,10 +56,129 @@
   ],
   "routes": [
     {
-      "method": "get",
-      "path": "/inventory",
+      "method": "post",
+      "path": "/cart/add",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
+      "description": "",
+      "request_body": {
+        "product_id": "int",
+        "quantity": "int"
+      },
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int"
+          }
+        ]
+      },
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        },
+        {
+          "status_code": 400,
+          "when": "invalid quantity"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int",
+        "user_id": "int",
+        "items": "list"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/cart/update/{item_id}",
+      "status_code": 200,
+      "auth_required": true,
+      "description": "",
+      "request_body": {
+        "quantity": "int"
+      },
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int"
+          }
+        ]
+      },
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "item not found in cart"
+        },
+        {
+          "status_code": 400,
+          "when": "invalid quantity"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int",
+        "user_id": "int",
+        "items": "list"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/cart/remove/{item_id}",
+      "status_code": 204,
+      "auth_required": true,
+      "description": "",
+      "request_body": {},
+      "response_example": {},
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "item not found in cart"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {}
+    },
+    {
+      "method": "get",
+      "path": "/cart",
+      "status_code": 200,
+      "auth_required": true,
+      "description": "",
+      "request_body": {},
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int"
+          }
+        ]
+      },
+      "errors": [],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int",
+        "user_id": "int",
+        "items": "list"
+      }
+    },
+    {
+      "method": "delete",
+      "path": "/cart/clear",
+      "status_code": 204,
+      "auth_required": true,
       "description": "",
       "request_body": {},
       "response_example": {},
@@ -67,86 +186,26 @@
       "rules": [],
       "depends_on": [],
       "response_fields": {}
-    },
-    {
-      "method": "get",
-      "path": "/inventory/{product_id}",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "inventory item not found"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
-      }
-    },
-    {
-      "method": "put",
-      "path": "/inventory/{product_id}/stock",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {
-        "quantity_change": "int"
-      },
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "inventory item not found"
-        },
-        {
-          "status_code": 400,
-          "when": "insufficient stock"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
-      }
     }
   ],
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-03",
-        "name": "Product Catalog Backend",
-        "component": "backend",
-        "domain_tags": [],
-        "ownership": "system"
-      },
-      {
         "id": "ENT-06",
-        "name": "Inventory Management UI",
+        "name": "Shopping cart UI",
         "component": "frontend",
         "domain_tags": [],
-        "ownership": "system"
+        "ownership": "user-scoped"
       },
       {
-        "id": "ENT-09",
-        "name": "Checkout & Order Processing Backend",
+        "id": "ENT-07",
+        "name": "Checkout & order processing backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "user-scoped"
       }
     ],
     "edges": [
-      {
-        "from": "ENT-05",
-        "to": "ENT-03",
-        "relationship_type": "service_call",
-        "confidence": 1.0,
-        "source": "declared"
-      },
       {
         "from": "ENT-06",
         "to": "ENT-05",
@@ -155,7 +214,7 @@
         "source": "declared"
       },
       {
-        "from": "ENT-09",
+        "from": "ENT-07",
         "to": "ENT-05",
         "relationship_type": "service_call",
         "confidence": 1.0,

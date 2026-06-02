@@ -5,30 +5,24 @@
   "source_dir": "src/frontend",
   "files": [
     {
-      "path": "src/frontend/src/pages/OrderHistoryPage.tsx",
+      "path": "src/frontend/src/pages/OrderList.tsx",
       "role": "page",
       "slot": "PAGE_SLOT",
       "owned_by": "TASK-12",
       "imports_from": [
         "src/frontend/src/api/orders.ts",
-        "src/services/order_history_receipts_backend/app/main.py",
-        "src/services/order_history_receipts_backend/app/routes/orders.py",
-        "src/services/order_history_receipts_backend/app/models/order.py",
-        "src/services/order_history_receipts_backend/app/models/receipt.py"
+        "src/frontend/src/api/inventory.ts"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/frontend/src/pages/ReceiptDetailPage.tsx",
+      "path": "src/frontend/src/pages/OrderDetail.tsx",
       "role": "page",
       "slot": "PAGE_SLOT",
       "owned_by": "TASK-12",
       "imports_from": [
         "src/frontend/src/api/orders.ts",
-        "src/services/order_history_receipts_backend/app/main.py",
-        "src/services/order_history_receipts_backend/app/routes/orders.py",
-        "src/services/order_history_receipts_backend/app/models/order.py",
-        "src/services/order_history_receipts_backend/app/models/receipt.py"
+        "src/frontend/src/api/inventory.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -38,10 +32,7 @@
       "slot": "API_CLIENT_SLOT",
       "owned_by": "TASK-12",
       "imports_from": [
-        "src/services/order_history_receipts_backend/app/main.py",
-        "src/services/order_history_receipts_backend/app/routes/orders.py",
-        "src/services/order_history_receipts_backend/app/models/order.py",
-        "src/services/order_history_receipts_backend/app/models/receipt.py"
+        "src/frontend/src/api/inventory.ts"
       ],
       "must_exist_before_slot_fill": true
     }
@@ -50,8 +41,8 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-11",
-        "name": "Order History & Receipts Backend",
+        "id": "ENT-09",
+        "name": "Order history & receipt management backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "user-scoped"
@@ -59,8 +50,8 @@
     ],
     "edges": [
       {
-        "from": "ENT-12",
-        "to": "ENT-11",
+        "from": "ENT-10",
+        "to": "ENT-09",
         "relationship_type": "api_call",
         "confidence": 1.0,
         "source": "declared"
@@ -69,6 +60,6 @@
     "neighbor_files": []
   },
   "entity_refs": [
-    "ENT-12"
+    "ENT-10"
   ]
 }

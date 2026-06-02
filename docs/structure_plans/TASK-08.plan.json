@@ -1,54 +1,148 @@
 {
   "schema_version": "1",
   "task_id": "TASK-08",
-  "component": "frontend",
-  "source_dir": "src/frontend",
+  "component": "backend",
+  "source_dir": "src/services/checkout_backend",
   "files": [
     {
-      "path": "src/frontend/src/pages/CartView.tsx",
-      "role": "page",
-      "slot": "PAGE_SLOT",
+      "path": "src/services/checkout_backend/app/main.py",
+      "role": "service",
+      "slot": "SERVICE_SLOT",
       "owned_by": "TASK-08",
       "imports_from": [
-        "src/frontend/src/api/cart.ts",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py"
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/frontend/src/api/products.ts",
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/frontend/src/components/CartItemCard.tsx",
-      "role": "component",
-      "slot": "COMPONENT_SLOT",
+      "path": "src/services/checkout_backend/app/routes/checkout.py",
+      "role": "routes",
+      "slot": "ROUTES_SLOT",
       "owned_by": "TASK-08",
       "imports_from": [
-        "src/frontend/src/api/cart.ts",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py"
+        "src/services/checkout_backend/app/models/order.py",
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/frontend/src/api/products.ts",
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/frontend/src/api/cart.ts",
-      "role": "api_client",
-      "slot": "API_CLIENT_SLOT",
+      "path": "src/services/checkout_backend/app/models/order.py",
+      "role": "model",
+      "slot": "MODEL_SLOT",
       "owned_by": "TASK-08",
       "imports_from": [
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py"
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/frontend/src/api/products.ts",
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
+      ],
+      "must_exist_before_slot_fill": true
+    },
+    {
+      "path": "src/services/checkout_backend/requirements.txt",
+      "role": "config",
+      "slot": null,
+      "owned_by": "TASK-08",
+      "imports_from": [
+        "src/services/auth_backend/app/main.py",
+        "src/services/auth_backend/app/routes/auth.py",
+        "src/services/auth_backend/app/models/user.py",
+        "src/frontend/src/api/products.ts",
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
       ],
       "must_exist_before_slot_fill": true
     }
   ],
-  "routes": [],
+  "routes": [
+    {
+      "method": "post",
+      "path": "/checkout",
+      "status_code": 201,
+      "auth_required": true,
+      "description": "",
+      "request_body": {
+        "cart_id": "int",
+        "payment_info": "str"
+      },
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int",
+            "price_at_purchase": "float"
+          }
+        ],
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      },
+      "errors": [
+        {
+          "status_code": 400,
+          "when": "invalid cart or payment info"
+        },
+        {
+          "status_code": 409,
+          "when": "insufficient stock"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int",
+        "user_id": "int",
+        "items": "list",
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      }
+    }
+  ],
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-07",
-        "name": "Shopping Cart Backend",
+        "id": "ENT-08",
+        "name": "Checkout UI",
+        "component": "frontend",
+        "domain_tags": [],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-11",
+        "name": "Inventory stock management backend",
+        "component": "backend",
+        "domain_tags": [],
+        "ownership": "system"
+      },
+      {
+        "id": "ENT-05",
+        "name": "Shopping cart management backend",
+        "component": "backend",
+        "domain_tags": [],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-09",
+        "name": "Order history & receipt management backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "user-scoped"
@@ -56,9 +150,30 @@
     ],
     "edges": [
       {
+        "from": "ENT-07",
+        "to": "ENT-05",
+        "relationship_type": "service_call",
+        "confidence": 1.0,
+        "source": "declared"
+      },
+      {
+        "from": "ENT-07",
+        "to": "ENT-11",
+        "relationship_type": "service_call",
+        "confidence": 1.0,
+        "source": "declared"
+      },
+      {
         "from": "ENT-08",
         "to": "ENT-07",
         "relationship_type": "api_call",
+        "confidence": 1.0,
+        "source": "declared"
+      },
+      {
+        "from": "ENT-09",
+        "to": "ENT-07",
+        "relationship_type": "service_call",
         "confidence": 1.0,
         "source": "declared"
       }
@@ -66,6 +181,6 @@
     "neighbor_files": []
   },
   "entity_refs": [
-    "ENT-08"
+    "ENT-07"
   ]
 }

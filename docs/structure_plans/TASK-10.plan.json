@@ -5,30 +5,14 @@
   "source_dir": "src/frontend",
   "files": [
     {
-      "path": "src/frontend/src/pages/CheckoutPage.tsx",
+      "path": "src/frontend/src/pages/Checkout.tsx",
       "role": "page",
       "slot": "PAGE_SLOT",
       "owned_by": "TASK-10",
       "imports_from": [
         "src/frontend/src/api/checkout.ts",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
-      ],
-      "must_exist_before_slot_fill": true
-    },
-    {
-      "path": "src/frontend/src/pages/OrderConfirmationPage.tsx",
-      "role": "page",
-      "slot": "PAGE_SLOT",
-      "owned_by": "TASK-10",
-      "imports_from": [
-        "src/frontend/src/api/checkout.ts",
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+        "src/frontend/src/api/products.ts",
+        "src/frontend/src/api/cart.ts"
       ],
       "must_exist_before_slot_fill": true
     },
@@ -38,10 +22,8 @@
       "slot": "API_CLIENT_SLOT",
       "owned_by": "TASK-10",
       "imports_from": [
-        "src/services/checkout_order_processing_backend/app/main.py",
-        "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py"
+        "src/frontend/src/api/products.ts",
+        "src/frontend/src/api/cart.ts"
       ],
       "must_exist_before_slot_fill": true
     }
@@ -50,8 +32,15 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-09",
-        "name": "Checkout & Order Processing Backend",
+        "id": "ENT-06",
+        "name": "Shopping cart UI",
+        "component": "frontend",
+        "domain_tags": [],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-07",
+        "name": "Checkout & order processing backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "user-scoped"
@@ -59,8 +48,15 @@
     ],
     "edges": [
       {
-        "from": "ENT-10",
-        "to": "ENT-09",
+        "from": "ENT-08",
+        "to": "ENT-06",
+        "relationship_type": "ui_dependency",
+        "confidence": 1.0,
+        "source": "declared"
+      },
+      {
+        "from": "ENT-08",
+        "to": "ENT-07",
         "relationship_type": "api_call",
         "confidence": 1.0,
         "source": "declared"
@@ -69,6 +65,6 @@
     "neighbor_files": []
   },
   "entity_refs": [
-    "ENT-10"
+    "ENT-08"
   ]
 }

@@ -31,9 +31,9 @@
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/frontend/src/components/ProductForm.tsx",
-      "role": "component",
-      "slot": "COMPONENT_SLOT",
+      "path": "src/frontend/src/pages/ProductForm.tsx",
+      "role": "page",
+      "slot": "PAGE_SLOT",
       "owned_by": "TASK-05",
       "imports_from": [
         "src/frontend/src/api/products.ts",
@@ -61,7 +61,7 @@
     "neighbors": [
       {
         "id": "ENT-03",
-        "name": "Product Catalog Backend",
+        "name": "Product catalog management backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "system"

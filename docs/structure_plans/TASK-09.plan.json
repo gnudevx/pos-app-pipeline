@@ -1,182 +1,64 @@
 {
   "schema_version": "1",
   "task_id": "TASK-09",
-  "component": "backend",
-  "source_dir": "src/services/checkout_order_processing_backend",
+  "component": "frontend",
+  "source_dir": "src/frontend",
   "files": [
     {
-      "path": "src/services/checkout_order_processing_backend/app/main.py",
-      "role": "service",
-      "slot": "SERVICE_SLOT",
+      "path": "src/frontend/src/pages/InventoryList.tsx",
+      "role": "page",
+      "slot": "PAGE_SLOT",
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/auth_backend/app/main.py",
-        "src/services/auth_backend/app/routes/auth.py",
-        "src/services/auth_backend/app/models/user.py",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py",
-        "src/frontend/src/api/products.ts"
+        "src/frontend/src/api/inventory.ts",
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-      "role": "routes",
-      "slot": "ROUTES_SLOT",
+      "path": "src/frontend/src/pages/InventoryAdjust.tsx",
+      "role": "page",
+      "slot": "PAGE_SLOT",
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/checkout_order_processing_backend/app/models/order.py",
-        "src/services/checkout_order_processing_backend/app/models/receipt.py",
-        "src/services/auth_backend/app/main.py",
-        "src/services/auth_backend/app/routes/auth.py",
-        "src/services/auth_backend/app/models/user.py",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py",
-        "src/frontend/src/api/products.ts"
+        "src/frontend/src/api/inventory.ts",
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
       ],
       "must_exist_before_slot_fill": true
     },
     {
-      "path": "src/services/checkout_order_processing_backend/app/models/order.py",
-      "role": "model",
-      "slot": "MODEL_SLOT",
+      "path": "src/frontend/src/api/inventory.ts",
+      "role": "api_client",
+      "slot": "API_CLIENT_SLOT",
       "owned_by": "TASK-09",
       "imports_from": [
-        "src/services/auth_backend/app/main.py",
-        "src/services/auth_backend/app/routes/auth.py",
-        "src/services/auth_backend/app/models/user.py",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py",
-        "src/frontend/src/api/products.ts"
-      ],
-      "must_exist_before_slot_fill": true
-    },
-    {
-      "path": "src/services/checkout_order_processing_backend/app/models/receipt.py",
-      "role": "model",
-      "slot": "MODEL_SLOT",
-      "owned_by": "TASK-09",
-      "imports_from": [
-        "src/services/auth_backend/app/main.py",
-        "src/services/auth_backend/app/routes/auth.py",
-        "src/services/auth_backend/app/models/user.py",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py",
-        "src/frontend/src/api/products.ts"
-      ],
-      "must_exist_before_slot_fill": true
-    },
-    {
-      "path": "src/services/checkout_order_processing_backend/requirements.txt",
-      "role": "config",
-      "slot": null,
-      "owned_by": "TASK-09",
-      "imports_from": [
-        "src/services/auth_backend/app/main.py",
-        "src/services/auth_backend/app/routes/auth.py",
-        "src/services/auth_backend/app/models/user.py",
-        "src/services/shopping_cart_backend/app/main.py",
-        "src/services/shopping_cart_backend/app/routes/cart.py",
-        "src/services/shopping_cart_backend/app/models/cart.py",
-        "src/frontend/src/api/products.ts"
+        "src/services/order_history_backend/app/main.py",
+        "src/services/order_history_backend/app/routes/orders.py",
+        "src/services/order_history_backend/app/models/order.py"
       ],
       "must_exist_before_slot_fill": true
     }
   ],
-  "routes": [
-    {
-      "method": "post",
-      "path": "/checkout",
-      "status_code": 201,
-      "auth_required": false,
-      "description": "",
-      "request_body": {
-        "idempotency_key": "str"
-      },
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 400,
-          "when": "cart is empty"
-        },
-        {
-          "status_code": 400,
-          "when": "insufficient stock for one or more items"
-        },
-        {
-          "status_code": 409,
-          "when": "duplicate request with same idempotency key"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int",
-        "total": "float"
-      }
-    }
-  ],
+  "routes": [],
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-07",
-        "name": "Shopping Cart Backend",
-        "component": "backend",
-        "domain_tags": [],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-10",
-        "name": "Checkout & Order Processing UI",
-        "component": "frontend",
-        "domain_tags": [],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-05",
-        "name": "Inventory Management Backend",
+        "id": "ENT-11",
+        "name": "Inventory stock management backend",
         "component": "backend",
         "domain_tags": [],
         "ownership": "system"
-      },
-      {
-        "id": "ENT-11",
-        "name": "Order History & Receipts Backend",
-        "component": "backend",
-        "domain_tags": [],
-        "ownership": "user-scoped"
       }
     ],
     "edges": [
       {
-        "from": "ENT-09",
-        "to": "ENT-07",
-        "relationship_type": "service_call",
-        "confidence": 1.0,
-        "source": "declared"
-      },
-      {
-        "from": "ENT-09",
-        "to": "ENT-05",
-        "relationship_type": "service_call",
-        "confidence": 1.0,
-        "source": "declared"
-      },
-      {
-        "from": "ENT-10",
-        "to": "ENT-09",
+        "from": "ENT-12",
+        "to": "ENT-11",
         "relationship_type": "api_call",
-        "confidence": 1.0,
-        "source": "declared"
-      },
-      {
-        "from": "ENT-11",
-        "to": "ENT-09",
-        "relationship_type": "service_call",
         "confidence": 1.0,
         "source": "declared"
       }
@@ -184,6 +66,6 @@
     "neighbor_files": []
   },
   "entity_refs": [
-    "ENT-09"
+    "ENT-12"
   ]
 }

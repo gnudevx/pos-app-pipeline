@@ -62,20 +62,38 @@
       "auth_required": false,
       "description": "",
       "request_body": {},
-      "response_example": {},
+      "response_example": {
+        "items": [
+          {
+            "id": "int",
+            "name": "str",
+            "description": "str",
+            "price": "float",
+            "stock": "int"
+          }
+        ]
+      },
       "errors": [],
       "rules": [],
       "depends_on": [],
-      "response_fields": {}
+      "response_fields": {
+        "items": "list"
+      }
     },
     {
       "method": "get",
-      "path": "/products/{product_id}",
+      "path": "/products/{id}",
       "status_code": 200,
       "auth_required": false,
       "description": "",
       "request_body": {},
-      "response_example": {},
+      "response_example": {
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
+      },
       "errors": [
         {
           "status_code": 404,
@@ -85,63 +103,92 @@
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
       }
     },
     {
       "method": "post",
       "path": "/products",
       "status_code": 201,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {
         "name": "str",
         "description": "str",
         "price": "float",
-        "initial_stock": "int"
+        "stock": "int"
       },
-      "response_example": {},
+      "response_example": {
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
+      },
       "errors": [
         {
-          "status_code": 409,
-          "when": "product with name already exists"
+          "status_code": 400,
+          "when": "invalid input"
         }
       ],
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
       }
     },
     {
       "method": "put",
-      "path": "/products/{product_id}",
+      "path": "/products/{id}",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {
         "name": "str",
         "description": "str",
-        "price": "float"
+        "price": "float",
+        "stock": "int"
       },
-      "response_example": {},
+      "response_example": {
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
+      },
       "errors": [
         {
           "status_code": 404,
           "when": "product not found"
+        },
+        {
+          "status_code": 400,
+          "when": "invalid input"
         }
       ],
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
+        "id": "int",
+        "name": "str",
+        "description": "str",
+        "price": "float",
+        "stock": "int"
       }
     },
     {
       "method": "delete",
-      "path": "/products/{product_id}",
+      "path": "/products/{id}",
       "status_code": 204,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {},
       "response_example": {},
@@ -159,23 +206,16 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-07",
-        "name": "Shopping Cart Backend",
+        "id": "ENT-11",
+        "name": "Inventory stock management backend",
         "component": "backend",
-        "domain_tags": [],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-04",
-        "name": "Product Catalog UI",
-        "component": "frontend",
         "domain_tags": [],
         "ownership": "system"
       },
       {
-        "id": "ENT-05",
-        "name": "Inventory Management Backend",
-        "component": "backend",
+        "id": "ENT-04",
+        "name": "Product catalog UI",
+        "component": "frontend",
         "domain_tags": [],
         "ownership": "system"
       }
@@ -189,14 +229,7 @@
         "source": "declared"
       },
       {
-        "from": "ENT-05",
-        "to": "ENT-03",
-        "relationship_type": "service_call",
-        "confidence": 1.0,
-        "source": "declared"
-      },
-      {
-        "from": "ENT-07",
+        "from": "ENT-11",
         "to": "ENT-03",
         "relationship_type": "service_call",
         "confidence": 1.0,

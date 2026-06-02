@@ -41,7 +41,8 @@
                   "status_code": 409,
                   "when": "email already exists"
                 }
-              ]
+              ],
+              "auth_required": false
             },
             {
               "method": "POST",
@@ -60,24 +61,24 @@
                   "status_code": 401,
                   "when": "wrong credentials"
                 }
-              ]
+              ],
+              "auth_required": false
             },
             {
               "method": "POST",
               "path": "/auth/refresh",
               "status_code": 200,
-              "request_body": {
-                "refresh_token": "str"
-              },
+              "request_body": {},
               "response_body": {
                 "token": "str"
               },
               "errors": [
                 {
                   "status_code": 401,
-                  "when": "invalid refresh token"
+                  "when": "invalid token"
                 }
-              ]
+              ],
+              "auth_required": true
             }
           ],
           "shared_types": [
@@ -88,12 +89,13 @@
           "sprint": 1,
           "priority": "P0",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Users can successfully sign up for a new account.",
-            "Users can log in with their credentials and receive an authentication token.",
-            "Users can log out, invalidating their session.",
-            "The system securely stores user credentials and manages session tokens."
+            "Users can log in with valid credentials.",
+            "Users receive an error message for invalid login attempts.",
+            "Users can log out of the system.",
+            "User sessions are securely managed."
           ],
           "api_contract": {
             "schema_version": "2.0",
@@ -108,7 +110,11 @@
                   "email": "str",
                   "password": "str"
                 },
-                "response_example": {},
+                "response_example": {
+                  "id": "int",
+                  "email": "str",
+                  "token": "str"
+                },
                 "errors": [
                   {
                     "status_code": 409,
@@ -118,7 +124,9 @@
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "id": "int",
+                  "email": "str",
+                  "token": "str"
                 }
               },
               {
@@ -131,7 +139,10 @@
                   "email": "str",
                   "password": "str"
                 },
-                "response_example": {},
+                "response_example": {
+                  "token": "str",
+                  "user_id": "int"
+                },
                 "errors": [
                   {
                     "status_code": 401,
@@ -141,40 +152,47 @@
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "access_token": "str",
-                  "token_type": "str"
+                  "token": "str",
+                  "user_id": "int"
                 }
               },
               {
                 "method": "post",
                 "path": "/auth/refresh",
                 "status_code": 200,
-                "auth_required": false,
+                "auth_required": true,
                 "description": "",
-                "request_body": {
-                  "refresh_token": "str"
+                "request_body": {},
+                "response_example": {
+                  "token": "str"
                 },
-                "response_example": {},
                 "errors": [
                   {
                     "status_code": 401,
-                    "when": "invalid refresh token"
+                    "when": "invalid token"
                   }
                 ],
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "token": "str"
                 }
               }
             ]
-          }
-        },
+          },
+          "branch": "feature/task-01-auth-backend"
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "name": "Core Features",
+      "tasks": [
         {
           "id": "TASK-02",
           "name": "Auth Frontend",
           "component": "frontend",
-          "description": "Login and signup pages, JWT token storage, auth state.",
+          "description": "Login and signup pages, JWT token storage, auth state",
           "entity_refs": [
             "ENT-02"
           ],
@@ -193,15 +211,16 @@
             "TASK-01"
           ],
           "summary": "Auth Frontend",
-          "sprint": 1,
+          "sprint": 2,
           "priority": "P1",
           "story_points": 5,
           "status": "TODO",
           "acceptance_criteria": [
             "Users can successfully sign up for a new account.",
-            "Users can log in with their credentials and receive an authentication token.",
-            "Users can log out, invalidating their session.",
-            "The system securely stores user credentials and manages session tokens."
+            "Users can log in with valid credentials.",
+            "Users receive an error message for invalid login attempts.",
+            "Users can log out of the system.",
+            "User sessions are securely managed."
           ],
           "api_contract": {
             "schema_version": "2.0",
@@ -212,7 +231,7 @@
           "id": "TASK-03",
           "name": "Product Catalog Backend",
           "component": "backend",
-          "description": "CRUD for product details. GET is public, POST/PUT/DELETE require authentication.",
+          "description": "Manages product data (name, price, stock). GET is public; POST/PUT/DELETE require JWT.",
           "entity_refs": [
             "ENT-03"
           ],
@@ -232,32 +251,36 @@
               "response_body": {
                 "items": [
                   {
-                    "id": "str",
+                    "id": "int",
                     "name": "str",
                     "description": "str",
-                    "price": "float"
+                    "price": "float",
+                    "stock": "int"
                   }
                 ]
               },
-              "errors": []
+              "errors": [],
+              "auth_required": false
             },
             {
               "method": "GET",
-              "path": "/products/{product_id}",
+              "path": "/products/{id}",
               "status_code": 200,
               "request_body": {},
               "response_body": {
-                "id": "str",
+                "id": "int",
                 "name": "str",
                 "description": "str",
-                "price": "float"
+                "price": "float",
+                "stock": "int"
               },
               "errors": [
                 {
                   "status_code": 404,
                   "when": "product not found"
                 }
-              ]
+              ],
+              "auth_required": false
             },
             {
               "method": "POST",
@@ -267,46 +290,55 @@
                 "name": "str",
                 "description": "str",
                 "price": "float",
-                "initial_stock": "int"
+                "stock": "int"
               },
               "response_body": {
-                "id": "str",
+                "id": "int",
                 "name": "str",
                 "description": "str",
-                "price": "float"
+                "price": "float",
+                "stock": "int"
               },
               "errors": [
                 {
-                  "status_code": 409,
-                  "when": "product with name already exists"
+                  "status_code": 400,
+                  "when": "invalid input"
                 }
-              ]
+              ],
+              "auth_required": true
             },
             {
               "method": "PUT",
-              "path": "/products/{product_id}",
+              "path": "/products/{id}",
               "status_code": 200,
               "request_body": {
                 "name": "str",
                 "description": "str",
-                "price": "float"
+                "price": "float",
+                "stock": "int"
               },
               "response_body": {
-                "id": "str",
+                "id": "int",
                 "name": "str",
                 "description": "str",
-                "price": "float"
+                "price": "float",
+                "stock": "int"
               },
               "errors": [
                 {
                   "status_code": 404,
                   "when": "product not found"
+                },
+                {
+                  "status_code": 400,
+                  "when": "invalid input"
                 }
-              ]
+              ],
+              "auth_required": true
             },
             {
               "method": "DELETE",
-              "path": "/products/{product_id}",
+              "path": "/products/{id}",
               "status_code": 204,
               "request_body": {},
               "response_body": {},
@@ -315,7 +347,8 @@
                   "status_code": 404,
                   "when": "product not found"
                 }
-              ]
+              ],
+              "auth_required": true
             }
           ],
           "shared_types": [
@@ -325,17 +358,17 @@
             "TASK-01"
           ],
           "summary": "Product Catalog Backend",
-          "sprint": 1,
+          "sprint": 2,
           "priority": "P0",
           "story_points": 5,
           "status": "TODO",
           "acceptance_criteria": [
-            "I can view a list of all products with their name, price, and current stock.",
-            "I can add new products to the catalog with initial stock.",
-            "I can edit existing product details (name, price).",
-            "I can update the stock level for any product.",
-            "I can delete products from the catalog.",
-            "The product catalog is searchable and filterable."
+            "Managers can view a list of all products.",
+            "Managers can search and filter products.",
+            "Managers can add new products with name, price, and initial stock.",
+            "Managers can edit existing product details.",
+            "Managers can view current stock levels for each product.",
+            "Managers can manually adjust stock levels for any product."
           ],
           "api_contract": {
             "schema_version": "2.0",
@@ -347,20 +380,38 @@
                 "auth_required": false,
                 "description": "",
                 "request_body": {},
-                "response_example": {},
+                "response_example": {
+                  "items": [
+                    {
+                      "id": "int",
+                      "name": "str",
+                      "description": "str",
+                      "price": "float",
+                      "stock": "int"
+                    }
+                  ]
+                },
                 "errors": [],
                 "rules": [],
                 "depends_on": [],
-                "response_fields": {}
+                "response_fields": {
+                  "items": "list"
+                }
               },
               {
                 "method": "get",
-                "path": "/products/{product_id}",
+                "path": "/products/{id}",
                 "status_code": 200,
                 "auth_required": false,
                 "description": "",
                 "request_body": {},
-                "response_example": {},
+                "response_example": {
+                  "id": "int",
+                  "name": "str",
+                  "description": "str",
+                  "price": "float",
+                  "stock": "int"
+                },
                 "errors": [
                   {
                     "status_code": 404,
@@ -370,63 +421,92 @@
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "id": "int",
+                  "name": "str",
+                  "description": "str",
+                  "price": "float",
+                  "stock": "int"
                 }
               },
               {
                 "method": "post",
                 "path": "/products",
                 "status_code": 201,
-                "auth_required": false,
+                "auth_required": true,
                 "description": "",
                 "request_body": {
                   "name": "str",
                   "description": "str",
                   "price": "float",
-                  "initial_stock": "int"
+                  "stock": "int"
                 },
-                "response_example": {},
+                "response_example": {
+                  "id": "int",
+                  "name": "str",
+                  "description": "str",
+                  "price": "float",
+                  "stock": "int"
+                },
                 "errors": [
                   {
-                    "status_code": 409,
-                    "when": "product with name already exists"
+                    "status_code": 400,
+                    "when": "invalid input"
                   }
                 ],
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "id": "int",
+                  "name": "str",
+                  "description": "str",
+                  "price": "float",
+                  "stock": "int"
                 }
               },
               {
                 "method": "put",
-                "path": "/products/{product_id}",
+                "path": "/products/{id}",
                 "status_code": 200,
-                "auth_required": false,
+                "auth_required": true,
                 "description": "",
                 "request_body": {
                   "name": "str",
                   "description": "str",
-                  "price": "float"
+                  "price": "float",
+                  "stock": "int"
                 },
-                "response_example": {},
+                "response_example": {
+                  "id": "int",
+                  "name": "str",
+                  "description": "str",
+                  "price": "float",
+                  "stock": "int"
+                },
                 "errors": [
                   {
                     "status_code": 404,
                     "when": "product not found"
+                  },
+                  {
+                    "status_code": 400,
+                    "when": "invalid input"
                   }
                 ],
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "id": "int",
+                  "name": "str",
+                  "description": "str",
+                  "price": "float",
+                  "stock": "int"
                 }
               },
               {
                 "method": "delete",
-                "path": "/products/{product_id}",
+                "path": "/products/{id}",
                 "status_code": 204,
-                "auth_required": false,
+                "auth_required": true,
                 "description": "",
                 "request_body": {},
                 "response_example": {},
@@ -441,254 +521,21 @@
                 "response_fields": {}
               }
             ]
-          }
-        },
-        {
-          "id": "TASK-04",
-          "name": "Inventory Management Backend",
-          "component": "backend",
-          "description": "View current stock levels and update stock for specific products. Requires authentication. Audit logs every write.",
-          "entity_refs": [
-            "ENT-05"
-          ],
-          "story_ref": "US-02",
-          "file_structure": [
-            "src/services/inventory_management_backend/app/main.py",
-            "src/services/inventory_management_backend/app/routes/inventory.py",
-            "src/services/inventory_management_backend/app/models/inventory.py",
-            "src/services/inventory_management_backend/requirements.txt"
-          ],
-          "api_routes": [
-            {
-              "method": "GET",
-              "path": "/inventory",
-              "status_code": 200,
-              "request_body": {},
-              "response_body": {
-                "items": [
-                  {
-                    "product_id": "str",
-                    "stock_level": "int"
-                  }
-                ]
-              },
-              "errors": []
-            },
-            {
-              "method": "GET",
-              "path": "/inventory/{product_id}",
-              "status_code": 200,
-              "request_body": {},
-              "response_body": {
-                "product_id": "str",
-                "stock_level": "int"
-              },
-              "errors": [
-                {
-                  "status_code": 404,
-                  "when": "inventory item not found"
-                }
-              ]
-            },
-            {
-              "method": "PUT",
-              "path": "/inventory/{product_id}/stock",
-              "status_code": 200,
-              "request_body": {
-                "quantity_change": "int"
-              },
-              "response_body": {
-                "product_id": "str",
-                "stock_level": "int"
-              },
-              "errors": [
-                {
-                  "status_code": 404,
-                  "when": "inventory item not found"
-                },
-                {
-                  "status_code": 400,
-                  "when": "insufficient stock"
-                }
-              ]
-            }
-          ],
-          "shared_types": [
-            "InventoryItem"
-          ],
-          "depends_on": [
-            "TASK-01"
-          ],
-          "summary": "Inventory Management Backend",
-          "sprint": 1,
-          "priority": "P0",
-          "story_points": 5,
-          "status": "TODO",
-          "acceptance_criteria": [
-            "I can view a list of all products with their name, price, and current stock.",
-            "I can add new products to the catalog with initial stock.",
-            "I can edit existing product details (name, price).",
-            "I can update the stock level for any product.",
-            "I can delete products from the catalog.",
-            "The product catalog is searchable and filterable."
-          ],
-          "api_contract": {
-            "schema_version": "2.0",
-            "routes": [
-              {
-                "method": "get",
-                "path": "/inventory",
-                "status_code": 200,
-                "auth_required": false,
-                "description": "",
-                "request_body": {},
-                "response_example": {},
-                "errors": [],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {}
-              },
-              {
-                "method": "get",
-                "path": "/inventory/{product_id}",
-                "status_code": 200,
-                "auth_required": false,
-                "description": "",
-                "request_body": {},
-                "response_example": {},
-                "errors": [
-                  {
-                    "status_code": 404,
-                    "when": "inventory item not found"
-                  }
-                ],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {
-                  "id": "int"
-                }
-              },
-              {
-                "method": "put",
-                "path": "/inventory/{product_id}/stock",
-                "status_code": 200,
-                "auth_required": false,
-                "description": "",
-                "request_body": {
-                  "quantity_change": "int"
-                },
-                "response_example": {},
-                "errors": [
-                  {
-                    "status_code": 404,
-                    "when": "inventory item not found"
-                  },
-                  {
-                    "status_code": 400,
-                    "when": "insufficient stock"
-                  }
-                ],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {
-                  "id": "int"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "id": "TASK-05",
-          "name": "Product Catalog UI",
-          "component": "frontend",
-          "description": "Display product list with search/filter, product details view, forms for adding new products and editing existing ones.",
-          "entity_refs": [
-            "ENT-04"
-          ],
-          "story_ref": "US-02",
-          "file_structure": [
-            "src/frontend/src/pages/ProductList.tsx",
-            "src/frontend/src/pages/ProductDetail.tsx",
-            "src/frontend/src/components/ProductForm.tsx",
-            "src/frontend/src/api/products.ts"
-          ],
-          "api_routes": [],
-          "shared_types": [
-            "Product"
-          ],
-          "depends_on": [
-            "TASK-03"
-          ],
-          "summary": "Product Catalog UI",
-          "sprint": 1,
-          "priority": "P1",
-          "story_points": 5,
-          "status": "TODO",
-          "acceptance_criteria": [
-            "I can view a list of all products with their name, price, and current stock.",
-            "I can add new products to the catalog with initial stock.",
-            "I can edit existing product details (name, price).",
-            "I can update the stock level for any product.",
-            "I can delete products from the catalog.",
-            "The product catalog is searchable and filterable."
-          ],
-          "api_contract": {
-            "schema_version": "2.0",
-            "routes": []
           }
         }
       ]
     },
     {
-      "number": 2,
-      "name": "Core Features",
+      "number": 3,
+      "name": "Integration",
       "tasks": [
         {
-          "id": "TASK-06",
-          "name": "Inventory Management UI",
-          "component": "frontend",
-          "description": "UI to view current stock levels for all products, and a dedicated interface to adjust stock for individual products.",
-          "entity_refs": [
-            "ENT-06"
-          ],
-          "story_ref": "US-02",
-          "file_structure": [
-            "src/frontend/src/pages/InventoryList.tsx",
-            "src/frontend/src/components/StockAdjustmentForm.tsx",
-            "src/frontend/src/api/inventory.ts"
-          ],
-          "api_routes": [],
-          "shared_types": [
-            "InventoryItem"
-          ],
-          "depends_on": [
-            "TASK-05"
-          ],
-          "summary": "Inventory Management UI",
-          "sprint": 2,
-          "priority": "P1",
-          "story_points": 5,
-          "status": "TODO",
-          "acceptance_criteria": [
-            "I can view a list of all products with their name, price, and current stock.",
-            "I can add new products to the catalog with initial stock.",
-            "I can edit existing product details (name, price).",
-            "I can update the stock level for any product.",
-            "I can delete products from the catalog.",
-            "The product catalog is searchable and filterable."
-          ],
-          "api_contract": {
-            "schema_version": "2.0",
-            "routes": []
-          }
-        },
-        {
-          "id": "TASK-07",
-          "name": "Shopping Cart Backend",
+          "id": "TASK-04",
+          "name": "Shopping Cart Management Backend",
           "component": "backend",
-          "description": "Manages in-session shopping cart items and quantities. Requires authentication. Cart data is transient.",
+          "description": "Manages items in a user's current shopping cart. Requires JWT for all operations. Cart data is transient.",
           "entity_refs": [
-            "ENT-07"
+            "ENT-05"
           ],
           "story_ref": "US-03",
           "file_structure": [
@@ -701,17 +548,20 @@
             {
               "method": "POST",
               "path": "/cart/add",
-              "status_code": 201,
+              "status_code": 200,
               "request_body": {
-                "product_id": "str",
+                "product_id": "int",
                 "quantity": "int"
               },
               "response_body": {
-                "item_id": "str",
-                "product_id": "str",
-                "name": "str",
-                "quantity": "int",
-                "price": "float"
+                "id": "int",
+                "user_id": "int",
+                "items": [
+                  {
+                    "product_id": "int",
+                    "quantity": "int"
+                  }
+                ]
               },
               "errors": [
                 {
@@ -720,9 +570,10 @@
                 },
                 {
                   "status_code": 400,
-                  "when": "insufficient stock"
+                  "when": "invalid quantity"
                 }
-              ]
+              ],
+              "auth_required": true
             },
             {
               "method": "PUT",
@@ -732,22 +583,26 @@
                 "quantity": "int"
               },
               "response_body": {
-                "item_id": "str",
-                "product_id": "str",
-                "name": "str",
-                "quantity": "int",
-                "price": "float"
+                "id": "int",
+                "user_id": "int",
+                "items": [
+                  {
+                    "product_id": "int",
+                    "quantity": "int"
+                  }
+                ]
               },
               "errors": [
                 {
                   "status_code": 404,
-                  "when": "cart item not found"
+                  "when": "item not found in cart"
                 },
                 {
                   "status_code": 400,
-                  "when": "insufficient stock"
+                  "when": "invalid quantity"
                 }
-              ]
+              ],
+              "auth_required": true
             },
             {
               "method": "DELETE",
@@ -758,9 +613,10 @@
               "errors": [
                 {
                   "status_code": 404,
-                  "when": "cart item not found"
+                  "when": "item not found in cart"
                 }
-              ]
+              ],
+              "auth_required": true
             },
             {
               "method": "GET",
@@ -768,42 +624,47 @@
               "status_code": 200,
               "request_body": {},
               "response_body": {
+                "id": "int",
+                "user_id": "int",
                 "items": [
                   {
-                    "item_id": "str",
-                    "product_id": "str",
-                    "name": "str",
-                    "quantity": "int",
-                    "price": "float"
+                    "product_id": "int",
+                    "quantity": "int"
                   }
                 ]
               },
-              "errors": []
+              "errors": [],
+              "auth_required": true
+            },
+            {
+              "method": "DELETE",
+              "path": "/cart/clear",
+              "status_code": 204,
+              "request_body": {},
+              "response_body": {},
+              "errors": [],
+              "auth_required": true
             }
           ],
           "shared_types": [
-            "CartItem",
-            "Product",
-            "InventoryItem"
+            "Cart",
+            "CartItem"
           ],
           "depends_on": [
-            "TASK-01",
-            "TASK-03",
-            "TASK-05"
+            "TASK-01"
           ],
-          "summary": "Shopping Cart Backend",
-          "sprint": 2,
+          "summary": "Shopping Cart Management Backend",
+          "sprint": 3,
           "priority": "P0",
           "story_points": 5,
           "status": "TODO",
           "acceptance_criteria": [
-            "I can add products to a customer's shopping cart.",
-            "I can adjust the quantity of items in the cart.",
-            "I can remove items from the cart.",
-            "The cart displays the total price of all items.",
-            "I can proceed to checkout and finalize the sale.",
-            "Upon checkout, inventory is automatically deducted.",
-            "A digital receipt is generated for each completed transaction."
+            "Cashiers can add products to the shopping cart.",
+            "Cashiers can increase or decrease the quantity of items in the cart.",
+            "Cashiers can remove items from the cart.",
+            "Cashiers can view the total price of items in the cart.",
+            "Cashiers can finalize a sale and process the checkout.",
+            "Upon successful checkout, a digital receipt is generated."
           ],
           "api_contract": {
             "schema_version": "2.0",
@@ -811,14 +672,305 @@
               {
                 "method": "post",
                 "path": "/cart/add",
-                "status_code": 201,
-                "auth_required": false,
+                "status_code": 200,
+                "auth_required": true,
                 "description": "",
                 "request_body": {
-                  "product_id": "str",
+                  "product_id": "int",
                   "quantity": "int"
                 },
+                "response_example": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": [
+                    {
+                      "product_id": "int",
+                      "quantity": "int"
+                    }
+                  ]
+                },
+                "errors": [
+                  {
+                    "status_code": 404,
+                    "when": "product not found"
+                  },
+                  {
+                    "status_code": 400,
+                    "when": "invalid quantity"
+                  }
+                ],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": "list"
+                }
+              },
+              {
+                "method": "put",
+                "path": "/cart/update/{item_id}",
+                "status_code": 200,
+                "auth_required": true,
+                "description": "",
+                "request_body": {
+                  "quantity": "int"
+                },
+                "response_example": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": [
+                    {
+                      "product_id": "int",
+                      "quantity": "int"
+                    }
+                  ]
+                },
+                "errors": [
+                  {
+                    "status_code": 404,
+                    "when": "item not found in cart"
+                  },
+                  {
+                    "status_code": 400,
+                    "when": "invalid quantity"
+                  }
+                ],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": "list"
+                }
+              },
+              {
+                "method": "delete",
+                "path": "/cart/remove/{item_id}",
+                "status_code": 204,
+                "auth_required": true,
+                "description": "",
+                "request_body": {},
                 "response_example": {},
+                "errors": [
+                  {
+                    "status_code": 404,
+                    "when": "item not found in cart"
+                  }
+                ],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {}
+              },
+              {
+                "method": "get",
+                "path": "/cart",
+                "status_code": 200,
+                "auth_required": true,
+                "description": "",
+                "request_body": {},
+                "response_example": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": [
+                    {
+                      "product_id": "int",
+                      "quantity": "int"
+                    }
+                  ]
+                },
+                "errors": [],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": "list"
+                }
+              },
+              {
+                "method": "delete",
+                "path": "/cart/clear",
+                "status_code": 204,
+                "auth_required": true,
+                "description": "",
+                "request_body": {},
+                "response_example": {},
+                "errors": [],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {}
+              }
+            ]
+          }
+        },
+        {
+          "id": "TASK-06",
+          "name": "Inventory Stock Management Backend",
+          "component": "backend",
+          "description": "Tracks and allows manual adjustment of product stock levels. Requires JWT. Audit logs every write.",
+          "entity_refs": [
+            "ENT-11"
+          ],
+          "story_ref": "US-02",
+          "file_structure": [
+            "src/services/inventory_backend/app/main.py",
+            "src/services/inventory_backend/app/routes/inventory.py",
+            "src/services/inventory_backend/app/models/inventory.py",
+            "src/services/inventory_backend/requirements.txt"
+          ],
+          "api_routes": [
+            {
+              "method": "GET",
+              "path": "/inventory",
+              "status_code": 200,
+              "request_body": {},
+              "response_body": {
+                "items": [
+                  {
+                    "product_id": "int",
+                    "stock": "int"
+                  }
+                ]
+              },
+              "errors": [],
+              "auth_required": true
+            },
+            {
+              "method": "PUT",
+              "path": "/inventory/{product_id}/adjust",
+              "status_code": 200,
+              "request_body": {
+                "change": "int"
+              },
+              "response_body": {
+                "product_id": "int",
+                "new_stock": "int"
+              },
+              "errors": [
+                {
+                  "status_code": 404,
+                  "when": "product not found"
+                },
+                {
+                  "status_code": 400,
+                  "when": "invalid change amount"
+                }
+              ],
+              "auth_required": true
+            },
+            {
+              "method": "PUT",
+              "path": "/inventory/{product_id}/deduct",
+              "status_code": 200,
+              "request_body": {
+                "quantity": "int"
+              },
+              "response_body": {
+                "product_id": "int",
+                "new_stock": "int"
+              },
+              "errors": [
+                {
+                  "status_code": 404,
+                  "when": "product not found"
+                },
+                {
+                  "status_code": 400,
+                  "when": "insufficient stock"
+                }
+              ],
+              "auth_required": true
+            }
+          ],
+          "shared_types": [
+            "InventoryItem"
+          ],
+          "depends_on": [
+            "TASK-01",
+            "TASK-03"
+          ],
+          "summary": "Inventory Stock Management Backend",
+          "sprint": 3,
+          "priority": "P0",
+          "story_points": 5,
+          "status": "TODO",
+          "acceptance_criteria": [
+            "Managers can view a list of all products.",
+            "Managers can search and filter products.",
+            "Managers can add new products with name, price, and initial stock.",
+            "Managers can edit existing product details.",
+            "Managers can view current stock levels for each product.",
+            "Managers can manually adjust stock levels for any product."
+          ],
+          "api_contract": {
+            "schema_version": "2.0",
+            "routes": [
+              {
+                "method": "get",
+                "path": "/inventory",
+                "status_code": 200,
+                "auth_required": true,
+                "description": "",
+                "request_body": {},
+                "response_example": {
+                  "items": [
+                    {
+                      "product_id": "int",
+                      "stock": "int"
+                    }
+                  ]
+                },
+                "errors": [],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {
+                  "items": "list"
+                }
+              },
+              {
+                "method": "put",
+                "path": "/inventory/{product_id}/adjust",
+                "status_code": 200,
+                "auth_required": true,
+                "description": "",
+                "request_body": {
+                  "change": "int"
+                },
+                "response_example": {
+                  "product_id": "int",
+                  "new_stock": "int"
+                },
+                "errors": [
+                  {
+                    "status_code": 404,
+                    "when": "product not found"
+                  },
+                  {
+                    "status_code": 400,
+                    "when": "invalid change amount"
+                  }
+                ],
+                "rules": [],
+                "depends_on": [],
+                "response_fields": {
+                  "product_id": "int",
+                  "new_stock": "int"
+                }
+              },
+              {
+                "method": "put",
+                "path": "/inventory/{product_id}/deduct",
+                "status_code": 200,
+                "auth_required": true,
+                "description": "",
+                "request_body": {
+                  "quantity": "int"
+                },
+                "response_example": {
+                  "product_id": "int",
+                  "new_stock": "int"
+                },
                 "errors": [
                   {
                     "status_code": 404,
@@ -832,251 +984,47 @@
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
-                }
-              },
-              {
-                "method": "put",
-                "path": "/cart/update/{item_id}",
-                "status_code": 200,
-                "auth_required": false,
-                "description": "",
-                "request_body": {
-                  "quantity": "int"
-                },
-                "response_example": {},
-                "errors": [
-                  {
-                    "status_code": 404,
-                    "when": "cart item not found"
-                  },
-                  {
-                    "status_code": 400,
-                    "when": "insufficient stock"
-                  }
-                ],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {
-                  "id": "int"
-                }
-              },
-              {
-                "method": "delete",
-                "path": "/cart/remove/{item_id}",
-                "status_code": 204,
-                "auth_required": false,
-                "description": "",
-                "request_body": {},
-                "response_example": {},
-                "errors": [
-                  {
-                    "status_code": 404,
-                    "when": "cart item not found"
-                  }
-                ],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {}
-              },
-              {
-                "method": "get",
-                "path": "/cart",
-                "status_code": 200,
-                "auth_required": false,
-                "description": "",
-                "request_body": {},
-                "response_example": {},
-                "errors": [],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {}
-              }
-            ]
-          }
-        },
-        {
-          "id": "TASK-08",
-          "name": "Shopping Cart UI",
-          "component": "frontend",
-          "description": "User interface to display current cart contents, adjust item quantities, and remove items from the cart.",
-          "entity_refs": [
-            "ENT-08"
-          ],
-          "story_ref": "US-03",
-          "file_structure": [
-            "src/frontend/src/pages/CartView.tsx",
-            "src/frontend/src/components/CartItemCard.tsx",
-            "src/frontend/src/api/cart.ts"
-          ],
-          "api_routes": [],
-          "shared_types": [
-            "CartItem"
-          ],
-          "depends_on": [
-            "TASK-07"
-          ],
-          "summary": "Shopping Cart UI",
-          "sprint": 2,
-          "priority": "P1",
-          "story_points": 5,
-          "status": "TODO",
-          "acceptance_criteria": [
-            "I can add products to a customer's shopping cart.",
-            "I can adjust the quantity of items in the cart.",
-            "I can remove items from the cart.",
-            "The cart displays the total price of all items.",
-            "I can proceed to checkout and finalize the sale.",
-            "Upon checkout, inventory is automatically deducted.",
-            "A digital receipt is generated for each completed transaction."
-          ],
-          "api_contract": {
-            "schema_version": "2.0",
-            "routes": []
-          }
-        },
-        {
-          "id": "TASK-09",
-          "name": "Checkout & Order Processing Backend",
-          "component": "backend",
-          "description": "Processes the current cart, creates a new order record, deducts inventory, and generates a unique receipt. Requires authentication. Uses atomic transactions, audit logs, and idempotency keys.",
-          "entity_refs": [
-            "ENT-09"
-          ],
-          "story_ref": "US-03",
-          "file_structure": [
-            "src/services/checkout_order_processing_backend/app/main.py",
-            "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-            "src/services/checkout_order_processing_backend/app/models/order.py",
-            "src/services/checkout_order_processing_backend/app/models/receipt.py",
-            "src/services/checkout_order_processing_backend/requirements.txt"
-          ],
-          "api_routes": [
-            {
-              "method": "POST",
-              "path": "/checkout",
-              "status_code": 201,
-              "request_body": {
-                "idempotency_key": "str"
-              },
-              "response_body": {
-                "order_id": "str",
-                "receipt_id": "str",
-                "total_amount": "float"
-              },
-              "errors": [
-                {
-                  "status_code": 400,
-                  "when": "cart is empty"
-                },
-                {
-                  "status_code": 400,
-                  "when": "insufficient stock for one or more items"
-                },
-                {
-                  "status_code": 409,
-                  "when": "duplicate request with same idempotency key"
-                }
-              ]
-            }
-          ],
-          "shared_types": [
-            "Order",
-            "Receipt",
-            "CartItem",
-            "InventoryItem"
-          ],
-          "depends_on": [
-            "TASK-01",
-            "TASK-07",
-            "TASK-05"
-          ],
-          "summary": "Checkout & Order Processing Backend",
-          "sprint": 2,
-          "priority": "P0",
-          "story_points": 5,
-          "status": "TODO",
-          "acceptance_criteria": [
-            "I can add products to a customer's shopping cart.",
-            "I can adjust the quantity of items in the cart.",
-            "I can remove items from the cart.",
-            "The cart displays the total price of all items.",
-            "I can proceed to checkout and finalize the sale.",
-            "Upon checkout, inventory is automatically deducted.",
-            "A digital receipt is generated for each completed transaction."
-          ],
-          "api_contract": {
-            "schema_version": "2.0",
-            "routes": [
-              {
-                "method": "post",
-                "path": "/checkout",
-                "status_code": 201,
-                "auth_required": false,
-                "description": "",
-                "request_body": {
-                  "idempotency_key": "str"
-                },
-                "response_example": {},
-                "errors": [
-                  {
-                    "status_code": 400,
-                    "when": "cart is empty"
-                  },
-                  {
-                    "status_code": 400,
-                    "when": "insufficient stock for one or more items"
-                  },
-                  {
-                    "status_code": 409,
-                    "when": "duplicate request with same idempotency key"
-                  }
-                ],
-                "rules": [],
-                "depends_on": [],
-                "response_fields": {
-                  "id": "int",
-                  "total": "float"
+                  "product_id": "int",
+                  "new_stock": "int"
                 }
               }
             ]
           }
         },
         {
-          "id": "TASK-10",
-          "name": "Checkout & Order Processing UI",
+          "id": "TASK-05",
+          "name": "Product Catalog UI",
           "component": "frontend",
-          "description": "User interface for the checkout flow, including payment simulation (for MVP) and an order confirmation screen.",
+          "description": "Displays product list with search/filter, and forms for adding/editing products.",
           "entity_refs": [
-            "ENT-10"
+            "ENT-04"
           ],
-          "story_ref": "US-03",
+          "story_ref": "US-02",
           "file_structure": [
-            "src/frontend/src/pages/CheckoutPage.tsx",
-            "src/frontend/src/pages/OrderConfirmationPage.tsx",
-            "src/frontend/src/api/checkout.ts"
+            "src/frontend/src/pages/ProductList.tsx",
+            "src/frontend/src/pages/ProductDetail.tsx",
+            "src/frontend/src/pages/ProductForm.tsx",
+            "src/frontend/src/api/products.ts"
           ],
           "api_routes": [],
           "shared_types": [
-            "Order",
-            "Receipt"
+            "Product"
           ],
           "depends_on": [
-            "TASK-09"
+            "TASK-03"
           ],
-          "summary": "Checkout & Order Processing UI",
-          "sprint": 2,
+          "summary": "Product Catalog UI",
+          "sprint": 3,
           "priority": "P1",
           "story_points": 5,
           "status": "TODO",
           "acceptance_criteria": [
-            "I can add products to a customer's shopping cart.",
-            "I can adjust the quantity of items in the cart.",
-            "I can remove items from the cart.",
-            "The cart displays the total price of all items.",
-            "I can proceed to checkout and finalize the sale.",
-            "Upon checkout, inventory is automatically deducted.",
-            "A digital receipt is generated for each completed transaction."
+            "Managers can view a list of all products.",
+            "Managers can search and filter products.",
+            "Managers can add new products with name, price, and initial stock.",
+            "Managers can edit existing product details.",
+            "Managers can view current stock levels for each product.",
+            "Managers can manually adjust stock levels for any product."
           ],
           "api_contract": {
             "schema_version": "2.0",
@@ -1086,24 +1034,69 @@
       ]
     },
     {
-      "number": 3,
-      "name": "Integration",
+      "number": 4,
+      "name": "Polish",
+      "tasks": [
+        {
+          "id": "TASK-07",
+          "name": "Shopping Cart UI",
+          "component": "frontend",
+          "description": "Displays current cart items, allows quantity adjustments, item removal, and clearing the cart.",
+          "entity_refs": [
+            "ENT-06"
+          ],
+          "story_ref": "US-03",
+          "file_structure": [
+            "src/frontend/src/pages/Cart.tsx",
+            "src/frontend/src/components/CartItem.tsx",
+            "src/frontend/src/api/cart.ts"
+          ],
+          "api_routes": [],
+          "shared_types": [
+            "Cart",
+            "CartItem"
+          ],
+          "depends_on": [
+            "TASK-05"
+          ],
+          "summary": "Shopping Cart UI",
+          "sprint": 4,
+          "priority": "P1",
+          "story_points": 5,
+          "status": "TODO",
+          "acceptance_criteria": [
+            "Cashiers can add products to the shopping cart.",
+            "Cashiers can increase or decrease the quantity of items in the cart.",
+            "Cashiers can remove items from the cart.",
+            "Cashiers can view the total price of items in the cart.",
+            "Cashiers can finalize a sale and process the checkout.",
+            "Upon successful checkout, a digital receipt is generated."
+          ],
+          "api_contract": {
+            "schema_version": "2.0",
+            "routes": []
+          }
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "name": "Deployment",
       "tasks": [
         {
           "id": "TASK-11",
-          "name": "Order History & Receipts Backend",
+          "name": "Order History & Receipt Management Backend",
           "component": "backend",
-          "description": "Stores and allows retrieval of past customer orders and their associated receipts. Requires authentication.",
+          "description": "Stores and retrieves past sales orders and their associated receipts. Requires JWT for all operations.",
           "entity_refs": [
-            "ENT-11"
+            "ENT-09"
           ],
           "story_ref": "US-04",
           "file_structure": [
-            "src/services/order_history_receipts_backend/app/main.py",
-            "src/services/order_history_receipts_backend/app/routes/orders.py",
-            "src/services/order_history_receipts_backend/app/models/order.py",
-            "src/services/order_history_receipts_backend/app/models/receipt.py",
-            "src/services/order_history_receipts_backend/requirements.txt"
+            "src/services/order_history_backend/app/main.py",
+            "src/services/order_history_backend/app/routes/orders.py",
+            "src/services/order_history_backend/app/models/order.py",
+            "src/services/order_history_backend/requirements.txt"
           ],
           "api_routes": [
             {
@@ -1114,88 +1107,68 @@
               "response_body": {
                 "items": [
                   {
-                    "id": "str",
+                    "id": "int",
                     "user_id": "int",
-                    "total_amount": "float",
+                    "items": [
+                      {
+                        "product_id": "int",
+                        "quantity": "int",
+                        "price_at_purchase": "float"
+                      }
+                    ],
+                    "total_price": "float",
                     "status": "str",
                     "created_at": "str"
                   }
                 ]
               },
-              "errors": []
+              "errors": [],
+              "auth_required": true
             },
             {
               "method": "GET",
-              "path": "/orders/{order_id}",
+              "path": "/orders/{id}",
               "status_code": 200,
               "request_body": {},
               "response_body": {
-                "id": "str",
+                "id": "int",
                 "user_id": "int",
                 "items": [
                   {
-                    "product_id": "str",
-                    "name": "str",
+                    "product_id": "int",
                     "quantity": "int",
-                    "price": "float"
+                    "price_at_purchase": "float"
                   }
                 ],
-                "total_amount": "float",
+                "total_price": "float",
                 "status": "str",
-                "created_at": "str",
-                "receipt_id": "str"
+                "created_at": "str"
               },
               "errors": [
                 {
                   "status_code": 404,
                   "when": "order not found"
                 }
-              ]
-            },
-            {
-              "method": "GET",
-              "path": "/receipts/{receipt_id}",
-              "status_code": 200,
-              "request_body": {},
-              "response_body": {
-                "id": "str",
-                "order_id": "str",
-                "user_id": "int",
-                "total_amount": "float",
-                "items_summary": [
-                  {
-                    "product_id": "str",
-                    "quantity": "int",
-                    "price": "float"
-                  }
-                ],
-                "generated_at": "str"
-              },
-              "errors": [
-                {
-                  "status_code": 404,
-                  "when": "receipt not found"
-                }
-              ]
+              ],
+              "auth_required": true
             }
           ],
           "shared_types": [
-            "Order",
-            "Receipt"
+            "Order"
           ],
           "depends_on": [
             "TASK-01",
-            "TASK-09"
+            "TASK-07"
           ],
-          "summary": "Order History & Receipts Backend",
-          "sprint": 3,
+          "summary": "Order History & Receipt Management Backend",
+          "sprint": 5,
           "priority": "P0",
           "story_points": 5,
           "status": "TODO",
           "acceptance_criteria": [
-            "I can view a list of all past sales orders.",
-            "I can view the detailed receipt for any specific order, including items purchased, quantities, and total price.",
-            "Orders are displayed with relevant information like date, total, and order ID."
+            "Users can view a list of all past sales orders.",
+            "Users can view the detailed receipt for any specific past order.",
+            "Receipts include product names, quantities, prices, and total amount."
           ],
           "api_contract": {
             "schema_version": "2.0",
@@ -1204,23 +1177,55 @@
                 "method": "get",
                 "path": "/orders",
                 "status_code": 200,
-                "auth_required": false,
+                "auth_required": true,
                 "description": "",
                 "request_body": {},
-                "response_example": {},
+                "response_example": {
+                  "items": [
+                    {
+                      "id": "int",
+                      "user_id": "int",
+                      "items": [
+                        {
+                          "product_id": "int",
+                          "quantity": "int",
+                          "price_at_purchase": "float"
+                        }
+                      ],
+                      "total_price": "float",
+                      "status": "str",
+                      "created_at": "str"
+                    }
+                  ]
+                },
                 "errors": [],
                 "rules": [],
                 "depends_on": [],
-                "response_fields": {}
+                "response_fields": {
+                  "items": "list"
+                }
               },
               {
                 "method": "get",
-                "path": "/orders/{order_id}",
+                "path": "/orders/{id}",
                 "status_code": 200,
-                "auth_required": false,
+                "auth_required": true,
                 "description": "",
                 "request_body": {},
-                "response_example": {},
+                "response_example": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": [
+                    {
+                      "product_id": "int",
+                      "quantity": "int",
+                      "price_at_purchase": "float"
+                    }
+                  ],
+                  "total_price": "float",
+                  "status": "str",
+                  "created_at": "str"
+                },
                 "errors": [
                   {
                     "status_code": 404,
@@ -1230,63 +1235,260 @@
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "id": "int",
+                  "user_id": "int",
+                  "items": "list",
+                  "total_price": "float",
+                  "status": "str",
+                  "created_at": "str"
                 }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "name": "Sprint 6",
+      "tasks": [
+        {
+          "id": "TASK-10",
+          "name": "Checkout UI",
+          "component": "frontend",
+          "description": "Provides the interface to review the cart and finalize a purchase.",
+          "entity_refs": [
+            "ENT-08"
+          ],
+          "story_ref": "US-03",
+          "file_structure": [
+            "src/frontend/src/pages/Checkout.tsx",
+            "src/frontend/src/api/checkout.ts"
+          ],
+          "api_routes": [],
+          "shared_types": [
+            "Order"
+          ],
+          "depends_on": [
+            "TASK-05",
+            "TASK-07"
+          ],
+          "summary": "Checkout UI",
+          "sprint": 6,
+          "priority": "P1",
+          "story_points": 5,
+          "status": "TODO",
+          "acceptance_criteria": [
+            "Cashiers can add products to the shopping cart.",
+            "Cashiers can increase or decrease the quantity of items in the cart.",
+            "Cashiers can remove items from the cart.",
+            "Cashiers can view the total price of items in the cart.",
+            "Cashiers can finalize a sale and process the checkout.",
+            "Upon successful checkout, a digital receipt is generated."
+          ],
+          "api_contract": {
+            "schema_version": "2.0",
+            "routes": []
+          }
+        },
+        {
+          "id": "TASK-08",
+          "name": "Checkout & Order Processing Backend",
+          "component": "backend",
+          "description": "Processes the cart into an order, deducts inventory, and generates a receipt. Requires JWT. Uses atomic transactions and idempotency keys. Audit logs every write.",
+          "entity_refs": [
+            "ENT-07"
+          ],
+          "story_ref": "US-03",
+          "file_structure": [
+            "src/services/checkout_backend/app/main.py",
+            "src/services/checkout_backend/app/routes/checkout.py",
+            "src/services/checkout_backend/app/models/order.py",
+            "src/services/checkout_backend/requirements.txt"
+          ],
+          "api_routes": [
+            {
+              "method": "POST",
+              "path": "/checkout",
+              "status_code": 201,
+              "request_body": {
+                "cart_id": "int",
+                "payment_info": "str"
               },
+              "response_body": {
+                "id": "int",
+                "user_id": "int",
+                "items": [
+                  {
+                    "product_id": "int",
+                    "quantity": "int",
+                    "price_at_purchase": "float"
+                  }
+                ],
+                "total_price": "float",
+                "status": "str",
+                "created_at": "str"
+              },
+              "errors": [
+                {
+                  "status_code": 400,
+                  "when": "invalid cart or payment info"
+                },
+                {
+                  "status_code": 409,
+                  "when": "insufficient stock"
+                }
+              ],
+              "auth_required": true
+            }
+          ],
+          "shared_types": [
+            "Order"
+          ],
+          "depends_on": [
+            "TASK-01",
+            "TASK-05",
+            "TASK-11"
+          ],
+          "summary": "Checkout & Order Processing Backend",
+          "sprint": 6,
+          "priority": "P0",
+          "story_points": 5,
+          "status": "TODO",
+          "acceptance_criteria": [
+            "Cashiers can add products to the shopping cart.",
+            "Cashiers can increase or decrease the quantity of items in the cart.",
+            "Cashiers can remove items from the cart.",
+            "Cashiers can view the total price of items in the cart.",
+            "Cashiers can finalize a sale and process the checkout.",
+            "Upon successful checkout, a digital receipt is generated."
+          ],
+          "api_contract": {
+            "schema_version": "2.0",
+            "routes": [
               {
-                "method": "get",
-                "path": "/receipts/{receipt_id}",
-                "status_code": 200,
-                "auth_required": false,
+                "method": "post",
+                "path": "/checkout",
+                "status_code": 201,
+                "auth_required": true,
                 "description": "",
-                "request_body": {},
-                "response_example": {},
+                "request_body": {
+                  "cart_id": "int",
+                  "payment_info": "str"
+                },
+                "response_example": {
+                  "id": "int",
+                  "user_id": "int",
+                  "items": [
+                    {
+                      "product_id": "int",
+                      "quantity": "int",
+                      "price_at_purchase": "float"
+                    }
+                  ],
+                  "total_price": "float",
+                  "status": "str",
+                  "created_at": "str"
+                },
                 "errors": [
                   {
-                    "status_code": 404,
-                    "when": "receipt not found"
+                    "status_code": 400,
+                    "when": "invalid cart or payment info"
+                  },
+                  {
+                    "status_code": 409,
+                    "when": "insufficient stock"
                   }
                 ],
                 "rules": [],
                 "depends_on": [],
                 "response_fields": {
-                  "id": "int"
+                  "id": "int",
+                  "user_id": "int",
+                  "items": "list",
+                  "total_price": "float",
+                  "status": "str",
+                  "created_at": "str"
                 }
               }
             ]
           }
         },
         {
-          "id": "TASK-12",
-          "name": "Order History & Receipts UI",
+          "id": "TASK-09",
+          "name": "Inventory Stock UI",
           "component": "frontend",
-          "description": "User interface to view a list of all past orders and detailed views for individual receipts.",
+          "description": "Interface for viewing current stock levels and manually adjusting product stock.",
           "entity_refs": [
             "ENT-12"
           ],
-          "story_ref": "US-04",
+          "story_ref": "US-02",
           "file_structure": [
-            "src/frontend/src/pages/OrderHistoryPage.tsx",
-            "src/frontend/src/pages/ReceiptDetailPage.tsx",
-            "src/frontend/src/api/orders.ts"
+            "src/frontend/src/pages/InventoryList.tsx",
+            "src/frontend/src/pages/InventoryAdjust.tsx",
+            "src/frontend/src/api/inventory.ts"
           ],
           "api_routes": [],
           "shared_types": [
-            "Order",
-            "Receipt"
+            "InventoryItem"
           ],
           "depends_on": [
             "TASK-11"
           ],
-          "summary": "Order History & Receipts UI",
-          "sprint": 3,
+          "summary": "Inventory Stock UI",
+          "sprint": 6,
           "priority": "P1",
           "story_points": 5,
           "status": "TODO",
           "acceptance_criteria": [
-            "I can view a list of all past sales orders.",
-            "I can view the detailed receipt for any specific order, including items purchased, quantities, and total price.",
-            "Orders are displayed with relevant information like date, total, and order ID."
+            "Managers can view a list of all products.",
+            "Managers can search and filter products.",
+            "Managers can add new products with name, price, and initial stock.",
+            "Managers can edit existing product details.",
+            "Managers can view current stock levels for each product.",
+            "Managers can manually adjust stock levels for any product."
+          ],
+          "api_contract": {
+            "schema_version": "2.0",
+            "routes": []
+          }
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "name": "Sprint 7",
+      "tasks": [
+        {
+          "id": "TASK-12",
+          "name": "Order History UI",
+          "component": "frontend",
+          "description": "Displays a list of past orders and individual receipt details.",
+          "entity_refs": [
+            "ENT-10"
+          ],
+          "story_ref": "US-04",
+          "file_structure": [
+            "src/frontend/src/pages/OrderList.tsx",
+            "src/frontend/src/pages/OrderDetail.tsx",
+            "src/frontend/src/api/orders.ts"
+          ],
+          "api_routes": [],
+          "shared_types": [
+            "Order"
+          ],
+          "depends_on": [
+            "TASK-09"
+          ],
+          "summary": "Order History UI",
+          "sprint": 7,
+          "priority": "P1",
+          "story_points": 5,
+          "status": "TODO",
+          "acceptance_criteria": [
+            "Users can view a list of all past sales orders.",
+            "Users can view the detailed receipt for any specific past order.",
+            "Receipts include product names, quantities, prices, and total amount."
           ],
           "api_contract": {
             "schema_version": "2.0",

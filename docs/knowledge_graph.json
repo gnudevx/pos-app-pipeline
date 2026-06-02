@@ -145,10 +145,10 @@
       "name": "Inventory stock UI",
       "component": "frontend",
       "complexity": "medium",
-      "canonical_domain": "general",
+      "canonical_domain": "inventory",
       "lifecycle": "persistent",
       "ownership": "system",
-      "security_level": "low",
+      "security_level": "high",
       "data_shape": "single",
       "mutation_type": "no_routes"
     }
@@ -295,16 +295,6 @@
     },
     {
       "id": "CLU-07",
-      "name": "General frontend",
-      "entities": [
-        "ENT-12"
-      ],
-      "canonical_domain": "general",
-      "component": "frontend",
-      "suggested_service": "general-frontend"
-    },
-    {
-      "id": "CLU-08",
       "name": "Inventory backend",
       "entities": [
         "ENT-11"
@@ -312,6 +302,16 @@
       "canonical_domain": "inventory",
       "component": "backend",
       "suggested_service": "inventory-backend"
+    },
+    {
+      "id": "CLU-08",
+      "name": "Inventory frontend",
+      "entities": [
+        "ENT-12"
+      ],
+      "canonical_domain": "inventory",
+      "component": "frontend",
+      "suggested_service": "inventory-frontend"
     },
     {
       "id": "CLU-09",

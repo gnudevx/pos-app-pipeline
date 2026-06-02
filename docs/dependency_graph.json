@@ -6,14 +6,14 @@
     "TASK-02",
     "TASK-03",
     "TASK-05",
-    "TASK-09",
     "TASK-04",
-    "TASK-07",
-    "TASK-06",
-    "TASK-10",
-    "TASK-08",
     "TASK-11",
-    "TASK-12"
+    "TASK-06",
+    "TASK-07",
+    "TASK-12",
+    "TASK-08",
+    "TASK-09",
+    "TASK-10"
   ],
   "parallel_groups": [
     [
@@ -22,21 +22,23 @@
     [
       "TASK-02",
       "TASK-03",
-      "TASK-05",
-      "TASK-09"
+      "TASK-05"
     ],
     [
       "TASK-04",
+      "TASK-11",
+      "TASK-06"
+    ],
+    [
       "TASK-07",
-      "TASK-06",
-      "TASK-10"
+      "TASK-12"
     ],
     [
       "TASK-08",
-      "TASK-11"
+      "TASK-09"
     ],
     [
-      "TASK-12"
+      "TASK-10"
     ]
   ],
   "nodes": [
@@ -80,7 +82,15 @@
     },
     {
       "from": "TASK-07",
-      "to": "TASK-03"
+      "to": "TASK-05"
+    },
+    {
+      "from": "TASK-07",
+      "to": "TASK-11"
+    },
+    {
+      "from": "TASK-08",
+      "to": "TASK-05"
     },
     {
       "from": "TASK-08",
@@ -89,6 +99,10 @@
     {
       "from": "TASK-09",
       "to": "TASK-01"
+    },
+    {
+      "from": "TASK-09",
+      "to": "TASK-07"
     },
     {
       "from": "TASK-10",
@@ -100,19 +114,7 @@
     },
     {
       "from": "TASK-11",
-      "to": "TASK-05"
-    },
-    {
-      "from": "TASK-11",
-      "to": "TASK-07"
-    },
-    {
-      "from": "TASK-11",
-      "to": "TASK-09"
-    },
-    {
-      "from": "TASK-12",
-      "to": "TASK-05"
+      "to": "TASK-03"
     },
     {
       "from": "TASK-12",

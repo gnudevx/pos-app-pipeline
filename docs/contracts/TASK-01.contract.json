@@ -24,7 +24,11 @@
         "email": "str",
         "password": "str"
       },
-      "response_example": {},
+      "response_example": {
+        "id": "int",
+        "email": "str",
+        "token": "str"
+      },
       "errors": [
         {
           "status_code": 409,
@@ -34,7 +38,9 @@
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
+        "id": "int",
+        "email": "str",
+        "token": "str"
       }
     },
     {
@@ -47,7 +53,10 @@
         "email": "str",
         "password": "str"
       },
-      "response_example": {},
+      "response_example": {
+        "token": "str",
+        "user_id": "int"
+      },
       "errors": [
         {
           "status_code": 401,
@@ -57,30 +66,30 @@
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "access_token": "str",
-        "token_type": "str"
+        "token": "str",
+        "user_id": "int"
       }
     },
     {
       "method": "post",
       "path": "/auth/refresh",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
-      "request_body": {
-        "refresh_token": "str"
+      "request_body": {},
+      "response_example": {
+        "token": "str"
       },
-      "response_example": {},
       "errors": [
         {
           "status_code": 401,
-          "when": "invalid refresh token"
+          "when": "invalid token"
         }
       ],
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
+        "token": "str"
       }
     }
   ],

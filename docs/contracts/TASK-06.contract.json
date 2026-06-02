@@ -2,16 +2,100 @@
   "schema_version": "2.0",
   "task_id": "TASK-06",
   "domain": "",
-  "component": "frontend",
+  "component": "backend",
   "layer": "",
-  "summary": "Inventory Management UI",
-  "source_dir": "src/frontend",
-  "routes_dir": "src/frontend/src",
+  "summary": "Inventory Stock Management Backend",
+  "source_dir": "src/services/inventory_backend",
+  "routes_dir": "src/services/inventory_backend/app/routes",
   "file_structure": [
-    "src/frontend/src/pages/InventoryList.tsx",
-    "src/frontend/src/components/StockAdjustmentForm.tsx",
-    "src/frontend/src/api/inventory.ts"
+    "src/services/inventory_backend/app/main.py",
+    "src/services/inventory_backend/app/routes/inventory.py",
+    "src/services/inventory_backend/app/models/inventory.py",
+    "src/services/inventory_backend/requirements.txt"
   ],
-  "routes": [],
+  "routes": [
+    {
+      "method": "get",
+      "path": "/inventory",
+      "status_code": 200,
+      "auth_required": true,
+      "description": "",
+      "request_body": {},
+      "response_example": {
+        "items": [
+          {
+            "product_id": "int",
+            "stock": "int"
+          }
+        ]
+      },
+      "errors": [],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "items": "list"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/inventory/{product_id}/adjust",
+      "status_code": 200,
+      "auth_required": true,
+      "description": "",
+      "request_body": {
+        "change": "int"
+      },
+      "response_example": {
+        "product_id": "int",
+        "new_stock": "int"
+      },
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        },
+        {
+          "status_code": 400,
+          "when": "invalid change amount"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "product_id": "int",
+        "new_stock": "int"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/inventory/{product_id}/deduct",
+      "status_code": 200,
+      "auth_required": true,
+      "description": "",
+      "request_body": {
+        "quantity": "int"
+      },
+      "response_example": {
+        "product_id": "int",
+        "new_stock": "int"
+      },
+      "errors": [
+        {
+          "status_code": 404,
+          "when": "product not found"
+        },
+        {
+          "status_code": 400,
+          "when": "insufficient stock"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "product_id": "int",
+        "new_stock": "int"
+      }
+    }
+  ],
   "artifacts": []
 }

@@ -2,50 +2,16 @@
   "schema_version": "2.0",
   "task_id": "TASK-09",
   "domain": "",
-  "component": "backend",
+  "component": "frontend",
   "layer": "",
-  "summary": "Checkout & Order Processing Backend",
-  "source_dir": "src/services/checkout_order_processing_backend",
-  "routes_dir": "src/services/checkout_order_processing_backend/app/routes",
+  "summary": "Inventory Stock UI",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
   "file_structure": [
-    "src/services/checkout_order_processing_backend/app/main.py",
-    "src/services/checkout_order_processing_backend/app/routes/checkout.py",
-    "src/services/checkout_order_processing_backend/app/models/order.py",
-    "src/services/checkout_order_processing_backend/app/models/receipt.py",
-    "src/services/checkout_order_processing_backend/requirements.txt"
+    "src/frontend/src/pages/InventoryList.tsx",
+    "src/frontend/src/pages/InventoryAdjust.tsx",
+    "src/frontend/src/api/inventory.ts"
   ],
-  "routes": [
-    {
-      "method": "post",
-      "path": "/checkout",
-      "status_code": 201,
-      "auth_required": false,
-      "description": "",
-      "request_body": {
-        "idempotency_key": "str"
-      },
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 400,
-          "when": "cart is empty"
-        },
-        {
-          "status_code": 400,
-          "when": "insufficient stock for one or more items"
-        },
-        {
-          "status_code": 409,
-          "when": "duplicate request with same idempotency key"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int",
-        "total": "float"
-      }
-    }
-  ],
+  "routes": [],
   "artifacts": []
 }

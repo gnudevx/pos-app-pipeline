@@ -10,7 +10,7 @@
   "file_structure": [
     "src/frontend/src/pages/ProductList.tsx",
     "src/frontend/src/pages/ProductDetail.tsx",
-    "src/frontend/src/components/ProductForm.tsx",
+    "src/frontend/src/pages/ProductForm.tsx",
     "src/frontend/src/api/products.ts"
   ],
   "routes": [],

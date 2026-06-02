@@ -4,12 +4,12 @@
   "domain": "",
   "component": "frontend",
   "layer": "",
-  "summary": "Order History & Receipts UI",
+  "summary": "Order History UI",
   "source_dir": "src/frontend",
   "routes_dir": "src/frontend/src",
   "file_structure": [
-    "src/frontend/src/pages/OrderHistoryPage.tsx",
-    "src/frontend/src/pages/ReceiptDetailPage.tsx",
+    "src/frontend/src/pages/OrderList.tsx",
+    "src/frontend/src/pages/OrderDetail.tsx",
     "src/frontend/src/api/orders.ts"
   ],
   "routes": [],

@@ -2,16 +2,63 @@
   "schema_version": "2.0",
   "task_id": "TASK-08",
   "domain": "",
-  "component": "frontend",
+  "component": "backend",
   "layer": "",
-  "summary": "Shopping Cart UI",
-  "source_dir": "src/frontend",
-  "routes_dir": "src/frontend/src",
+  "summary": "Checkout & Order Processing Backend",
+  "source_dir": "src/services/checkout_backend",
+  "routes_dir": "src/services/checkout_backend/app/routes",
   "file_structure": [
-    "src/frontend/src/pages/CartView.tsx",
-    "src/frontend/src/components/CartItemCard.tsx",
-    "src/frontend/src/api/cart.ts"
+    "src/services/checkout_backend/app/main.py",
+    "src/services/checkout_backend/app/routes/checkout.py",
+    "src/services/checkout_backend/app/models/order.py",
+    "src/services/checkout_backend/requirements.txt"
   ],
-  "routes": [],
+  "routes": [
+    {
+      "method": "post",
+      "path": "/checkout",
+      "status_code": 201,
+      "auth_required": true,
+      "description": "",
+      "request_body": {
+        "cart_id": "int",
+        "payment_info": "str"
+      },
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int",
+            "price_at_purchase": "float"
+          }
+        ],
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      },
+      "errors": [
+        {
+          "status_code": 400,
+          "when": "invalid cart or payment info"
+        },
+        {
+          "status_code": 409,
+          "when": "insufficient stock"
+        }
+      ],
+      "rules": [],
+      "depends_on": [],
+      "response_fields": {
+        "id": "int",
+        "user_id": "int",
+        "items": "list",
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      }
+    }
+  ],
   "artifacts": []
 }

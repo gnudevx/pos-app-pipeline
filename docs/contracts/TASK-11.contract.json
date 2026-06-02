@@ -4,38 +4,69 @@
   "domain": "",
   "component": "backend",
   "layer": "",
-  "summary": "Order History & Receipts Backend",
-  "source_dir": "src/services/order_history_receipts_backend",
-  "routes_dir": "src/services/order_history_receipts_backend/app/routes",
+  "summary": "Order History & Receipt Management Backend",
+  "source_dir": "src/services/order_history_backend",
+  "routes_dir": "src/services/order_history_backend/app/routes",
   "file_structure": [
-    "src/services/order_history_receipts_backend/app/main.py",
-    "src/services/order_history_receipts_backend/app/routes/orders.py",
-    "src/services/order_history_receipts_backend/app/models/order.py",
-    "src/services/order_history_receipts_backend/app/models/receipt.py",
-    "src/services/order_history_receipts_backend/requirements.txt"
+    "src/services/order_history_backend/app/main.py",
+    "src/services/order_history_backend/app/routes/orders.py",
+    "src/services/order_history_backend/app/models/order.py",
+    "src/services/order_history_backend/requirements.txt"
   ],
   "routes": [
     {
       "method": "get",
       "path": "/orders",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {},
-      "response_example": {},
+      "response_example": {
+        "items": [
+          {
+            "id": "int",
+            "user_id": "int",
+            "items": [
+              {
+                "product_id": "int",
+                "quantity": "int",
+                "price_at_purchase": "float"
+              }
+            ],
+            "total_price": "float",
+            "status": "str",
+            "created_at": "str"
+          }
+        ]
+      },
       "errors": [],
       "rules": [],
       "depends_on": [],
-      "response_fields": {}
+      "response_fields": {
+        "items": "list"
+      }
     },
     {
       "method": "get",
-      "path": "/orders/{order_id}",
+      "path": "/orders/{id}",
       "status_code": 200,
-      "auth_required": false,
+      "auth_required": true,
       "description": "",
       "request_body": {},
-      "response_example": {},
+      "response_example": {
+        "id": "int",
+        "user_id": "int",
+        "items": [
+          {
+            "product_id": "int",
+            "quantity": "int",
+            "price_at_purchase": "float"
+          }
+        ],
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
+      },
       "errors": [
         {
           "status_code": 404,
@@ -45,27 +76,12 @@
       "rules": [],
       "depends_on": [],
       "response_fields": {
-        "id": "int"
-      }
-    },
-    {
-      "method": "get",
-      "path": "/receipts/{receipt_id}",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "receipt not found"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
+        "id": "int",
+        "user_id": "int",
+        "items": "list",
+        "total_price": "float",
+        "status": "str",
+        "created_at": "str"
       }
     }
   ],

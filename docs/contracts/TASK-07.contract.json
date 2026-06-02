@@ -2,102 +2,16 @@
   "schema_version": "2.0",
   "task_id": "TASK-07",
   "domain": "",
-  "component": "backend",
+  "component": "frontend",
   "layer": "",
-  "summary": "Shopping Cart Backend",
-  "source_dir": "src/services/shopping_cart_backend",
-  "routes_dir": "src/services/shopping_cart_backend/app/routes",
+  "summary": "Shopping Cart UI",
+  "source_dir": "src/frontend",
+  "routes_dir": "src/frontend/src",
   "file_structure": [
-    "src/services/shopping_cart_backend/app/main.py",
-    "src/services/shopping_cart_backend/app/routes/cart.py",
-    "src/services/shopping_cart_backend/app/models/cart.py",
-    "src/services/shopping_cart_backend/requirements.txt"
+    "src/frontend/src/pages/Cart.tsx",
+    "src/frontend/src/components/CartItem.tsx",
+    "src/frontend/src/api/cart.ts"
   ],
-  "routes": [
-    {
-      "method": "post",
-      "path": "/cart/add",
-      "status_code": 201,
-      "auth_required": false,
-      "description": "",
-      "request_body": {
-        "product_id": "str",
-        "quantity": "int"
-      },
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "product not found"
-        },
-        {
-          "status_code": 400,
-          "when": "insufficient stock"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
-      }
-    },
-    {
-      "method": "put",
-      "path": "/cart/update/{item_id}",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {
-        "quantity": "int"
-      },
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "cart item not found"
-        },
-        {
-          "status_code": 400,
-          "when": "insufficient stock"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {
-        "id": "int"
-      }
-    },
-    {
-      "method": "delete",
-      "path": "/cart/remove/{item_id}",
-      "status_code": 204,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [
-        {
-          "status_code": 404,
-          "when": "cart item not found"
-        }
-      ],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {}
-    },
-    {
-      "method": "get",
-      "path": "/cart",
-      "status_code": 200,
-      "auth_required": false,
-      "description": "",
-      "request_body": {},
-      "response_example": {},
-      "errors": [],
-      "rules": [],
-      "depends_on": [],
-      "response_fields": {}
-    }
-  ],
+  "routes": [],
   "artifacts": []
 }

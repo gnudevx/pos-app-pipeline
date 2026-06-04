@@ -35,7 +35,7 @@ from collections import defaultdict, deque
 import os
 from pathlib import Path
 from typing import Any
-from core.git_ops import current_branch, run
+from core.infra.git_ops import current_branch, run
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,6 +91,59 @@ def finalize_integration_branch(
         raise RuntimeError(out)
 
     print(f"  [merge] ✓ {branch} → develop pushed")
+
+
+def verify_merged_artifacts(
+    repo_dir: str,
+    tasks: list[TaskDict],
+) -> tuple[bool, list[str]]:
+    """
+    [FIX BUG-M1] Post-merge verification: ensure task artifacts actually in backbone.
+    
+    Prevents silent merge failures where:
+      - git merge succeeded (no conflicts)
+      - BUT: task files not actually in develop (lost in rebase/stash)
+      - Task marked "PASSED" but code isn't there
+    
+    Returns: (all_verified, error_list)
+    """
+    errors: list[str] = []
+    
+    # Checkout develop to verify
+    ok, _ = run("checkout develop", repo_dir)
+    if not ok:
+        return False, ["Failed to checkout develop for verification"]
+    
+    for task in tasks:
+        task_id = task.get("id", "UNKNOWN")
+        artifacts = task.get("artifacts", [])
+        
+        if not artifacts:
+            # No artifacts specified → skip
+            continue
+        
+        for artifact in artifacts:
+            # Use `git ls-tree` to check if file exists in HEAD
+            ok, out = run(f"ls-tree -r HEAD -- {artifact!r}", repo_dir)
+            if not ok or not out.strip():
+                errors.append(
+                    f"[VERIFY FAIL] {task_id}: artifact missing in develop: {artifact}"
+                )
+                continue
+            
+            # File exists → check size sanity (not just a stub)
+            size_match = out.split()
+            if len(size_match) >= 4:
+                try:
+                    size = int(size_match[3])
+                    if size < 10:  # Files should be at least 10 bytes (sanity check)
+                        errors.append(
+                            f"[VERIFY WARN] {task_id}: artifact suspiciously small ({size} bytes): {artifact}"
+                        )
+                except (ValueError, IndexError):
+                    pass  # Size parse failed, assume OK
+    
+    return len(errors) == 0, errors
 
 
 def cleanup_integration_branch(

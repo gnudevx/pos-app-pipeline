@@ -252,7 +252,7 @@ def generate_patch(
     Returns unified diff string, hoặc "CANNOT_PATCH" nếu không thể fix.
     Raises RuntimeError nếu tất cả keys đều exhausted.
     """
-    import core.ai_client as ai_client
+    import core.infra.ai_client as ai_client
     related_files = extract_related_files(error_log)
     context = load_file_context(repo_dir, related_files)
     print(f"  [self_healing] Context loaded: {len(context)} chars for files {related_files}")
@@ -466,7 +466,7 @@ def run_self_healing_loop(
                     f"{app_context}"
                 )
                 # Dùng lại generate_patch infrastructure — gọi ai_client trực tiếp
-                import core.ai_client as ai_client
+                import core.infra.ai_client as ai_client
                 file_content = ai_client.call(
                     api_keys=GEMINI_API_KEYS,
                     system_prompt="You are an expert React TypeScript developer. Return only code.",

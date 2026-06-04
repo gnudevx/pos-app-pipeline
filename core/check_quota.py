@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check Gemini API quota status cho tung key."""
 from google import genai
-from core.config import GEMINI_API_KEYS
+from config import GEMINI_API_KEYS
 
 def check_key(index, api_key):
     print(f"\n🔍 Key {index + 1}: {api_key[:12]}...")

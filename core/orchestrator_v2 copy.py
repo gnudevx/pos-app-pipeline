@@ -8,21 +8,22 @@ import os
 import sys
 import time
 import datetime
+import urllib.request
+import urllib.error
 import base64
 from state_manager import (
     set_task_state,
     can_execute,
     print_state_summary
 )
-from pipeline.routers import run_agent
+from core.adapter_v2_draft import run_agent
 from config import POS_APP_DIR
-from pipeline.signal_parser import parse_test_signal as _parse_test_signal
-
+import core.contracts.parser as p
 DOCS_DIR = "docs"
 BUGS_DIR = os.path.join(DOCS_DIR, "bugs")
 MAX_RETRY = 3
-from infra.smart_scaffold import write_frontend_infra_once
-from infra.git_ops import (
+from core.infra.smart_scaffold import write_frontend_infra_once
+from core.infra.git_ops import (
     init_repo_if_needed,
     make_branch_name,
     run,  # import thêm hàm run từ git_ops để điều phối nhánh cục bộ
@@ -30,13 +31,7 @@ from infra.git_ops import (
     finalize_and_merge
 )
 
-from pipeline.jira_sync import (
-    jira_update_status,
-    jira_add_pr_link,
-    sync_tasks_to_jira,
-)
-
-# ── Jira helpers (moved to core/pipeline/jira_sync.py) ───────────────────────
+# ── Jira helpers ─────────────────────────────────────────
 def log_step(
     task_id,
     step,
@@ -69,6 +64,161 @@ def _headers(email, token):
         "Accept": "application/json",
         "Content-Type": "application/json",
     }
+
+
+def jira_get_project_key():
+    url, email, token = _jira_cfg()
+    if not url:
+        return None
+    req = urllib.request.Request(
+        f"{url}/rest/api/3/project",
+        headers=_headers(email, token)
+    )
+    with urllib.request.urlopen(req) as r:
+        projects = json.loads(r.read())
+    pos = next((p for p in projects if p["key"] == "PA"), projects[0])
+    return pos["key"]
+
+
+def jira_create_sprint(project_key, sprint_name, sprint_number):
+    """Tao Sprint that tren Jira board."""
+    url, email, token = _jira_cfg()
+    if not url:
+        return None
+
+    req = urllib.request.Request(
+        f"{url}/rest/agile/1.0/board?projectKeyOrId={project_key}",
+        headers=_headers(email, token)
+    )
+    try:
+        with urllib.request.urlopen(req) as r:
+            boards = json.loads(r.read())
+        if not boards.get("values"):
+            return None
+        board_id = boards["values"][0]["id"]
+
+        payload = json.dumps({
+            "name": f"Sprint {sprint_number} — {sprint_name}",
+            "originBoardId": board_id,
+            "goal": f"Complete {sprint_name} features for POS app"
+        }).encode()
+        req2 = urllib.request.Request(
+            f"{url}/rest/agile/1.0/sprint",
+            data=payload,
+            headers=_headers(email, token),
+            method="POST"
+        )
+        with urllib.request.urlopen(req2) as r:
+            sprint = json.loads(r.read())
+        return sprint["id"]
+    except Exception as e:
+        print(f"      Sprint creation skipped: {e}")
+        return None
+
+
+def jira_add_to_sprint(sprint_id, issue_key):
+    url, email, token = _jira_cfg()
+    if not url or not sprint_id:
+        return
+    payload = json.dumps({"issues": [issue_key]}).encode()
+    req = urllib.request.Request(
+        f"{url}/rest/agile/1.0/sprint/{sprint_id}/issue",
+        data=payload,
+        headers=_headers(email, token),
+        method="POST"
+    )
+    try:
+        urllib.request.urlopen(req)
+    except Exception:
+        pass
+
+
+def jira_create_ticket(project_key, task):
+    url, email, token = _jira_cfg()
+    if not url:
+        return None
+    payload = json.dumps({
+        "fields": {
+            "project": {"key": project_key},
+            "summary": f"[{task['id']}] {task['summary']}",
+            "description": {
+                "type": "doc", "version": 1,
+                "content": [{"type": "paragraph", "content": [
+                    {"type": "text", "text": task["description"]}
+                ]}]
+            },
+            "issuetype": {"name": "Task"},
+            "priority": {
+                "name": "High" if task["priority"] == "P0" else "Medium"
+            },
+        }
+    }).encode()
+    req = urllib.request.Request(
+        f"{url}/rest/api/3/issue",
+        data=payload,
+        headers=_headers(email, token),
+        method="POST"
+    )
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())["key"]
+
+
+def jira_update_status(jira_key, transition_name):
+    url, email, token = _jira_cfg()
+    if not url or not jira_key or jira_key == "N/A":
+        return
+    req = urllib.request.Request(
+        f"{url}/rest/api/3/issue/{jira_key}/transitions",
+        headers=_headers(email, token)
+    )
+    with urllib.request.urlopen(req) as r:
+        data = json.loads(r.read())
+    transition = next(
+        (t for t in data["transitions"]
+         if transition_name.lower() in t["name"].lower()),
+        None
+    )
+    if not transition:
+        return
+    payload = json.dumps({"transition": {"id": transition["id"]}}).encode()
+    req2 = urllib.request.Request(
+        f"{url}/rest/api/3/issue/{jira_key}/transitions",
+        data=payload,
+        headers=_headers(email, token),
+        method="POST"
+    )
+    urllib.request.urlopen(req2)
+    print(f"      Jira {jira_key} -> {transition_name}")
+
+
+def jira_add_pr_link(jira_key, branch_name):
+    url, email, token = _jira_cfg()
+    if not url or not jira_key or jira_key == "N/A":
+        return
+    payload = json.dumps({
+        "body": {
+            "type": "doc", "version": 1,
+            "content": [{"type": "paragraph", "content": [
+                {"type": "text", "text": (
+                    f"Branch: {branch_name}\n"
+                    f"PR: feature -> main (pending review)\n"
+                    f"Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                )}
+            ]}]
+        }
+    }).encode()
+    req = urllib.request.Request(
+        f"{url}/rest/api/3/issue/{jira_key}/comment",
+        data=payload,
+        headers=_headers(email, token),
+        method="POST"
+    )
+    try:
+        urllib.request.urlopen(req)
+        print(f"      Jira {jira_key} <- branch comment added")
+    except Exception:
+        pass
+
 
 # ── Phase 1 ───────────────────────────────────────────────
 
@@ -135,7 +285,42 @@ def phase2_jira_sync(tasks):
     print("\n" + "=" * 60)
     print("PHASE 2 — Jira Sync (REAL): Tao Sprint + Tickets")
     print("=" * 60)
-    return sync_tasks_to_jira(tasks)
+
+    ticket_map = {}
+    sprint_map = {}
+
+    try:
+        project_key = jira_get_project_key()
+        if not project_key:
+            print("  Khong lay duoc project key")
+            return ticket_map
+
+        print(f"\n  Project: {project_key}")
+
+        for sprint_data in tasks["sprints"]:
+            sprint_num = sprint_data["number"]
+            sprint_name = sprint_data["name"]
+
+            print(f"\n  Tao Sprint {sprint_num}: {sprint_name}...")
+            sprint_id = jira_create_sprint(project_key, sprint_name, sprint_num)
+            sprint_map[sprint_num] = sprint_id
+
+            for task in sprint_data["tasks"]:
+                jira_key = jira_create_ticket(project_key, task)
+                ticket_map[task["id"]] = jira_key
+
+                if sprint_id and jira_key:
+                    jira_add_to_sprint(sprint_id, jira_key)
+
+                print(f"    {task['id']} -> {jira_key}: {task['summary'][:40]}")
+                time.sleep(0.3)
+
+        total = len(ticket_map)
+        print(f"\n  Phase 2 done: {total} tickets, {len(sprint_map)} sprints")
+    except Exception as e:
+        print(f"\n  Jira sync failed: {e}")
+
+    return ticket_map
 
 
 # ── Phase 3 ───────────────────────────────────────────────
@@ -264,7 +449,7 @@ def phase3_sprint_execution(tasks, ticket_map):
 
                 print("\n    [TEST] Starting tester agent...")
                 test_result = run_agent("tester-agent", task_id)
-                sig = _parse_test_signal(test_result)
+                sig = p.parse_test_signal(test_result)
 
                 if sig["passed"]:
                     # ── [FIX] MERGE NGAY VÀO BACKBONE KHI PASS ĐỂ TASK SAU KẾ THỪA ──────
@@ -315,7 +500,7 @@ def _write_escalation(task_id, reason):
 # ── Main ──────────────────────────────────────────────────
 
 def run_pipeline(requirement):
-    from pipeline.routers import AGENT_BACKEND
+    from core.adapter_v2_draft import AGENT_BACKEND
     print(f"\n{'=' * 60}")
     print(f"POS PIPELINE V2  |  backend: {AGENT_BACKEND.upper()}")
     print(f"{'=' * 60}")

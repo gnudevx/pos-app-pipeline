@@ -21,6 +21,488 @@
       ],
       "api_calls": [],
       "text": "TypeScript module src/frontend/src/main.tsx"
+    },
+    "src/frontend/src/api/auth.ts": {
+      "id": "src/frontend/src/api/auth.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/api/auth.ts"
+    },
+    "src/frontend/src/api/cart.ts": {
+      "id": "src/frontend/src/api/cart.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/api/cart.ts"
+    },
+    "src/frontend/src/api/checkout.ts": {
+      "id": "src/frontend/src/api/checkout.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/api/checkout.ts"
+    },
+    "src/frontend/src/api/inventory.ts": {
+      "id": "src/frontend/src/api/inventory.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/api/inventory.ts"
+    },
+    "src/frontend/src/api/orders.ts": {
+      "id": "src/frontend/src/api/orders.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/api/orders.ts"
+    },
+    "src/frontend/src/api/products.ts": {
+      "id": "src/frontend/src/api/products.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/api/products.ts"
+    },
+    "src/frontend/src/app/App.tsx": {
+      "id": "src/frontend/src/app/App.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [
+        "./store/authStore",
+        "./pages/Login",
+        "./pages/Signup",
+        "./pages/Dashboard"
+      ],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/app/App.tsx"
+    },
+    "src/frontend/src/app/api/auth.ts": {
+      "id": "src/frontend/src/app/api/auth.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "loginUser",
+        "signupUser"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/auth/login",
+        "${API_BASE_URL}/auth/signup"
+      ],
+      "text": "Exports: loginUser, signupUser. API calls: ${API_BASE_URL}/auth/login, ${API_BASE_URL}/auth/signup"
+    },
+    "src/frontend/src/app/api/cart.ts": {
+      "id": "src/frontend/src/app/api/cart.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "CartItem",
+        "Cart",
+        "AddToCartPayload",
+        "UpdateCartItemPayload",
+        "fetchCart",
+        "addItemToCart",
+        "updateCartItemQuantity",
+        "removeCartItem",
+        "clearCart",
+        "checkoutCart"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/cart",
+        "${API_BASE_URL}/cart/items",
+        "${API_BASE_URL}/cart/items/${itemId}",
+        "${API_BASE_URL}/cart/items/${itemId}",
+        "${API_BASE_URL}/cart",
+        "${API_BASE_URL}/cart/checkout"
+      ],
+      "text": "Exports: CartItem, Cart, AddToCartPayload, UpdateCartItemPayload, fetchCart, addItemToCart, updateCartItemQuantity, removeCartItem, clearCart, checkoutCart. API calls: ${API_BASE_URL}/cart, ${API_BASE_URL}/cart/items, ${API_BASE_URL}/cart/items/${itemId}, ${API_BASE_URL}/cart/items/${itemId}, ${API_BASE_URL}/cart"
+    },
+    "src/frontend/src/app/api/checkout.ts": {
+      "id": "src/frontend/src/app/api/checkout.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "processCheckout"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/checkout"
+      ],
+      "text": "Exports: processCheckout. API calls: ${API_BASE_URL}/checkout"
+    },
+    "src/frontend/src/app/api/inventory.ts": {
+      "id": "src/frontend/src/app/api/inventory.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "InventoryItem",
+        "AdjustStockPayload",
+        "getInventory",
+        "adjustStock"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/inventory",
+        "${API_BASE_URL}/inventory/${productId}/adjust"
+      ],
+      "text": "Exports: InventoryItem, AdjustStockPayload, getInventory, adjustStock. API calls: ${API_BASE_URL}/inventory, ${API_BASE_URL}/inventory/${productId}/adjust"
+    },
+    "src/frontend/src/app/api/orders.ts": {
+      "id": "src/frontend/src/app/api/orders.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "OrderItem",
+        "Order",
+        "OrderDetail",
+        "fetchOrders",
+        "fetchOrderDetail"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/orders",
+        "${API_BASE_URL}/orders/${orderId}"
+      ],
+      "text": "Exports: OrderItem, Order, OrderDetail, fetchOrders, fetchOrderDetail. API calls: ${API_BASE_URL}/orders, ${API_BASE_URL}/orders/${orderId}"
+    },
+    "src/frontend/src/app/api/products.ts": {
+      "id": "src/frontend/src/app/api/products.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Product",
+        "ProductCreate",
+        "ProductUpdate"
+      ],
+      "imports": [],
+      "api_calls": [
+        "${API_BASE_URL}/products",
+        "${API_BASE_URL}/products/${id}",
+        "${API_BASE_URL}/products",
+        "${API_BASE_URL}/products/${id}",
+        "${API_BASE_URL}/products/${id}"
+      ],
+      "text": "Exports: Product, ProductCreate, ProductUpdate. API calls: ${API_BASE_URL}/products, ${API_BASE_URL}/products/${id}, ${API_BASE_URL}/products, ${API_BASE_URL}/products/${id}, ${API_BASE_URL}/products/${id}"
+    },
+    "src/frontend/src/app/components/CartItem.tsx": {
+      "id": "src/frontend/src/app/components/CartItem.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/app/components/CartItem.tsx"
+    },
+    "src/frontend/src/app/pages/Cart.tsx": {
+      "id": "src/frontend/src/app/pages/Cart.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "CartPage"
+      ],
+      "imports": [
+        "../api/cart",
+        "../components/CartItem"
+      ],
+      "api_calls": [],
+      "text": "Exports: CartPage"
+    },
+    "src/frontend/src/app/pages/CheckoutPage.tsx": {
+      "id": "src/frontend/src/app/pages/CheckoutPage.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "CheckoutPage"
+      ],
+      "imports": [
+        "../api/checkout"
+      ],
+      "api_calls": [],
+      "text": "Exports: CheckoutPage"
+    },
+    "src/frontend/src/app/pages/Dashboard.tsx": {
+      "id": "src/frontend/src/app/pages/Dashboard.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "DashboardPage"
+      ],
+      "imports": [
+        "../store/authStore"
+      ],
+      "api_calls": [],
+      "text": "Exports: DashboardPage"
+    },
+    "src/frontend/src/app/pages/InventoryAdjust.tsx": {
+      "id": "src/frontend/src/app/pages/InventoryAdjust.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "InventoryAdjustPage"
+      ],
+      "imports": [
+        "../api/inventory"
+      ],
+      "api_calls": [],
+      "text": "Exports: InventoryAdjustPage"
+    },
+    "src/frontend/src/app/pages/InventoryList.tsx": {
+      "id": "src/frontend/src/app/pages/InventoryList.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "InventoryListPage"
+      ],
+      "imports": [
+        "../api/inventory"
+      ],
+      "api_calls": [],
+      "text": "Exports: InventoryListPage"
+    },
+    "src/frontend/src/app/pages/Login.tsx": {
+      "id": "src/frontend/src/app/pages/Login.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "LoginPage"
+      ],
+      "imports": [
+        "../api/auth",
+        "../store/authStore"
+      ],
+      "api_calls": [],
+      "text": "Exports: LoginPage"
+    },
+    "src/frontend/src/app/pages/OrderDetail.tsx": {
+      "id": "src/frontend/src/app/pages/OrderDetail.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [
+        "../api/orders",
+        "../store/authStore"
+      ],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/app/pages/OrderDetail.tsx"
+    },
+    "src/frontend/src/app/pages/OrderList.tsx": {
+      "id": "src/frontend/src/app/pages/OrderList.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [
+        "../api/orders",
+        "../store/authStore"
+      ],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/app/pages/OrderList.tsx"
+    },
+    "src/frontend/src/app/pages/ProductDetail.tsx": {
+      "id": "src/frontend/src/app/pages/ProductDetail.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "ProductDetail"
+      ],
+      "imports": [
+        "../api/products"
+      ],
+      "api_calls": [],
+      "text": "Exports: ProductDetail"
+    },
+    "src/frontend/src/app/pages/ProductForm.tsx": {
+      "id": "src/frontend/src/app/pages/ProductForm.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "ProductForm"
+      ],
+      "imports": [
+        "../api/products"
+      ],
+      "api_calls": [],
+      "text": "Exports: ProductForm"
+    },
+    "src/frontend/src/app/pages/ProductList.tsx": {
+      "id": "src/frontend/src/app/pages/ProductList.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "ProductList"
+      ],
+      "imports": [
+        "../api/products"
+      ],
+      "api_calls": [],
+      "text": "Exports: ProductList"
+    },
+    "src/frontend/src/app/pages/Signup.tsx": {
+      "id": "src/frontend/src/app/pages/Signup.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "SignupPage"
+      ],
+      "imports": [
+        "../api/auth",
+        "../store/authStore"
+      ],
+      "api_calls": [],
+      "text": "Exports: SignupPage"
+    },
+    "src/frontend/src/app/store/authStore.ts": {
+      "id": "src/frontend/src/app/store/authStore.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/app/store/authStore.ts"
+    },
+    "src/frontend/src/pages/Cart.tsx": {
+      "id": "src/frontend/src/pages/Cart.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Cart"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Cart"
+    },
+    "src/frontend/src/pages/Checkout.tsx": {
+      "id": "src/frontend/src/pages/Checkout.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Checkout"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Checkout"
+    },
+    "src/frontend/src/pages/InventoryAdjust.tsx": {
+      "id": "src/frontend/src/pages/InventoryAdjust.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Inventoryadjust"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Inventoryadjust"
+    },
+    "src/frontend/src/pages/InventoryList.tsx": {
+      "id": "src/frontend/src/pages/InventoryList.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Inventorylist"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Inventorylist"
+    },
+    "src/frontend/src/pages/Login.tsx": {
+      "id": "src/frontend/src/pages/Login.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Login"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Login"
+    },
+    "src/frontend/src/pages/OrderDetail.tsx": {
+      "id": "src/frontend/src/pages/OrderDetail.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Orderdetail"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Orderdetail"
+    },
+    "src/frontend/src/pages/OrderList.tsx": {
+      "id": "src/frontend/src/pages/OrderList.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Orderlist"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Orderlist"
+    },
+    "src/frontend/src/pages/ProductDetail.tsx": {
+      "id": "src/frontend/src/pages/ProductDetail.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Productdetail"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Productdetail"
+    },
+    "src/frontend/src/pages/ProductForm.tsx": {
+      "id": "src/frontend/src/pages/ProductForm.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Productform"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Productform"
+    },
+    "src/frontend/src/pages/ProductList.tsx": {
+      "id": "src/frontend/src/pages/ProductList.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Productlist"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Productlist"
+    },
+    "src/frontend/src/pages/Signup.tsx": {
+      "id": "src/frontend/src/pages/Signup.tsx",
+      "type": "component",
+      "component": "frontend",
+      "exports": [
+        "Signup"
+      ],
+      "imports": [],
+      "api_calls": [],
+      "text": "Exports: Signup"
+    },
+    "src/frontend/src/store/authStore.ts": {
+      "id": "src/frontend/src/store/authStore.ts",
+      "type": "component",
+      "component": "frontend",
+      "exports": [],
+      "imports": [],
+      "api_calls": [],
+      "text": "TypeScript module src/frontend/src/store/authStore.ts"
     }
   },
   "edges": [
@@ -32,6 +514,111 @@
     {
       "from": "src/frontend/src/main.tsx",
       "to": "./App",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/App.tsx",
+      "to": "./store/authStore",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/App.tsx",
+      "to": "./pages/Login",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/App.tsx",
+      "to": "./pages/Signup",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/App.tsx",
+      "to": "./pages/Dashboard",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Cart.tsx",
+      "to": "../api/cart",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Cart.tsx",
+      "to": "../components/CartItem",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/CheckoutPage.tsx",
+      "to": "../api/checkout",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Dashboard.tsx",
+      "to": "../store/authStore",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/InventoryAdjust.tsx",
+      "to": "../api/inventory",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/InventoryList.tsx",
+      "to": "../api/inventory",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Login.tsx",
+      "to": "../api/auth",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Login.tsx",
+      "to": "../store/authStore",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/OrderDetail.tsx",
+      "to": "../api/orders",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/OrderDetail.tsx",
+      "to": "../store/authStore",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/OrderList.tsx",
+      "to": "../api/orders",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/OrderList.tsx",
+      "to": "../store/authStore",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/ProductDetail.tsx",
+      "to": "../api/products",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/ProductForm.tsx",
+      "to": "../api/products",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/ProductList.tsx",
+      "to": "../api/products",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Signup.tsx",
+      "to": "../api/auth",
+      "rel": "imports"
+    },
+    {
+      "from": "src/frontend/src/app/pages/Signup.tsx",
+      "to": "../store/authStore",
       "rel": "imports"
     }
   ]

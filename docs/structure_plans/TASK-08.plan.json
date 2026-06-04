@@ -120,6 +120,20 @@
   "graph_context": {
     "neighbors": [
       {
+        "id": "ENT-09",
+        "name": "Order history & receipt management backend",
+        "component": "backend",
+        "domain_tags": [],
+        "ownership": "user-scoped"
+      },
+      {
+        "id": "ENT-05",
+        "name": "Shopping cart management backend",
+        "component": "backend",
+        "domain_tags": [],
+        "ownership": "user-scoped"
+      },
+      {
         "id": "ENT-08",
         "name": "Checkout UI",
         "component": "frontend",
@@ -132,20 +146,6 @@
         "component": "backend",
         "domain_tags": [],
         "ownership": "system"
-      },
-      {
-        "id": "ENT-05",
-        "name": "Shopping cart management backend",
-        "component": "backend",
-        "domain_tags": [],
-        "ownership": "user-scoped"
-      },
-      {
-        "id": "ENT-09",
-        "name": "Order history & receipt management backend",
-        "component": "backend",
-        "domain_tags": [],
-        "ownership": "user-scoped"
       }
     ],
     "edges": [

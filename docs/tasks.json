@@ -214,7 +214,7 @@
           "sprint": 2,
           "priority": "P1",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Users can successfully sign up for a new account.",
             "Users can log in with valid credentials.",
@@ -225,7 +225,8 @@
           "api_contract": {
             "schema_version": "2.0",
             "routes": []
-          }
+          },
+          "branch": "feature/task-02-auth-frontend"
         },
         {
           "id": "TASK-03",
@@ -361,7 +362,7 @@
           "sprint": 2,
           "priority": "P0",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Managers can view a list of all products.",
             "Managers can search and filter products.",
@@ -521,7 +522,8 @@
                 "response_fields": {}
               }
             ]
-          }
+          },
+          "branch": "feature/task-03-product-catalog-backend"
         }
       ]
     },
@@ -657,7 +659,7 @@
           "sprint": 3,
           "priority": "P0",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Cashiers can add products to the shopping cart.",
             "Cashiers can increase or decrease the quantity of items in the cart.",
@@ -802,7 +804,8 @@
                 "response_fields": {}
               }
             ]
-          }
+          },
+          "branch": "feature/task-04-shopping-cart-management-backend"
         },
         {
           "id": "TASK-06",
@@ -894,7 +897,7 @@
           "sprint": 3,
           "priority": "P0",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Managers can view a list of all products.",
             "Managers can search and filter products.",
@@ -989,7 +992,8 @@
                 }
               }
             ]
-          }
+          },
+          "branch": "feature/task-06-inventory-stock-management-backend"
         },
         {
           "id": "TASK-05",
@@ -1017,7 +1021,7 @@
           "sprint": 3,
           "priority": "P1",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Managers can view a list of all products.",
             "Managers can search and filter products.",
@@ -1029,7 +1033,8 @@
           "api_contract": {
             "schema_version": "2.0",
             "routes": []
-          }
+          },
+          "branch": "feature/task-05-product-catalog-ui"
         }
       ]
     },
@@ -1063,7 +1068,7 @@
           "sprint": 4,
           "priority": "P1",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Cashiers can add products to the shopping cart.",
             "Cashiers can increase or decrease the quantity of items in the cart.",
@@ -1075,7 +1080,8 @@
           "api_contract": {
             "schema_version": "2.0",
             "routes": []
-          }
+          },
+          "branch": "feature/task-07-shopping-cart-ui"
         }
       ]
     },
@@ -1164,7 +1170,7 @@
           "sprint": 5,
           "priority": "P0",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Users can view a list of all past sales orders.",
             "Users can view the detailed receipt for any specific past order.",
@@ -1244,7 +1250,8 @@
                 }
               }
             ]
-          }
+          },
+          "branch": "feature/task-11-order-history-receipt-management-backend"
         }
       ]
     },
@@ -1277,7 +1284,7 @@
           "sprint": 6,
           "priority": "P1",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Cashiers can add products to the shopping cart.",
             "Cashiers can increase or decrease the quantity of items in the cart.",
@@ -1289,7 +1296,8 @@
           "api_contract": {
             "schema_version": "2.0",
             "routes": []
-          }
+          },
+          "branch": "feature/task-10-checkout-ui"
         },
         {
           "id": "TASK-08",
@@ -1354,7 +1362,7 @@
           "sprint": 6,
           "priority": "P0",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Cashiers can add products to the shopping cart.",
             "Cashiers can increase or decrease the quantity of items in the cart.",
@@ -1412,7 +1420,8 @@
                 }
               }
             ]
-          }
+          },
+          "branch": "feature/task-08-checkout-order-processing-backend"
         },
         {
           "id": "TASK-09",
@@ -1439,7 +1448,7 @@
           "sprint": 6,
           "priority": "P1",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Managers can view a list of all products.",
             "Managers can search and filter products.",
@@ -1451,7 +1460,8 @@
           "api_contract": {
             "schema_version": "2.0",
             "routes": []
-          }
+          },
+          "branch": "feature/task-09-inventory-stock-ui"
         }
       ]
     },
@@ -1484,7 +1494,7 @@
           "sprint": 7,
           "priority": "P1",
           "story_points": 5,
-          "status": "TODO",
+          "status": "PASSED",
           "acceptance_criteria": [
             "Users can view a list of all past sales orders.",
             "Users can view the detailed receipt for any specific past order.",
@@ -1493,7 +1503,8 @@
           "api_contract": {
             "schema_version": "2.0",
             "routes": []
-          }
+          },
+          "branch": "feature/task-12-order-history-ui"
         }
       ]
     }

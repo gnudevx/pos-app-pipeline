@@ -2109,3 +2109,209 @@ tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 75%]
 tests/test_api.py::test_post_auth_refresh_0440
 Skipped — component=backend
 ```
+
+---
+## TASK-01 (backend) — 2026-06-02T14:57:39.362381
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 50%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 75%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-02 (frontend) — 2026-06-02T14:58:16.446753
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+node_modules not found — skip
+```
+
+---
+## TASK-03 (backend) — 2026-06-02T14:59:29.246008
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 6 items
+
+tests/test_api.py::test_health PASSED                                    [ 16%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 33%]
+tests/test_api.py::test_get_products_param_613b6c PASSED                 [ 50%]
+tests/test_api.py::test_post_products_48842b P
+Skipped — component=backend
+```
+
+---
+## TASK-04 (frontend) — 2026-06-02T15:00:20.436857
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+node_modules not found — skip
+```
+
+---
+## TASK-05 (backend) — 2026-06-02T15:02:06.344134
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_get_inventory_257fdb PASSED                      [ 50%]
+tests/test_api.py::test_get_inventory_param_4bb987 FAILED                [ 75%]
+tests/test_api.py::test_put_inventory_param_st
+Skipped — component=backend
+```
+
+---
+## TASK-05 (backend) — 2026-06-02T15:03:18.185422
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_get_inventory_257fdb PASSED                      [ 50%]
+tests/test_api.py::test_get_inventory_param_4bb987 FAILED                [ 75%]
+tests/test_api.py::test_put_inventory_param_st
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-06-02T17:33:06.572321
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 0 items / 1 error
+
+=================================== ERRORS ====================================
+_____________________ ERROR collecting tests/test_api.py ______________________
+ImportError while importing test module 'D:\Intern\pos-app-test_v2\src\services\auth_backend\tests\test_api.py'.
+Hin
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-06-02T18:08:03.736823
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 50%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 75%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-06-02T18:20:39.584822
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 0 items / 1 error
+
+=================================== ERRORS ====================================
+_____________________ ERROR collecting tests/test_api.py ______________________
+ImportError while importing test module 'D:\Intern\pos-app-test_v2\src\services\auth_backend\tests\test_api.py'.
+Hin
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-06-02T18:30:08.063224
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 50%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 75%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-06-02T18:47:59.610171
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 50%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 75%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-01 (backend) — 2026-06-02T18:55:25.340790
+- Backend: PASS
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 4 items
+
+tests/test_api.py::test_health PASSED                                    [ 25%]
+tests/test_api.py::test_post_auth_signup_c6dc0c PASSED                   [ 50%]
+tests/test_api.py::test_post_auth_login_fe43ba PASSED                    [ 75%]
+tests/test_api.py::test_post_auth_refresh_0440
+Skipped — component=backend
+```
+
+---
+## TASK-02 (frontend) — 2026-06-02T18:56:14.220037
+- Backend: PASS
+- Frontend: PASS
+
+```
+Skipped — component=frontend
+node_modules not found — skip
+```
+
+---
+## TASK-03 (backend) — 2026-06-02T18:57:40.491649
+- Backend: FAIL
+- Frontend: PASS
+
+```
+============================= test session starts =============================
+collecting ... collected 6 items
+
+tests/test_api.py::test_health PASSED                                    [ 16%]
+tests/test_api.py::test_get_products_7ad9f9 PASSED                       [ 33%]
+tests/test_api.py::test_get_products_param_6be0e2 FAILED                 [ 50%]
+tests/test_api.py::test_post_products_48842b P
+Skipped — component=backend
+```

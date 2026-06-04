@@ -153,11 +153,11 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-12",
-        "name": "Inventory stock UI",
-        "component": "frontend",
+        "id": "ENT-07",
+        "name": "Checkout & order processing backend",
+        "component": "backend",
         "domain_tags": [],
-        "ownership": "system"
+        "ownership": "user-scoped"
       },
       {
         "id": "ENT-03",
@@ -167,11 +167,11 @@
         "ownership": "system"
       },
       {
-        "id": "ENT-07",
-        "name": "Checkout & order processing backend",
-        "component": "backend",
+        "id": "ENT-12",
+        "name": "Inventory stock UI",
+        "component": "frontend",
         "domain_tags": [],
-        "ownership": "user-scoped"
+        "ownership": "system"
       }
     ],
     "edges": [

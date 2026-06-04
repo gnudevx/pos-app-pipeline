@@ -32,16 +32,16 @@
   "graph_context": {
     "neighbors": [
       {
-        "id": "ENT-06",
-        "name": "Shopping cart UI",
-        "component": "frontend",
+        "id": "ENT-07",
+        "name": "Checkout & order processing backend",
+        "component": "backend",
         "domain_tags": [],
         "ownership": "user-scoped"
       },
       {
-        "id": "ENT-07",
-        "name": "Checkout & order processing backend",
-        "component": "backend",
+        "id": "ENT-06",
+        "name": "Shopping cart UI",
+        "component": "frontend",
         "domain_tags": [],
         "ownership": "user-scoped"
       }

@@ -15,7 +15,15 @@ model: gemini-2.5-flash
 <!-- @include: dev-agent-core.md -->
 
 ---
-
+## UI STYLING — MANDATORY
+- Always use Tailwind CSS utility classes for ALL styling
+- DO NOT write inline styles, DO NOT create .css files
+- Every page must have a proper layout, e.g.:
+  - Page wrapper: `className="min-h-screen bg-gray-50 p-6"`
+  - Card/container: `className="bg-white rounded-xl shadow-sm p-6"`
+  - Button primary: `className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg"`
+  - Table: `className="w-full border-collapse"` với `th`: `className="text-left text-sm font-semibold text-gray-600 pb-3"`
+  - Input: `className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"`
 # SCAFFOLD + SLOT FILL MODEL — READ FIRST
 
 Before this task runs, two preparatory steps have already completed:
@@ -203,6 +211,10 @@ the product state that already exists.
 4. Write tests covering the contract
 
 ---
+
+## BANNED IMPORTS (will cause ImportError at runtime)
+- `OAuth2BearerToken` — does NOT exist in fastapi.security
+- Use `OAuth2PasswordBearer` or `HTTPBearer` instead
 
 # REASONING PATTERN
 

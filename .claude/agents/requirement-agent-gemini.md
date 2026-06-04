@@ -78,8 +78,25 @@ entities that were never listed.
   "description": "GET /receipts/, GET /receipts/{id} — store and retrieve past transactions" }
 ```
 
-**For EACH entity, include at least 2 concrete HTTP routes in the description.**
+**For EACH backend entity, include at least 2 concrete HTTP routes in the description.**
 This forces route-level thinking — vague names like "sales system" produce incomplete architectures.
+
+**MANDATORY ROUTE COMPLETENESS — violations break downstream agents:**
+
+1. **Collection + item routes BOTH required**: If an entity manages a list of resources,
+   declare BOTH the collection route AND the item route:
+   - ✅ `GET /products, GET /products/{id}, POST /products, PUT /products/{id}`
+   - ❌ `GET /products/{id}, POST /products` ← missing collection GET → breaks data_shape detection
+
+2. **Write-protected resources must declare auth scope**:
+   If GET is public but POST/PUT/DELETE require login, say so explicitly:
+   - ✅ `GET /products (public), POST /products (requires auth), PUT /products/{id} (requires auth)`
+   - ❌ `POST /products, GET /products/{id}` ← auth requirement is ambiguous
+
+3. **Every resource with a list view MUST have `GET /resources` (no {id})**:
+   Products, orders, inventory items, cart items — all need a list endpoint.
+   Omitting it causes the knowledge graph to classify the entity as
+   `data_shape=single` instead of `data_shape=collection`.
 
 **Do NOT produce fewer than 4 entities** for any non-trivial product.
 Fewer than 4 means you merged too aggressively.
